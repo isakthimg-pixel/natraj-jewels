@@ -6,11 +6,11 @@
 <meta name="description" content="Natraj Jewels, Tiruppur. Trusted since 1936 for 916 HUID hallmarked gold, silver and diamond jewellery. 24, Eswaran Kovil Street, Tiruppur 641604. Call +91 94445 22929.">
 <meta property="og:title" content="Natraj Jewels | Tiruppur">
 <meta property="og:description" content="Gold, silver and diamond jewellery. Trusted since 1936.">
-<meta property="og:image" content="img/hero.jpg">
+<meta property="og:image" content="img/hero-bust.webp">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#3B2420">
+<meta name="theme-color" content="#913831">
 <title>Natraj Jewels | Tiruppur</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,9 +20,9 @@
 :root{
   --cream:#FFFFFF; --paper:#F5F2ED; --card:#FFFFFF;
   --maroon:#8E2A2A; --maroon-deep:#6E1F1F;
-  --cocoa:#3B2420; --gold:#845E22; --gold-soft:#E7D3AE; --err:#B3261E;
+  --cocoa:#913831; --gold:#845E22; --gold-soft:#E7D3AE; --err:#B3261E;
   --ink:#2A1E1B; --muted:#6D5D57; --line:#E2D6C4;
-  --on-dark:#F8EFE2; --on-dark-muted:#D9C6B0;
+  --on-dark:#F8EFE2; --on-dark-muted:#EBDCCB;
   --heading:"Playfair Display", "Didot", Georgia, serif;
   --display:"Playfair Display", "Didot", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -237,6 +237,38 @@ footer .brand{color:var(--on-dark)}
 .btn-call svg{width:17px;height:17px}
 .btn-call:hover svg{animation:ring .6s ease}
 @keyframes ring{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(5deg)}}
+
+/* red texture on the dark bands */
+.top,.hero,.reviews,footer{background-color:var(--cocoa);background-image:url("img/texture-red.jpg");background-repeat:repeat;background-size:562px auto}
+.top{backdrop-filter:none}
+
+/* opening photo: cut-out bust on the red texture */
+.hero-photo{display:flex;align-items:flex-end;justify-content:center;padding-top:36px}
+.hero-photo::before{display:none}
+.hero-photo img{width:auto;height:auto;max-width:88%;max-height:600px;object-fit:contain;filter:drop-shadow(0 24px 30px rgba(40,10,8,.45))}
+@media (max-width:860px){
+  .hero-photo{aspect-ratio:auto;padding-top:28px}
+  .hero-photo img{max-height:340px;max-width:80%}
+}
+
+/* necklace slider in the opening */
+.hero-photo{flex-direction:column;align-items:stretch;justify-content:flex-end;padding-top:12px;padding-bottom:18px;min-width:0}
+.jewel-track{padding-block:24px 72px;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;-webkit-overflow-scrolling:touch;outline:none;width:100%}
+.jewel-track::-webkit-scrollbar{display:none}
+.jewel{flex:0 0 100%;margin:0;scroll-snap-align:center;display:flex;justify-content:center;align-items:flex-end;opacity:.25;transform:scale(.9) translateY(10px);transition:opacity .6s ease,transform .7s cubic-bezier(.22,.8,.3,1)}
+.jewel.is-active{opacity:1;transform:none}
+.jewel-nav{position:absolute;top:50%;z-index:2;width:44px;height:44px;border-radius:50%;border:1px solid rgba(248,239,226,.55);background:rgba(60,18,16,.28);color:#F8EFE2;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(4px);transition:background .2s,transform .15s}
+.jewel-nav:hover{background:rgba(60,18,16,.5)}
+.jewel-nav:active{transform:scale(.94)}
+.jewel-nav svg{width:20px;height:20px}
+.jewel-nav.prev{left:8px}
+.jewel-nav.next{right:16px}
+.jewel-dots{position:relative;z-index:1;display:flex;justify-content:center;gap:10px;margin-top:-44px}
+.jewel-dots button{width:8px;height:8px;padding:0;border-radius:999px;border:0;background:rgba(248,239,226,.45);cursor:pointer;transition:width .35s ease,background .35s ease}
+.jewel-dots button[aria-current="true"]{width:26px;background:#E7D3AE}
+.jewel-track:focus-visible{outline:2px solid #E7D3AE;outline-offset:4px;border-radius:8px}
+@media (max-width:860px){.jewel-nav{width:38px;height:38px}.jewel-nav.prev{left:4px}.jewel-nav.next{right:4px}}
+@media (prefers-reduced-motion: reduce){.jewel-track{scroll-behavior:auto}.jewel{transition:none}}
 </style>
 </head>
 <body>
@@ -273,8 +305,16 @@ footer .brand{color:var(--on-dark)}
         </div>
         <div class="trust"><b>90</b><span><strong>years of trust</strong>Since 1936 · Tiruppur</span></div>
       </div>
-      <div class="hero-photo">
-        <img src="img/hero.jpg" alt="Woman in a cream silk saree wearing a Natraj gold necklace and matching earrings">
+      <div class="hero-photo" aria-roledescription="carousel" aria-label="Featured necklaces">
+        <div class="jewel-track" id="jewel-track" tabindex="0">
+          <figure class="jewel is-active" role="group" aria-roledescription="slide" aria-label="1 of 4"><img src="img/hero-bust.webp" alt="Gold necklace with ruby and diamond-set paisley links on a cream display bust" width="993" height="1512"></figure>
+          <figure class="jewel" role="group" aria-roledescription="slide" aria-label="2 of 4"><img src="img/hero-bust-27.webp" alt="Gold necklace with diamond-set leaf links and small ruby accents on a cream display bust" width="1129" height="1734" loading="lazy"></figure>
+          <figure class="jewel" role="group" aria-roledescription="slide" aria-label="3 of 4"><img src="img/hero-bust-28.webp" alt="Gold necklace with ruby marquise links and a floral ruby pendant on a cream display bust" width="962" height="1462" loading="lazy"></figure>
+          <figure class="jewel" role="group" aria-roledescription="slide" aria-label="4 of 4"><img src="img/hero-bust-29.webp" alt="Gold necklace with diamond and emerald links and a floral pendant with an emerald drop on a cream display bust" width="988" height="1508" loading="lazy"></figure>
+        </div>
+        <button class="jewel-nav prev" type="button" aria-label="Previous necklace"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="jewel-nav next" type="button" aria-label="Next necklace"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="jewel-dots" id="jewel-dots"><button type="button" aria-label="Show necklace 1" aria-current="true"></button><button type="button" aria-label="Show necklace 2"></button><button type="button" aria-label="Show necklace 3"></button><button type="button" aria-label="Show necklace 4"></button></div>
       </div>
     </div>
   </section>
@@ -291,7 +331,7 @@ footer .brand{color:var(--on-dark)}
       </div>
       <div class="metals">
         <figure class="metal metal-big" style="margin:0">
-          <img src="img/necklace.jpg" alt="Antique gold temple necklace with a Lakshmi pendant on dark blue silk">
+          <img src="img/necklace.jpg" alt="Long gold necklace with rows of spike-shaped drops on a display bust against red satin" style="object-position:50% 30%">
           <figcaption>
             <span class="purity">22K · 916 HUID</span>
             <h3>Gold</h3>
@@ -618,6 +658,46 @@ footer .brand{color:var(--on-dark)}
   }
   shuffle(document.querySelector(".reel-row"), 1);
   shuffle(document.querySelector(".review-grid"), 2);
+})();
+</script>
+<script>
+// Opening necklace slider: swipe, arrows, dots, keyboard, gentle auto-play.
+(function(){
+  var track = document.getElementById("jewel-track");
+  if(!track) return;
+  var slides = Array.prototype.slice.call(track.children);
+  var dots = Array.prototype.slice.call(document.getElementById("jewel-dots").children);
+  var root = track.parentNode, current = 0, timer = null, paused = false;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function go(i){ i = (i + slides.length) % slides.length; track.scrollTo({left: slides[i].offsetLeft - track.offsetLeft, behavior: reduce ? "auto" : "smooth"}); }
+  function mark(i){
+    if(i === current && slides[i].classList.contains("is-active")) return;
+    current = i;
+    slides.forEach(function(s, k){ s.classList.toggle("is-active", k === i); });
+    dots.forEach(function(d, k){ if(k === i) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current"); });
+  }
+  var raf;
+  track.addEventListener("scroll", function(){
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(function(){ mark(Math.round(track.scrollLeft / track.clientWidth)); });
+  }, {passive: true});
+  root.querySelector(".prev").addEventListener("click", function(){ go(current - 1); restart(); });
+  root.querySelector(".next").addEventListener("click", function(){ go(current + 1); restart(); });
+  dots.forEach(function(d, k){ d.addEventListener("click", function(){ go(k); restart(); }); });
+  track.addEventListener("keydown", function(e){
+    if(e.key === "ArrowRight"){ e.preventDefault(); go(current + 1); restart(); }
+    if(e.key === "ArrowLeft"){ e.preventDefault(); go(current - 1); restart(); }
+  });
+  function start(){ if(reduce || timer) return; timer = setInterval(function(){ if(!paused && !document.hidden) go(current + 1); }, 4500); }
+  function restart(){ clearInterval(timer); timer = null; start(); }
+  root.addEventListener("mouseenter", function(){ paused = true; });
+  root.addEventListener("mouseleave", function(){ paused = false; });
+  root.addEventListener("focusin", function(){ paused = true; });
+  root.addEventListener("focusout", function(){ paused = false; });
+  track.addEventListener("touchstart", function(){ paused = true; }, {passive: true});
+  track.addEventListener("touchend", function(){ setTimeout(function(){ paused = false; }, 3000); restart(); }, {passive: true});
+  window.addEventListener("resize", function(){ track.style.scrollBehavior = "auto"; go(current); track.style.scrollBehavior = ""; });
+  start();
 })();
 </script>
 </body>
