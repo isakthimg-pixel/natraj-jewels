@@ -7,7 +7,10 @@
 <meta property="og:title" content="Natraj Jewels, Tiruppur">
 <meta property="og:description" content="Gold, silver and diamond jewellery. Trusted since 1936.">
 <meta property="og:image" content="img/hero.jpg">
-<link rel="icon" href="img/logo-cream.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#3B2420">
 <title>Natraj Jewels</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -169,15 +172,18 @@ footer{background:var(--cocoa);color:var(--on-dark-muted);padding-block:44px;fon
 footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px;align-items:center}
 footer .brand{color:var(--on-dark)}
 .rights{flex-basis:100%;margin:8px 0 0;padding-top:18px;border-top:1px solid rgba(231,211,174,.2);font-size:.8rem;color:var(--on-dark-muted)}
-/* Instagram switch */
-.top-actions{display:flex;align-items:center;gap:14px}
-.mode{display:inline-flex;align-items:center;padding:4px;text-decoration:none;color:#3B2420}
-.mode .track{position:relative;width:52px;height:28px;border-radius:999px;background:rgba(248,239,226,.14);border:1px solid rgba(231,211,174,.45);transition:background .25s,border-color .25s}
-.mode .knob{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#F6E7BF;display:grid;place-items:center;transition:transform .25s ease}
-.mode svg{width:14px;height:14px}
-.mode:hover .knob,.mode:focus-visible .knob{transform:translateX(24px)}
-.mode:hover .track,.mode:focus-visible .track{background:rgba(231,211,174,.3);border-color:#E7D3AE}
-@media (max-width:640px){.top-actions{gap:10px}}
+/* Instagram button */
+.top-actions{display:flex;align-items:center;gap:12px}
+.btn-ig{position:relative;overflow:hidden;isolation:isolate;color:#F8EFE2;border-color:rgba(231,211,174,.55);background:transparent;transition:color .3s ease,border-color .3s ease,transform .15s ease,box-shadow .3s ease}
+.btn-ig::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(45deg,#F9CE34,#EE2A7B 55%,#6228D7);opacity:0;transform:scale(.6);border-radius:inherit;transition:opacity .3s ease,transform .35s ease}
+.btn-ig svg{width:18px;height:18px;transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.btn-ig:hover,.btn-ig:focus-visible{color:#FFFFFF;border-color:transparent;box-shadow:0 6px 18px rgba(238,42,123,.35)}
+.btn-ig:hover::before,.btn-ig:focus-visible::before{opacity:1;transform:scale(1)}
+.btn-ig:hover svg,.btn-ig:focus-visible svg{transform:rotate(-12deg) scale(1.15)}
+/* every button gives a small press when tapped */
+.btn{transition:background .2s,color .2s,transform .15s ease,box-shadow .2s}
+.btn:active{transform:scale(.96)}
+@media (max-width:640px){.top-actions{gap:8px}.btn-ig{padding:10px}.btn-ig span{display:none}}
 
 /* social */
 .btn svg{width:18px;height:18px;flex:none}
@@ -245,9 +251,7 @@ footer .brand{color:var(--on-dark)}
       <a href="#visit">Visit us</a>
     </nav>
     <div class="top-actions">
-      <a class="mode" href="https://www.instagram.com/natrajjewels.tiruppur/" target="_blank" rel="noopener" aria-label="Natraj Jewels on Instagram">
-        <span class="track"><span class="knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span></span>
-      </a>
+      <a class="btn btn-ig" href="https://www.instagram.com/natrajjewels.tiruppur/" target="_blank" rel="noopener" aria-label="Natraj Jewels on Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
       <a class="btn btn-gold" href="#enquire">Enquire</a>
     </div>
   </div>
