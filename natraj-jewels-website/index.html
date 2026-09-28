@@ -14,7 +14,7 @@
 <title>Natraj Jewels | Tiruppur</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Figtree:wght@400;500;600&family=Noto+Serif+Tamil:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Cinzel:wght@400;500&family=Great+Vibes&family=Figtree:wght@400;500;600&family=Noto+Serif+Tamil:wght@500&display=swap">
 <style>
 [hidden]{display:none!important}
 :root{
@@ -68,8 +68,9 @@ footer .brand img{height:96px}
 .hero .wrap{display:grid;grid-template-columns:1.05fr 1fr;align-items:stretch;min-height:560px;max-width:none;padding-right:0;padding-left:max(clamp(16px,4vw,40px), calc((100% - var(--wrap)) / 2 + clamp(16px,4vw,40px)))}
 .hero-copy{padding-block:clamp(56px,8vw,96px);display:flex;flex-direction:column;justify-content:center;gap:22px}
 .tamil{font:500 1rem/1.4 var(--tamil);color:var(--gold-soft);letter-spacing:.02em}
-.hero h1{font-size:clamp(2.6rem,6.2vw,4.9rem);text-transform:uppercase;letter-spacing:.015em;color:#FFF7EE}
-.hero h1 em{font-style:normal;color:var(--gold-soft)}
+.hero h1{font-family:"Cinzel","Trajan Pro",Georgia,serif;font-weight:400;font-size:clamp(1.5rem,2.5vw,2.25rem);letter-spacing:.24em;text-transform:uppercase;color:#FFF7EE;line-height:1.2}
+.hero h1 em{display:block;font-family:"Great Vibes","Snell Roundhand","Apple Chancery",cursive;font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;color:var(--gold-soft);font-size:clamp(3.4rem,6.8vw,6.2rem);line-height:1;margin-top:.1em;margin-left:-.04em}
+@media (max-width:560px){.hero h1 em{font-size:12.6vw}.hero h1{letter-spacing:.2em}}
 .hero p{color:var(--on-dark-muted);max-width:44ch;margin:0;font-size:1.05rem}
 .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
 .hero-photo{position:relative}
@@ -275,6 +276,15 @@ footer .brand{color:var(--on-dark)}
 .jewel-track:focus-visible{outline:2px solid #E7D3AE;outline-offset:4px;border-radius:8px}
 @media (max-width:860px){.jewel-nav{width:38px;height:38px}.jewel-nav.prev{left:4px}.jewel-nav.next{right:4px}}
 @media (prefers-reduced-motion: reduce){.jewel-track{scroll-behavior:auto}.jewel{transition:none}}
+
+/* menu: gold underline that draws in on hover */
+.top nav a{position:relative;padding-block:4px;transition:color .2s ease}
+.top nav a::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:1.5px;background:#E7D3AE;border-radius:2px;transform:scaleX(0);transform-origin:left;transition:transform .3s ease}
+.top nav a:hover::after,.top nav a:focus-visible::after{transform:scaleX(1)}
+
+/* Follow button (light background version of the Instagram button) */
+.btn-ig.btn-ig-light{color:var(--ink);border-color:var(--ink)}
+.btn-ig.btn-ig-light:hover,.btn-ig.btn-ig-light:focus-visible{color:#FFFFFF;border-color:transparent}
 </style>
 </head>
 <body>
@@ -303,7 +313,7 @@ footer .brand{color:var(--on-dark)}
     <div class="wrap">
       <div class="hero-copy">
         <span class="tamil">நடராஜ் ஜுவல்ஸ் · திருப்பூர்</span>
-        <h1>For your brightest <em>moments</em></h1>
+        <h1>For your <em>Brightest Moments</em></h1>
         <p>A 90-year-old family jewellers in Tiruppur. Gold, silver and diamond jewellery for weddings, festivals and every day, with the same trust families have come back to for generations.</p>
         <div class="hero-actions">
           <a class="btn btn-gold" href="#enquire">Send an enquiry</a>
@@ -371,7 +381,7 @@ footer .brand{color:var(--on-dark)}
           <span class="eyebrow">On Instagram</span>
           <h2>Watch our latest reels</h2>
         </div>
-        <a class="btn btn-ghost" href="https://www.instagram.com/natrajjewels.tiruppur/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Follow @natrajjewels.tiruppur</a>
+        <a class="btn btn-ig btn-ig-light" href="https://www.instagram.com/natrajjewels.tiruppur/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Follow @natrajjewels.tiruppur</a>
       </div>
       <div class="reel-row">
         <a class="reel" aria-label="Watch the Visit our store reel on Instagram" href="https://www.instagram.com/reel/Dc76EdVTcYB/" target="_blank" rel="noopener">
