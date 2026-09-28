@@ -65,14 +65,14 @@ footer .brand img{height:96px}
 
 /* hero */
 .hero{background:var(--cocoa);color:var(--on-dark);padding:0;overflow:hidden}
-.hero .wrap{display:grid;grid-template-columns:1.05fr 1fr;align-items:stretch;min-height:560px}
+.hero .wrap{display:grid;grid-template-columns:1.05fr 1fr;align-items:stretch;min-height:560px;max-width:none;padding-right:0;padding-left:max(clamp(16px,4vw,40px), calc((100% - var(--wrap)) / 2 + clamp(16px,4vw,40px)))}
 .hero-copy{padding-block:clamp(56px,8vw,96px);display:flex;flex-direction:column;justify-content:center;gap:22px}
 .tamil{font:500 1rem/1.4 var(--tamil);color:var(--gold-soft);letter-spacing:.02em}
 .hero h1{font-size:clamp(2.6rem,6.2vw,4.9rem);text-transform:uppercase;letter-spacing:.015em;color:#FFF7EE}
 .hero h1 em{font-style:normal;color:var(--gold-soft)}
 .hero p{color:var(--on-dark-muted);max-width:44ch;margin:0;font-size:1.05rem}
 .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
-.hero-photo{position:relative;margin-right:calc(-1 * clamp(16px,4vw,40px))}
+.hero-photo{position:relative}
 .hero-photo img{width:100%;height:100%;object-fit:cover;object-position:50% 20%}
 .hero-photo::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--cocoa),transparent 28%);z-index:1}
 .trust{display:flex;align-items:center;gap:18px;margin-top:18px;padding-top:22px;border-top:1px solid rgba(231,211,174,.28)}
@@ -80,7 +80,7 @@ footer .brand img{height:96px}
 .trust span{display:grid;gap:4px;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--on-dark-muted)}
 .trust span strong{font:500 1.15rem/1.2 var(--display);letter-spacing:.04em;text-transform:none;color:var(--on-dark)}
 @media (max-width:860px){
-  .hero .wrap{grid-template-columns:1fr;min-height:0}
+  .hero .wrap{grid-template-columns:1fr;min-height:0;padding-inline:clamp(16px,4vw,40px)}
   .hero-photo{order:-1;margin-inline:calc(-1 * clamp(16px,4vw,40px));aspect-ratio:4/3;max-width:none}
   .hero-photo::before{background:linear-gradient(0deg,var(--cocoa),transparent 40%)}
   .hero-copy{padding-top:8px}
