@@ -200,14 +200,20 @@ footer .brand{color:var(--on-dark)}
 /* reels */
 .reels .btn-ghost{color:var(--ink)}
 .reel-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.reel-dots{display:none;justify-content:center;gap:10px;margin-top:18px}
+.reel-dots button{width:8px;height:8px;padding:0;border:0;border-radius:999px;background:var(--line);cursor:pointer;transition:width .35s ease,background .35s ease}
+.reel-dots button[aria-current="true"]{width:26px;background:#8E2A2A}
+@media (max-width:560px){.reel-row{grid-auto-columns:72%!important;gap:14px}}
 .reel{position:relative;display:block;border-radius:10px;overflow:hidden;background:var(--paper);aspect-ratio:9/16;max-width:100%;text-decoration:none}
 .reel img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
 .reel:hover img{transform:scale(1.04)}
 .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.9);color:#8E2A2A;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .play svg{width:24px;height:24px;margin-left:3px}
 @media (max-width:960px){
-  .reel-row{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(170px,42%);overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}
+  .reel-row{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(180px,40%);overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;padding-bottom:4px}
+  .reel-row::-webkit-scrollbar{display:none}
   .reel{scroll-snap-align:start}
+  .reel-dots{display:flex}
 }
 
 /* reviews */
@@ -389,6 +395,7 @@ footer .brand{color:var(--on-dark)}
           <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg></span>
         </a>
       </div>
+      <div class="reel-dots" id="reel-dots" aria-label="Choose a reel"></div>
     </div>
   </section>
 
@@ -678,8 +685,8 @@ footer .brand{color:var(--on-dark)}
   }
   var raf;
   track.addEventListener("scroll", function(){
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(function(){ mark(Math.round(track.scrollLeft / track.clientWidth)); });
+    clearTimeout(raf);
+    raf = setTimeout(function(){ mark(Math.round(track.scrollLeft / track.clientWidth)); }, 60);
   }, {passive: true});
   root.querySelector(".prev").addEventListener("click", function(){ go(current - 1); restart(); });
   root.querySelector(".next").addEventListener("click", function(){ go(current + 1); restart(); });
@@ -698,6 +705,27 @@ footer .brand{color:var(--on-dark)}
   track.addEventListener("touchend", function(){ setTimeout(function(){ paused = false; }, 3000); restart(); }, {passive: true});
   window.addEventListener("resize", function(){ track.style.scrollBehavior = "auto"; go(current); track.style.scrollBehavior = ""; });
   start();
+})();
+</script>
+<script>
+// Reels slider dots on phones and tablets.
+(function(){
+  var row = document.querySelector(".reel-row"), box = document.getElementById("reel-dots");
+  if(!row || !box) return;
+  var cards = Array.prototype.slice.call(row.children);
+  cards.forEach(function(c, i){
+    var b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", "Show reel " + (i + 1));
+    b.addEventListener("click", function(){ row.scrollTo({left: row.children[i].offsetLeft - row.offsetLeft, behavior: "smooth"}); });
+    box.appendChild(b);
+  });
+  var dots = Array.prototype.slice.call(box.children), raf;
+  function mark(){
+    var step = row.children.length > 1 ? row.children[1].offsetLeft - row.children[0].offsetLeft : row.clientWidth;
+    var i = row.scrollLeft + row.clientWidth >= row.scrollWidth - 4 ? dots.length - 1 : Math.round(row.scrollLeft / step);
+    dots.forEach(function(d, k){ if(k === i) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current"); });
+  }
+  row.addEventListener("scroll", function(){ clearTimeout(raf); raf = setTimeout(mark, 60); }, {passive: true});
+  mark();
 })();
 </script>
 </body>
