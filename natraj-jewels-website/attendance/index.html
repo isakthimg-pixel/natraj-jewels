@@ -36,7 +36,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 h1,h2,h3{font-family:var(--heading);font-weight:500;margin:0;line-height:1.15}
 
 /* header */
-.top{background:var(--cocoa);color:var(--on-dark);position:sticky;top:0;z-index:20}
+.top{background:var(--cocoa);color:var(--on-dark);position:sticky;top:env(safe-area-inset-top,0px);z-index:20}
 .top .wrap{display:flex;align-items:center;gap:14px;padding-block:10px}
 .top img{height:46px;width:auto}
 .top h1{font-size:1.25rem;color:#FFF7EE}
@@ -129,6 +129,14 @@ table.reg{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:1
 .empty{padding:40px 20px;text-align:center;color:var(--muted)}
 .empty h2{color:var(--maroon);margin-bottom:6px}
 
+dialog{border:0;border-radius:16px;padding:0;max-width:min(420px,calc(100vw - 32px));background:var(--card);color:var(--ink);box-shadow:0 20px 50px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(42,30,27,.45)}
+dialog form{padding:20px;display:grid;gap:10px}
+dialog h2{font-size:1.25rem;color:var(--maroon)}
+dialog p{margin:0;color:var(--muted);white-space:pre-line}
+dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+.btn-red{background:var(--err);border-color:var(--err);color:#fff}
+.btn-red:hover{background:#8F1E18}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--cocoa);color:var(--on-dark);padding:10px 18px;border-radius:999px;font-weight:600;font-size:.88rem;box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:50}
 
 @media print{
@@ -252,6 +260,16 @@ table.reg{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:1
   </section>
 </main>
 
+<dialog id="ask" aria-labelledby="askTitle">
+  <form method="dialog">
+    <h2 id="askTitle"></h2>
+    <p id="askMsg"></p>
+    <div class="actions">
+      <button class="btn" value="cancel" id="askCancel">Cancel</button>
+      <button class="btn btn-maroon" value="ok" id="askOk">OK</button>
+    </div>
+  </form>
+</dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -305,6 +323,18 @@ const nowTime = () => { const d = new Date(); return pad(d.getHours())+':'+pad(d
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,2200); }
+/* in-page confirmation box (browser pop-ups are blocked in some app views) */
+function ask(title, msg, okLabel, danger){
+  const d = $('ask');
+  $('askTitle').textContent = title; $('askMsg').textContent = msg || '';
+  const info = okLabel === null;   // message only, no Cancel
+  $('askCancel').hidden = info;
+  $('askOk').textContent = okLabel || 'OK';
+  $('askOk').className = 'btn ' + (danger ? 'btn-red' : 'btn-maroon');
+  d.returnValue = '';
+  d.showModal(); (info ? $('askOk') : $('askCancel')).focus();
+  return new Promise(res => d.addEventListener('close', () => res(d.returnValue === 'ok'), {once:true}));
+}
 function rec(date, sid){ return (db.att[date]||{})[sid]; }
 function setRec(date, sid, patch){
   const day = db.att[date] || (db.att[date] = {});
@@ -514,10 +544,12 @@ $('staffList').addEventListener('click', e => {
     s.active = !s.active; save(); renderStaff();
     toast(s.name+(s.active?' reactivated':' deactivated. Past records are kept.'));
   } else if(b.dataset.act==='del'){
-    if(!confirm('Delete '+s.name+' and ALL of their attendance records? This cannot be undone.\n\nTip: use Deactivate instead if they have left but you want to keep their history.')) return;
+    ask('Delete '+s.name+'?', 'This removes '+s.name+' and all of their attendance records. It cannot be undone.\n\nIf they have left but you want to keep their history, use Deactivate instead.', 'Delete', true).then(ok => {
+    if(!ok) return;
     db.staff = db.staff.filter(x => x!==s);
     Object.keys(db.att).forEach(d => { delete db.att[d][s.id]; if(!Object.keys(db.att[d]).length) delete db.att[d]; });
-    save(); renderStaff(); toast('Deleted');
+    save(); renderStaff(); toast(s.name+' deleted');
+    });
   }
 });
 
@@ -540,9 +572,9 @@ $('bRestore').addEventListener('change', e => {
   rd.onload = () => {
     try{
       const d = normalize(JSON.parse(rd.result));
-      if(!confirm('Replace the data on this device with this backup?\n\nBackup has '+d.staff.length+' staff and '+Object.keys(d.att).length+' days of attendance.')) return;
-      db = d; save(); toast('Backup restored'); render();
-    }catch(err){ alert('That file is not a valid attendance backup.'); }
+      ask('Restore this backup?', 'The backup has '+d.staff.length+' staff and '+Object.keys(d.att).length+' days of attendance. It will replace everything currently on this device.', 'Restore', true)
+        .then(ok => { if(ok){ db = d; save(); toast('Backup restored'); render(); } });
+    }catch(err){ ask('This file can\'t be restored', 'Choose a backup file downloaded from this app. Its name starts with natraj-attendance-backup.', null); }
   };
   rd.readAsText(f);
 });
