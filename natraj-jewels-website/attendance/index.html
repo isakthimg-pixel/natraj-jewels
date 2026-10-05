@@ -20,10 +20,14 @@
   --cocoa:#3B2420; --gold:#845E22; --gold-soft:#E7D3AE; --err:#B3261E;
   --ink:#2A1E1B; --muted:#6D5D57; --line:#E2D6C4;
   --on-dark:#F8EFE2; --on-dark-muted:#D9C6B0;
-  --p:#2E7D4F; --p-bg:#E3F1E8;
-  --h:#9A6A12; --h-bg:#F8ECD2;
-  --a:#B3261E; --a-bg:#F8E1DF;
-  --l:#3D5A99; --l-bg:#E3E9F6;
+  /* one colour pair per attendance category */
+  --p:#2E7D4F;  --p-bg:#E3F1E8;   /* present */
+  --hm:#1F6B73; --hm-bg:#DCEEEF;  /* home */
+  --t:#5E6B12;  --t-bg:#EEF0D6;   /* thottam */
+  --h:#9A6A12;  --h-bg:#F8ECD2;   /* half day */
+  --a:#B3261E;  --a-bg:#F8E1DF;   /* absent */
+  --la:#3D5A99; --la-bg:#E3E9F6;  /* leave applied */
+  --wo:#6D5D57; --wo-bg:#E9E2D8;  /* week off */
   --off-bg:#EFEAE3;
   --heading:"Playfair Display", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -61,12 +65,12 @@ main{padding-block:20px 60px}
 .input:focus{border-color:var(--gold);outline:none}
 
 /* stats */
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
 .stat{padding:12px 14px}
 .stat b{display:block;font:500 1.7rem/1.1 var(--heading)}
 .stat span{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.stat.p b{color:var(--p)} .stat.h b{color:var(--h)} .stat.a b{color:var(--a)} .stat.l b{color:var(--l)}
-@media (max-width:640px){.stats{gap:6px}.stat{padding:8px 4px;text-align:center}.stat b{font-size:1.35rem}.stat span{font-size:.6rem;letter-spacing:.04em}}
+.stat.p b{color:var(--p)} .stat.hm b{color:var(--hm)} .stat.t b{color:var(--t)} .stat.h b{color:var(--h)} .stat.lv b{color:var(--a)}
+@media (max-width:640px){.stats{gap:6px;grid-template-columns:repeat(3,1fr)}.stat{padding:8px 4px;text-align:center}.stat b{font-size:1.35rem}.stat span{font-size:.6rem;letter-spacing:.04em}}
 
 /* today list */
 .daylist{display:grid;gap:10px}
@@ -74,19 +78,28 @@ main{padding-block:20px 60px}
 .who b{display:block;font-weight:600}
 .who span{color:var(--muted);font-size:.85rem}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
-.seg button{border:0;background:var(--card);padding:8px 13px;font-weight:600;font-size:.85rem;cursor:pointer;color:var(--muted);min-width:44px}
+.seg button{border:0;background:var(--card);padding:8px 12px;font-weight:600;font-size:.84rem;cursor:pointer;color:var(--muted);white-space:nowrap}
 .seg button+button{border-left:1px solid var(--line)}
-.seg button[aria-pressed="true"][data-s="P"]{background:var(--p);color:#fff}
-.seg button[aria-pressed="true"][data-s="H"]{background:var(--h);color:#fff}
-.seg button[aria-pressed="true"][data-s="A"]{background:var(--a);color:#fff}
-.seg button[aria-pressed="true"][data-s="L"]{background:var(--l);color:#fff}
+.seg button[aria-pressed="true"]{color:#fff}
+.seg .lv::after{content:" ▾";font-size:.7em}
+[data-s="P"]{--c:var(--p);--cb:var(--p-bg)}   [data-s="HM"]{--c:var(--hm);--cb:var(--hm-bg)}
+[data-s="T"]{--c:var(--t);--cb:var(--t-bg)}   [data-s="H"]{--c:var(--h);--cb:var(--h-bg)}
+[data-s="A"]{--c:var(--a);--cb:var(--a-bg)}   [data-s="LA"]{--c:var(--la);--cb:var(--la-bg)}
+[data-s="WO"]{--c:var(--wo);--cb:var(--wo-bg)}
+.seg button[aria-pressed="true"]{background:var(--c)}
+.menu{position:fixed;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(42,30,27,.18);padding:6px;display:grid;min-width:180px}
+.menu button{display:flex;align-items:center;gap:10px;border:0;background:none;text-align:left;padding:9px 10px;border-radius:8px;font-weight:600;cursor:pointer}
+.menu button:hover,.menu button:focus-visible{background:var(--paper)}
+.menu button[aria-current="true"]{background:var(--cb,var(--paper))}
+.menu i{display:inline-grid;place-items:center;min-width:28px;height:24px;border-radius:6px;font-style:normal;font-size:.75rem;background:var(--cb,var(--paper));color:var(--c,var(--muted));border:1px solid var(--c,var(--line))}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
 .times{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .times label{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
 .times input[type=time]{width:112px}
 .times .note{flex:1;min-width:120px}
 .mini{font-size:.78rem;padding:6px 10px}
 @media (max-width:860px){.row{grid-template-columns:1fr auto}.times{grid-column:1 / -1}}
-@media (max-width:480px){.row{grid-template-columns:1fr}.seg{width:100%}.seg button{flex:1}}
+@media (max-width:560px){.row{grid-template-columns:1fr}.seg{display:grid;grid-template-columns:repeat(5,1fr);width:100%;border-radius:14px}.seg button{white-space:normal;line-height:1.15;padding:9px 3px;font-size:.78rem;min-height:42px}}
 
 /* register */
 .regwrap{overflow:auto;max-height:calc(100vh - 230px)}
@@ -100,15 +113,12 @@ table.reg{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:1
 .reg td.tot{font-weight:600;padding:0 8px;background:var(--paper)}
 .reg td.tot.worked{color:var(--p)}
 .reg thead th.tot{background:var(--maroon)}
-.cell{width:100%;height:100%;min-height:35px;border:0;background:transparent;cursor:pointer;font-weight:700}
+.cell{width:100%;height:100%;min-height:35px;border:0;background:transparent;cursor:pointer;font-weight:700;font-size:.78rem}
+.cell[data-s]:not([data-s=""]){background:var(--cb);color:var(--c)}
 .cell:hover{box-shadow:inset 0 0 0 2px var(--gold)}
-.cell[data-s="P"]{background:var(--p-bg);color:var(--p)}
-.cell[data-s="H"]{background:var(--h-bg);color:var(--h)}
-.cell[data-s="A"]{background:var(--a-bg);color:var(--a)}
-.cell[data-s="L"]{background:var(--l-bg);color:var(--l)}
 .reg th.today{outline:2px solid var(--gold);outline-offset:-2px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted);margin-top:10px}
-.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:5px}
+.legend i{display:inline-grid;place-items:center;min-width:24px;height:20px;padding:0 3px;border-radius:5px;font:700 .7rem/1 var(--body);font-style:normal;vertical-align:middle;margin-right:5px;background:var(--cb,var(--off-bg));color:var(--c,var(--muted));border:1px solid var(--c,var(--line))}
 
 /* staff */
 .grid2{display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start}
@@ -181,9 +191,10 @@ dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
     </div>
     <div class="stats">
       <div class="card stat p"><b id="sP">0</b><span>Present</span></div>
+      <div class="card stat hm"><b id="sHM">0</b><span>Home</span></div>
+      <div class="card stat t"><b id="sT">0</b><span>Thottam</span></div>
       <div class="card stat h"><b id="sH">0</b><span>Half day</span></div>
-      <div class="card stat a"><b id="sA">0</b><span>Absent</span></div>
-      <div class="card stat l"><b id="sL">0</b><span>Leave</span></div>
+      <div class="card stat lv"><b id="sLV">0</b><span>Leave</span></div>
       <div class="card stat u"><b id="sU">0</b><span>Not marked</span></div>
     </div>
     <p id="dOffNote" class="card panel" hidden></p>
@@ -202,14 +213,7 @@ dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
     </div>
     <h2 class="print-title" id="mPrintTitle"></h2>
     <div class="card regwrap"><table class="reg" id="regTable"></table></div>
-    <div class="legend">
-      <span><i style="background:var(--p-bg);border:1px solid var(--p)"></i>P Present</span>
-      <span><i style="background:var(--h-bg);border:1px solid var(--h)"></i>H Half day</span>
-      <span><i style="background:var(--a-bg);border:1px solid var(--a)"></i>A Absent</span>
-      <span><i style="background:var(--l-bg);border:1px solid var(--l)"></i>L Leave</span>
-      <span><i style="background:var(--off-bg);border:1px solid var(--line)"></i>Weekly off</span>
-      <span>Tap a cell to change: blank → P → H → A → L → blank. “Days” = P + ½ × H.</span>
-    </div>
+    <div class="legend" id="legend"></div>
   </section>
 
   <!-- STAFF -->
@@ -276,8 +280,21 @@ dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
 (function(){
 'use strict';
 const KEY = 'natraj-attendance-v1';
-const STATUSES = ['P','H','A','L'];
-const LABEL = {P:'Present',H:'Half day',A:'Absent',L:'Leave'};
+/* attendance categories: code = what the register shows, worked = days counted for salary,
+   leave = shown together under the Leave button */
+const STATUS = {
+  P:  {label:'Present',       code:'P',  worked:1},
+  HM: {label:'Home',          code:'Hm', worked:1},
+  T:  {label:'Thottam',       code:'T',  worked:1},
+  H:  {label:'Half day',      code:'½',  worked:0.5},
+  A:  {label:'Absent',        code:'A',  worked:0, leave:true},
+  LA: {label:'Leave applied', code:'LA', worked:0, leave:true},
+  WO: {label:'Week off',      code:'WO', worked:0, leave:true}
+};
+const ORDER = Object.keys(STATUS);
+const MAIN = ORDER.filter(k => !STATUS[k].leave);
+const LEAVE = ORDER.filter(k => STATUS[k].leave);
+const LABEL = k => (STATUS[k]||{}).label || '';
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const $ = id => document.getElementById(id);
 
@@ -305,6 +322,7 @@ function load(){
 function normalize(d){
   if(!d || typeof d!=='object' || !Array.isArray(d.staff) || typeof d.att!=='object') throw new Error('Not an attendance backup');
   const b = blank();
+  Object.values(d.att||{}).forEach(day => Object.values(day).forEach(r => { if(r && r.s==='L') r.s = 'LA'; }));
   return {version:1, staff:d.staff, att:d.att||{}, settings:Object.assign(b.settings, d.settings||{}), lastBackup:d.lastBackup||null};
 }
 let db = load();
@@ -335,6 +353,38 @@ function ask(title, msg, okLabel, danger){
   d.showModal(); (info ? $('askOk') : $('askCancel')).focus();
   return new Promise(res => d.addEventListener('close', () => res(d.returnValue === 'ok'), {once:true}));
 }
+/* small pop-up list of categories, opened from a button; resolves to the key, '' for Clear, or null */
+function pick(anchor, keys, current, withClear){
+  closeMenu();
+  const m = document.createElement('div');
+  m.className = 'menu'; m.setAttribute('role','menu');
+  m.innerHTML = keys.map(k => '<button role="menuitem" data-k="'+k+'" data-s="'+k+'" aria-current="'+(k===current)+'"><i>'+STATUS[k].code+'</i>'+STATUS[k].label+'</button>').join('') +
+    (withClear && current ? '<hr><button role="menuitem" data-k=""><i>–</i>Clear</button>' : '');
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - mw - 8)) + 'px';
+  m.style.top = (r.bottom + mh + 6 < innerHeight ? r.bottom + 4 : Math.max(8, r.top - mh - 4)) + 'px';
+  (m.querySelector('[aria-current="true"]') || m.querySelector('button')).focus();
+  return new Promise(res => {
+    const done = v => { closeMenu.cb = null; closeMenu(); res(v); };
+    m.addEventListener('click', e => { const b = e.target.closest('button'); if(b) done(b.dataset.k); });
+    m.addEventListener('keydown', e => {
+      const items = [...m.querySelectorAll('button')], i = items.indexOf(document.activeElement);
+      if(e.key==='Escape'){ done(null); anchor.focus(); }
+      else if(e.key==='ArrowDown'){ e.preventDefault(); items[(i+1)%items.length].focus(); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); items[(i-1+items.length)%items.length].focus(); }
+    });
+    closeMenu.cb = () => res(null);
+  });
+}
+function closeMenu(){
+  document.querySelectorAll('.menu').forEach(m => m.remove());
+  const cb = closeMenu.cb; closeMenu.cb = null; if(cb) cb();
+}
+document.addEventListener('pointerdown', e => { if(!e.target.closest('.menu')) closeMenu(); }, true);
+window.addEventListener('resize', () => closeMenu());
+document.addEventListener('scroll', () => closeMenu(), true);
+
 function rec(date, sid){ return (db.att[date]||{})[sid]; }
 function setRec(date, sid, patch){
   const day = db.att[date] || (db.att[date] = {});
@@ -369,24 +419,27 @@ $('dPrev').onclick = () => shiftDay(-1);
 $('dNext').onclick = () => shiftDay(1);
 $('dToday').onclick = () => { curDate = todayIso(); renderDay(); };
 function shiftDay(n){ const d = parse(curDate); d.setDate(d.getDate()+n); curDate = iso(d); renderDay(); }
+const isWeekOff = date => db.settings.weeklyOff == parse(date).getDay();
 $('dAllPresent').onclick = () => {
+  const k = isWeekOff(curDate) ? 'WO' : 'P';
   let n = 0;
-  staffFor(curDate, false).forEach(s => { if(!(rec(curDate,s.id)||{}).s){ setRec(curDate, s.id, {s:'P'}); n++; } });
-  renderDay(); toast(n ? n+' marked present' : 'Everyone is already marked');
+  staffFor(curDate, false).forEach(s => { if(!(rec(curDate,s.id)||{}).s){ setRec(curDate, s.id, {s:k}); n++; } });
+  renderDay(); toast(n ? n+' marked '+LABEL(k).toLowerCase() : 'Everyone is already marked');
 };
 
 function renderDay(){
   $('dDate').value = curDate;
   const list = sortStaff(staffFor(curDate, true));
   const box = $('dayList');
-  const counts = {P:0,H:0,A:0,L:0,U:0};
-  list.forEach(s => { const r = rec(curDate,s.id); counts[(r&&r.s)||'U']++; });
-  ['P','H','A','L','U'].forEach(k => $('s'+k).textContent = counts[k]);
+  const counts = {P:0,HM:0,T:0,H:0,LV:0,U:0};
+  list.forEach(s => { const k = (rec(curDate,s.id)||{}).s; counts[!k ? 'U' : STATUS[k].leave ? 'LV' : k]++; });
+  Object.keys(counts).forEach(k => $('s'+k).textContent = counts[k]);
 
   const d = parse(curDate);
-  const off = db.settings.weeklyOff == d.getDay();
+  const off = isWeekOff(curDate);
   $('dOffNote').hidden = !off;
-  if(off) $('dOffNote').textContent = DOW[d.getDay()]+'day is your weekly holiday. Mark attendance only if the shop was open.';
+  if(off) $('dOffNote').textContent = DOW[d.getDay()]+'day is your weekly holiday. Use “Mark unmarked as week off”, then change anyone who worked.';
+  $('dAllPresent').textContent = off ? 'Mark unmarked as week off' : 'Mark unmarked as present';
 
   if(!db.staff.length){
     box.innerHTML = '<div class="card empty"><h2>Add your staff to begin</h2><p>Go to the Staff tab and add each person once. Then mark attendance here every day.</p><p style="margin-top:14px"><button class="btn btn-maroon" id="goStaff">Add staff</button></p></div>';
@@ -400,7 +453,10 @@ function renderDay(){
     return '<div class="card row" data-id="'+esc(s.id)+'">'+
       '<div class="who"><b>'+esc(s.name)+'</b><span>'+esc(s.role||'')+(s.active?'':' · inactive')+'</span></div>'+
       '<div class="seg" role="group" aria-label="Status for '+esc(s.name)+'">'+
-        STATUSES.map(k => '<button type="button" data-s="'+k+'" aria-pressed="'+(r.s===k)+'" title="'+LABEL[k]+'">'+k+'</button>').join('')+
+        MAIN.map(k => '<button type="button" data-s="'+k+'" aria-pressed="'+(r.s===k)+'">'+STATUS[k].label+'</button>').join('')+
+        (STATUS[r.s] && STATUS[r.s].leave
+          ? '<button type="button" class="lv" data-leave data-s="'+r.s+'" aria-pressed="true" aria-haspopup="menu">'+STATUS[r.s].label+'</button>'
+          : '<button type="button" class="lv" data-leave aria-pressed="false" aria-haspopup="menu">Leave</button>')+
       '</div>'+
       '<div class="times">'+
         '<label>In <input type="time" class="input" data-f="in" value="'+esc(r.in||'')+'"></label>'+
@@ -414,8 +470,12 @@ $('dayList').addEventListener('click', e => {
   const row = e.target.closest('.row'); if(!row) return;
   const id = row.dataset.id;
   const sb = e.target.closest('.seg button');
+  const cur = (rec(curDate,id)||{}).s;
+  if(sb && sb.hasAttribute('data-leave')){
+    pick(sb, LEAVE, cur, true).then(k => { if(k===null) return; setRec(curDate, id, {s: k || undefined}); renderDay(); });
+    return;
+  }
   if(sb){
-    const cur = (rec(curDate,id)||{}).s;
     setRec(curDate, id, {s: cur===sb.dataset.s ? undefined : sb.dataset.s});
     renderDay(); return;
   }
@@ -449,9 +509,8 @@ function monthStaff(days){
   }));
 }
 function totals(s, days){
-  const t = {P:0,H:0,A:0,L:0};
-  days.forEach(d => { const r = rec(d, s.id); if(r && r.s) t[r.s]++; });
-  t.days = t.P + t.H/2;
+  const t = {days:0}; ORDER.forEach(k => t[k] = 0);
+  days.forEach(d => { const k = (rec(d, s.id)||{}).s; if(STATUS[k]){ t[k]++; t.days += STATUS[k].worked; } });
   return t;
 }
 function fmtDays(n){ return Number.isInteger(n) ? String(n) : n.toFixed(1); }
@@ -467,41 +526,42 @@ function renderReg(){
   if(!list.length){ tbl.innerHTML = '<tbody><tr><td class="empty" style="border:0">No staff for this month yet.</td></tr></tbody>'; return; }
   let h = '<thead><tr><th class="name">Staff</th>';
   days.forEach(d => { const dd = parse(d); h += '<th class="'+(d===t?'today':'')+'">'+dd.getDate()+'<small>'+DOW[dd.getDay()].slice(0,2)+'</small></th>'; });
-  h += '<th class="tot">P</th><th class="tot">H</th><th class="tot">A</th><th class="tot">L</th><th class="tot">Days</th></tr></thead><tbody>';
+  h += ORDER.map(k => '<th class="tot" title="'+STATUS[k].label+'">'+STATUS[k].code+'</th>').join('') + '<th class="tot" title="Days worked">Days</th></tr></thead><tbody>';
   list.forEach(s => {
     h += '<tr><th class="name">'+esc(s.name)+'</th>';
     days.forEach(d => {
       const r = rec(d, s.id) || {};
-      const off = db.settings.weeklyOff == parse(d).getDay();
+      const off = isWeekOff(d);
       const before = s.joined && s.joined > d;
-      const tip = [LABEL[r.s], r.in && ('In '+r.in), r.out && ('Out '+r.out), r.note].filter(Boolean).join(' · ');
-      h += '<td class="'+(off?'off':'')+'">'+(before ? '' : '<button class="cell" data-id="'+esc(s.id)+'" data-d="'+d+'" data-s="'+(r.s||'')+'" title="'+esc(d+(tip?' · '+tip:''))+'">'+(r.s||'')+'</button>')+'</td>';
+      const tip = [LABEL(r.s), r.in && ('In '+r.in), r.out && ('Out '+r.out), r.note].filter(Boolean).join(' · ');
+      h += '<td class="'+(off?'off':'')+'">'+(before ? '' : '<button class="cell" data-id="'+esc(s.id)+'" data-d="'+d+'" data-s="'+(r.s||'')+'" title="'+esc(d+(tip?' · '+tip:''))+'">'+(STATUS[r.s] ? STATUS[r.s].code : '')+'</button>')+'</td>';
     });
     const tt = totals(s, days);
-    h += '<td class="tot">'+tt.P+'</td><td class="tot">'+tt.H+'</td><td class="tot">'+tt.A+'</td><td class="tot">'+tt.L+'</td><td class="tot worked">'+fmtDays(tt.days)+'</td></tr>';
+    h += ORDER.map(k => '<td class="tot">'+tt[k]+'</td>').join('') + '<td class="tot worked">'+fmtDays(tt.days)+'</td></tr>';
   });
   tbl.innerHTML = h + '</tbody>';
 }
 $('regTable').addEventListener('click', e => {
   const c = e.target.closest('.cell'); if(!c) return;
-  const order = ['', ...STATUSES];
-  const next = order[(order.indexOf(c.dataset.s)+1) % order.length];
-  setRec(c.dataset.d, c.dataset.id, {s: next || undefined});
-  const sc = $('regTable').parentElement; const x = sc.scrollLeft, y = sc.scrollTop;
-  renderReg(); sc.scrollLeft = x; sc.scrollTop = y;
+  pick(c, ORDER, c.dataset.s, true).then(k => {
+    if(k===null) return;
+    setRec(c.dataset.d, c.dataset.id, {s: k || undefined});
+    const sc = $('regTable').parentElement; const x = sc.scrollLeft, y = sc.scrollTop;
+    renderReg(); sc.scrollLeft = x; sc.scrollTop = y;
+  });
 });
 $('mCsv').onclick = () => {
   const days = monthDays();
   const q = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
-  const rows = [['Name','Role', ...days.map(d => parse(d).getDate()), 'Present','Half day','Absent','Leave','Days worked']];
+  const rows = [['Name','Role', ...days.map(d => parse(d).getDate()), ...ORDER.map(LABEL), 'Days worked']];
   monthStaff(days).forEach(s => {
     const tt = totals(s, days);
-    rows.push([s.name, s.role||'', ...days.map(d => (rec(d,s.id)||{}).s || (db.settings.weeklyOff==parse(d).getDay() ? 'off' : '')), tt.P, tt.H, tt.A, tt.L, tt.days]);
+    rows.push([s.name, s.role||'', ...days.map(d => { const k = (rec(d,s.id)||{}).s; return STATUS[k] ? STATUS[k].code : ''; }), ...ORDER.map(k => tt[k]), tt.days]);
   });
   rows.push([]);
   rows.push(['Daily detail']);
   rows.push(['Date','Name','Status','In','Out','Note']);
-  days.forEach(d => sortStaff(db.staff).forEach(s => { const r = rec(d,s.id); if(r) rows.push([d, s.name, LABEL[r.s]||'', r.in||'', r.out||'', r.note||'']); }));
+  days.forEach(d => sortStaff(db.staff).forEach(s => { const r = rec(d,s.id); if(r) rows.push([d, s.name, LABEL(r.s), r.in||'', r.out||'', r.note||'']); }));
   download('natraj-attendance-'+curMonth+'.csv', '﻿'+rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 };
 
@@ -584,6 +644,9 @@ function renderBackup(){
     ? 'Last backup downloaded: <b>'+esc(new Date(db.lastBackup).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}))+'</b>'
     : '<b style="color:var(--err)">No backup downloaded yet.</b>';
 }
+
+$('legend').innerHTML = ORDER.map(k => '<span><i data-s="'+k+'">'+STATUS[k].code+'</i>'+STATUS[k].label+'</span>').join('') +
+  '<span><i></i>Weekly holiday (shaded)</span><span>Tap a cell to change it. “Days” counts Present, Home and Thottam as 1 and Half day as ½.</span>';
 
 /* ---------- render ---------- */
 function render(){

@@ -33,8 +33,10 @@ Upload BOTH (keep the img folder next to index.html).
    are told not to list it.
    - Staff tab: add each staff member once. When someone leaves,
      press Deactivate (keeps their history) rather than Delete.
-   - Daily tab: tap P (present), H (half day), A (absent) or L (leave)
-     for each person. "Check in now" / "Check out now" records the time.
+   - Daily tab: for each person tap Present, Home, Thottam or Half day.
+     The Leave button opens a list: Absent, Leave applied or Week off.
+     "Check in now" / "Check out now" records the time.
+     Days worked = Present + Home + Thottam, plus half for a Half day.
    - Monthly register: full month grid with totals per person.
      "Download Excel (CSV)" opens in Excel or Google Sheets for salary.
    - IMPORTANT: records are saved only in the browser on the device you
