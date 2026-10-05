@@ -26,3 +26,17 @@ Upload BOTH (keep the img folder next to index.html).
    - Instagram reels: covers are in img/reels. Ask Claude to refresh
      them when you post new reels.
    - Google reviews: the five quotes are fixed text in index.html.
+
+4. Staff attendance (attendance/index.html)
+   Open natrajjewels.com/attendance/ on the shop phone, tablet or
+   computer. It is not linked from the main site and search engines
+   are told not to list it.
+   - Staff tab: add each staff member once. When someone leaves,
+     press Deactivate (keeps their history) rather than Delete.
+   - Daily tab: tap P (present), H (half day), A (absent) or L (leave)
+     for each person. "Check in now" / "Check out now" records the time.
+   - Monthly register: full month grid with totals per person.
+     "Download Excel (CSV)" opens in Excel or Google Sheets for salary.
+   - IMPORTANT: records are saved only in the browser on the device you
+     use. Use one device for attendance, and press "Download backup"
+     in Backup & settings every week. Restore it to move to a new device.
