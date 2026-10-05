@@ -264,11 +264,23 @@ const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const $ = id => document.getElementById(id);
 
 /* ---------- storage ---------- */
+/* staff loaded the first time the app is opened on a device (edit them later on the Staff tab) */
+const STARTING_STAFF = [
+  ['senthil-kumar','Senthil Kumar','Store Manager'],
+  ['ponraj','Ponraj',''],
+  ['narasimman','Narasimman',''],
+  ['anand','Anand','']
+];
+function firstRun(){
+  const d = blank();
+  d.staff = STARTING_STAFF.map(([id,name,role]) => ({id, name, role, phone:'', joined:'', active:true}));
+  return d;
+}
 function blank(){ return {version:1, staff:[], att:{}, settings:{weeklyOff:0}, lastBackup:null}; }
 function load(){
   try{
     const raw = localStorage.getItem(KEY);
-    if(!raw) return blank();
+    if(!raw) return firstRun();
     return normalize(JSON.parse(raw));
   }catch(e){ return blank(); }
 }
