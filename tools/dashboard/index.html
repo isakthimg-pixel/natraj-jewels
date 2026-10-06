@@ -94,6 +94,10 @@
       <div id="expBox"><small>Loading…</small></div>
     </div>
     <div class="card wide">
+      <div class="head"><h3>Bank balances</h3><a href="../banking/#accounts">Banking ›</a></div>
+      <div id="bankBox"><small>Loading…</small></div>
+    </div>
+    <div class="card wide">
       <div class="head"><h3>Open tasks</h3><a href="../todo/#all">All tasks ›</a></div>
       <div class="list" id="taskBox"><small>Loading…</small></div>
     </div>
@@ -105,7 +109,7 @@
     <div class="card wide">
       <div class="head"><h3>Coming next</h3></div>
       <p style="margin:0;color:var(--muted)">Each new app adds its figures here as it is built.</p>
-      <div class="soon"><span class="tag">Banking</span><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
+      <div class="soon"><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
     </div>
     <div class="card wide">
       <div class="head"><h3>Backup</h3></div>
@@ -140,6 +144,7 @@ async function load(){
   const first = month + '-01';
   loadRates().catch(e => { $('rateBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   loadExpenses().catch(e => { $('expBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
+  loadBank().catch(e => { $('bankBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   loadTasks().catch(e => { $('taskBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   const [s, a, l] = await Promise.all([
     sb.from('staff').select('id,name,active,joined').order('name'),
@@ -219,6 +224,28 @@ async function loadExpenses(){
       '<div><span>Running cost a day</span><b>' + inr(running) + '</b><em>' + (days(d30, today) < 30 ? 'since ' + esc(parse(d30).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) : 'last 30 days') + ' · <a href="../expenses/#running" style="color:inherit">details</a></em></div></div>' +
     '<div class="bars">' + shown.map(([c, v]) =>
       '<div class="bar-row" title="' + esc(c + ': ' + inr(v)) + '"><span class="nm">' + esc(c) + '</span><span class="track"><i style="width:' + (v / max * 100).toFixed(1) + '%"></i></span><b style="min-width:5em">' + esc(inr(v)) + '</b></div>').join('') + '</div>';
+}
+
+/* bank: each active account's balance today, and this month's money in and out (not counting
+   transfers between the shop's own accounts or opening balances) */
+async function loadBank(){
+  const today = todayIso(), first = today.slice(0, 8) + '01';
+  const [a, b, e] = await Promise.all([
+    sb.from('bank_accounts').select('id,name,last4,active').eq('active', true).order('created_at'),
+    sb.rpc('bank_balances', {p_until: today}),
+    sb.from('bank_entries').select('direction,amount,method').gte('day', first).lte('day', today)
+  ]);
+  const accs = must(a) || [], bal = must(b) || [], rows = (must(e) || []).filter(r => r.method !== 'Transfer' && r.method !== 'Opening balance');
+  if(!accs.length){ $('bankBox').innerHTML = '<small>No bank accounts yet. <a href="../banking/#accounts">Add your accounts</a>.</small>'; return; }
+  const inr = v => (v < 0 ? '−₹' : '₹') + Math.round(Math.abs(v)).toLocaleString('en-IN');
+  const of = id => Number((bal.find(x => x.account_id === id) || {}).balance || 0);
+  const total = accs.reduce((s, x) => s + of(x.id), 0);
+  const sum = d => rows.filter(r => r.direction === d).reduce((s, r) => s + Number(r.amount), 0);
+  $('bankBox').innerHTML = '<div class="rates" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">' +
+      '<div><span>All accounts</span><b>' + inr(total) + '</b></div>' +
+      '<div><span>In this month</span><b style="color:var(--p)">' + inr(sum('in')) + '</b></div>' +
+      '<div><span>Out this month</span><b style="color:var(--a)">' + inr(sum('out')) + '</b></div></div>' +
+    '<div class="list">' + accs.map(x => '<div><span>' + esc(x.name + (x.last4 ? ' ··' + x.last4 : '')) + '</span><b style="font-variant-numeric:tabular-nums;' + (of(x.id) < 0 ? 'color:var(--a)' : '') + '">' + inr(of(x.id)) + '</b></div>').join('') + '</div>';
 }
 
 /* open tasks per person: how many, how many overdue, the next one due */

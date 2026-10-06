@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v10';
-const APPS = ['attendance', 'rates', 'todo', 'expenses'];
+const KEY = 'natraj-demo-db-v11';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
@@ -17,10 +17,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -88,6 +88,23 @@ function seed(){
     if(dd === 7) exp(d, 180000, 'Salary & wages', 'Bank transfer', '', 'Monthly salary', owner, iso(new Date(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 2, 1)), monthLast(iso(new Date(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 2, 1))));
     if(dd === 10) exp(d, 1500, 'Hallmarking', 'UPI', 'BIS centre', '', manager);
     if(dd === 15) exp(d, 2500, 'Advertising', 'UPI', 'Local paper', 'Weekend ad', owner);
+  }
+  // banking: two accounts, daily cash deposits, card settlements, supplier payments, a transfer each month
+  const acc = (name, bank, last4) => { const a = {id: uid(), name, bank, last4, active: true, created_at: now()}; db.bank_accounts.push(a); return a; };
+  const sbi = acc('SBI Current', 'SBI, Tiruppur main', '4821'), hdfc = acc('HDFC Savings', 'HDFC, Kumaran Road', '0937');
+  const be = (a, day, direction, amount, method, party, reference, by, tid) => db.bank_entries.push({id: uid(), account_id: a.id, day, direction, amount, method, party: party || '', reference: reference || '', note: '', transfer_id: tid || null,
+    created_by: by.user_id, created_by_name: by.name, created_at: day + 'T11:30:00Z', updated_by_name: '', updated_at: null});
+  be(sbi, start, 'in', 845000, 'Opening balance', '', '', owner); be(hdfc, start, 'in', 312500, 'Opening balance', '', '', owner);
+  for(let d = start; d <= today; d = addDays(d, 1)){
+    if(dow(d) === 0) continue;
+    be(sbi, d, 'in', Math.round((40 + rnd() * 120)) * 500, 'Cash deposit', '', '', manager);
+    if(rnd() < 0.6) be(hdfc, d, 'in', Math.round((10 + rnd() * 90)) * 500, 'Card settlement', 'Card machine', '', manager);
+    if(rnd() < 0.12) be(sbi, d, 'out', Math.round((50 + rnd() * 150)) * 1000, 'NEFT / RTGS / IMPS', rnd() < 0.5 ? 'Sri Lakshmi Bullion' : 'Coimbatore Gold Refinery', 'UTR' + Math.floor(rnd() * 1e9), owner);
+    const dd = Number(d.slice(8));
+    if(dd === 1) be(sbi, d, 'out', 45000, 'Cheque', 'Building owner', String(100200 + Math.floor(rnd() * 99)), owner);
+    if(dd === 7) be(sbi, d, 'out', 180000, 'NEFT / RTGS / IMPS', 'Staff salary', '', owner);
+    if(dd === 20){ const t = uid(); be(hdfc, d, 'out', 200000, 'Transfer', sbi.name, '', owner, t); be(sbi, d, 'in', 200000, 'Transfer', hdfc.name, '', owner, t); }
+    if(dd === 28) be(sbi, d, 'out', 590, 'Bank charges', 'SBI', '', owner);
   }
   const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
   note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
@@ -203,6 +220,7 @@ function rpc(name, a, me){
       if(!l.some(c => c.toLowerCase() === v.toLowerCase())) l.push(v);
       return {status: 200, body: l};
     }
+    case 'bank_balances': return {status: 200, body: bankBalances(a.p_until, me)};
     case 'assignable_people': return {status: 200, body: canUse(me, 'todo') ? db.profiles.map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'leave_staff': return {status: 200, body: db.staff.filter(s => s.active).map(s => ({id: s.id, name: s.name})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'request_leave': {
@@ -251,7 +269,7 @@ function rest(method, table, params, body, headers, me){
     rates: {read: true, write: method === 'POST' ? canUse(me, 'rates') : me.is_owner},
     expenses: {read: canUse(me, 'expenses'), write: canUse(me, 'expenses')},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
-    notifications: {read: true, write: true},
+    notifications: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
@@ -261,6 +279,8 @@ function rest(method, table, params, body, headers, me){
   const single = /vnd\.pgrst\.object/.test(headers.get('accept') || '');
   const wantRows = /return=representation/.test(headers.get('prefer') || '');
   if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
+  if(table === 'bank_accounts') return bankAccountsRest(method, params, body, single, wantRows, me);
+  if(table === 'bank_entries') return bankEntriesRest(method, params, body, single, wantRows, me);
   if(table === 'notifications') return notesRest(method, params, body, single, wantRows, me);
   if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
   let out;
@@ -359,6 +379,49 @@ function notesRest(method, params, body, single, wantRows, me){
   const lim = Number(params.get('limit')); if(lim) out = out.slice(0, lim);
   if(method !== 'GET' && !wantRows) return {status: 204, body: null};
   return {status: 200, body: single ? out[0] : out};
+}
+
+
+/* banking, same rules as migration 013 */
+function bankAccountsRest(method, params, body, single, wantRows, me){
+  const denied = {status: 403, body: {code: '42501', message: 'permission denied'}};
+  if(!canUse(me, 'banking')) return method === 'GET' ? {status: 200, body: single ? null : []} : denied;
+  if(method !== 'GET' && !me.is_owner) return denied;
+  let out = db.bank_accounts.filter(r => matches(r, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'POST'){ out = (Array.isArray(body) ? body : [body]).map(b => Object.assign({id: uid(), bank: '', last4: '', active: true, created_at: new Date().toISOString()}, b)); db.bank_accounts.push(...out); }
+  else if(method === 'PATCH') out.forEach(r => Object.assign(r, body));
+  else if(method === 'DELETE'){ db.bank_accounts = db.bank_accounts.filter(r => !out.includes(r)); db.bank_entries = db.bank_entries.filter(e => !out.some(a => a.id === e.account_id)); }
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
+}
+function bankEntriesRest(method, params, body, single, wantRows, me){
+  const owner = me.is_owner, may = canUse(me, 'banking'), nowIso = new Date().toISOString();
+  const ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
+  let out = db.bank_entries.filter(r => owner || (may && r.created_by === me.user_id)).filter(r => matches(r, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'POST'){
+    if(!may) return {status: 403, body: {code: '42501', message: 'new row violates row-level security policy for table "bank_entries"'}};
+    out = (Array.isArray(body) ? body : [body]).map(b => Object.assign({id: uid(), method: '', party: '', reference: '', note: '', transfer_id: null}, b,
+      {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null}));
+    db.bank_entries.push(...out);
+  } else if(method === 'PATCH'){
+    out = out.filter(r => owner || (may && ownToday(r)));
+    out.forEach(r => Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}));
+  } else if(method === 'DELETE'){
+    out = out.filter(r => owner || (may && ownToday(r)));
+    db.bank_entries = db.bank_entries.filter(r => !out.includes(r));
+  }
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
+}
+function bankBalances(until, me){
+  const by = {};
+  db.bank_entries.filter(r => (me.is_owner || (canUse(me, 'banking') && r.created_by === me.user_id)) && r.day <= until)
+    .forEach(r => by[r.account_id] = (by[r.account_id] || 0) + (r.direction === 'in' ? 1 : -1) * Number(r.amount));
+  return Object.entries(by).map(([account_id, balance]) => ({account_id, balance}));
 }
 
 /* tasks: same rules as the stamp_task trigger and the row policies */

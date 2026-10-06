@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Banking · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.no-access main{display:none!important}
+.no-access-msg{display:none}
+.no-access .no-access-msg{display:block}
+.not-owner .owner-only{display:none!important}
+
+.tally3{grid-template-columns:repeat(3,1fr)}
+.tally4{grid-template-columns:repeat(4,1fr)}
+.tally b{font-variant-numeric:lining-nums tabular-nums}
+.tally .in b{color:var(--p)} .tally .out b{color:var(--a)}
+@media (max-width:640px){
+  .tally3 b,.tally4 b{font-size:clamp(1.05rem,5vw,1.5rem);overflow-wrap:anywhere}
+  .tally4{grid-template-columns:repeat(2,1fr)}
+  .tally4 div:nth-child(3){padding-left:0;border-left:0}
+  .tally4 div:nth-child(n+3){padding-top:14px}
+}
+
+.money{position:relative}
+.money::before{content:"₹";position:absolute;left:13px;bottom:13px;color:var(--muted);font-weight:500;letter-spacing:0;font-size:1.2rem}
+.money .input{padding-left:34px;font:500 1.5rem var(--display);font-variant-numeric:lining-nums tabular-nums}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:420px){.form .two{grid-template-columns:1fr}}
+.form .field > span{font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.dir .bubble[data-dir="in"][aria-pressed="true"]{background:var(--p);border-color:var(--p)}
+.dir .bubble[data-dir="out"][aria-pressed="true"]{background:var(--a);border-color:var(--a)}
+
+/* one entry per row: details left, signed amount right */
+.erow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:14px 18px;align-items:start}
+.erow .what{font:600 1.02rem/1.3 var(--heading);color:var(--ink)}
+.erow .sub{font-size:.85rem;color:var(--muted);margin-top:2px}
+.erow .amt{font:500 1.15rem/1.2 var(--display);font-variant-numeric:lining-nums tabular-nums;text-align:right;white-space:nowrap}
+.amt.in{color:var(--p)} .amt.out{color:var(--a)} .amt.tr{color:var(--ink)}
+.erow .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.erow .acts:empty{display:none}
+.dhead{display:flex;justify-content:space-between;gap:12px}
+.axisnote{font-size:.78rem;color:var(--muted);margin:0}
+
+/* statement table */
+.stwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px}
+table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:lining-nums tabular-nums}
+.st th,.st td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
+.st th:nth-child(-n+2),.st td:nth-child(-n+2){text-align:left}
+.st td.d{white-space:normal;min-width:180px}
+.st td.d small{display:block;color:var(--muted);font-size:.8rem}
+.st thead th{font:600 .66rem var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
+.st .in{color:var(--p)} .st .out{color:var(--a)}
+.st tr.edge td{background:var(--paper);font-weight:600}
+.st tbody tr[data-id]{cursor:pointer}
+.st tbody tr[data-id]:hover td{background:color-mix(in srgb,var(--gold) 6%,var(--card))}
+
+/* accounts */
+.acc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;padding:16px 18px;align-items:center}
+.acc .nm{font:600 1.15rem/1.3 var(--heading);color:var(--ink)}
+.acc .sub{font-size:.85rem;color:var(--muted)}
+.acc .bal{font:500 1.35rem/1.2 var(--display);font-variant-numeric:lining-nums tabular-nums;text-align:right}
+.acc .bal.neg{color:var(--a)}
+.acc .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.acc.off{opacity:.6}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <h1>Banking</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="add" aria-selected="true">Add</button>
+      <button role="tab" data-tab="statement" aria-selected="false" class="owner-only">Statement</button>
+      <button role="tab" data-tab="accounts" aria-selected="false" class="owner-only">Accounts</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to enter bank deposits and withdrawals.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+<div class="wrap content no-access-msg"><div class="form panel"><h3>No access</h3><p>Ask the owner to switch on Banking for you in People &amp; settings.</p></div></div>
+
+<main>
+  <!-- ADD -->
+  <section id="tab-add">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="aEyebrow">Today</span><h2 id="aTitle">Banking</h2></div>
+      <div class="tally tally3">
+        <div class="in"><b id="tIn">–</b><span>Money in today</span></div>
+        <div class="out"><b id="tOut">–</b><span>Money out today</span></div>
+        <div><b id="tCount">–</b><span>Entries, last 7 days</span></div>
+      </div>
+    </div></div>
+    <div class="wrap content grid2">
+      <form class="form" id="bForm" autocomplete="off" novalidate>
+        <h3>New entry</h3>
+        <div class="bubbles dir" id="fDir" role="group" aria-label="Kind of entry">
+          <button type="button" class="bubble" data-dir="in" aria-pressed="true">Money in</button>
+          <button type="button" class="bubble" data-dir="out" aria-pressed="false">Money out</button>
+          <button type="button" class="bubble" data-dir="tr" aria-pressed="false">Transfer</button>
+        </div>
+        <label class="money">Amount<input class="input" id="fAmt" inputmode="decimal" placeholder="0"></label>
+        <label id="fAccL"><span id="fAccT">Account</span><select class="input" id="fAcc"></select></label>
+        <label id="fToAccL" hidden>To account<select class="input" id="fToAcc"></select></label>
+        <div class="two">
+          <label id="fMethodL">How<select class="input" id="fMethod"></select></label>
+          <label>Date<input class="input" type="date" id="fDay"></label>
+        </div>
+        <label id="fPartyL"><span id="fPartyT">Received from</span><input class="input" id="fParty" maxlength="80" placeholder="optional"></label>
+        <label>Cheque no. or reference<input class="input" id="fRef" maxlength="40" placeholder="optional, e.g. UTR or cheque number"></label>
+        <label>Note<input class="input" id="fNote" maxlength="300" placeholder="optional"></label>
+        <p class="err" id="fErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="submit" id="fSave">Save entry</button></div>
+      </form>
+      <div>
+        <div class="ledger" id="recent"><div class="loading">Loading…</div></div>
+        <p class="axisnote" id="recentNote" style="margin-top:10px"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATEMENT (owner) -->
+  <section id="tab-statement" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="sEyebrow">Statement</span><h2 id="sTitle"></h2></div>
+      <div class="bubbles" id="sAccs" role="group" aria-label="Account"></div>
+      <div class="bar">
+        <button class="btn btn-icon" id="mPrev" aria-label="Previous month">‹</button>
+        <input type="month" class="input" id="mMonth" aria-label="Month">
+        <button class="btn btn-icon" id="mNext" aria-label="Next month">›</button>
+        <span class="grow"></span>
+        <button class="btn" id="sCsv">Download Excel (CSV)</button>
+        <button class="btn" onclick="window.print()">Print</button>
+      </div>
+      <div class="tally tally4">
+        <div><b id="sOpen">–</b><span>Opening balance</span></div>
+        <div class="in"><b id="sIn">–</b><span>Money in</span></div>
+        <div class="out"><b id="sOut">–</b><span>Money out</span></div>
+        <div><b id="sClose">–</b><span>Closing balance</span></div>
+      </div>
+    </div></div>
+    <div class="wrap content">
+      <div class="stwrap"><table class="st" id="sTable"></table></div>
+      <p class="axisnote" style="margin-top:10px">Tap an entry to change it. Entries are in date order; the balance is after each one.</p>
+    </div>
+  </section>
+
+  <!-- ACCOUNTS (owner) -->
+  <section id="tab-accounts" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Bank accounts</span><h2 id="accTitle">Balances today</h2></div>
+      <div class="bar"><button class="btn btn-maroon" id="accAdd">Add account</button><span class="grow"></span><span class="axisnote" id="accTotal"></span></div>
+    </div></div>
+    <div class="wrap content">
+      <div class="ledger" id="accList"><div class="loading">Loading…</div></div>
+      <p class="axisnote" style="margin-top:10px">A balance here is the opening balance plus every entry up to today. If it differs from the bank’s, look for a missing or doubled entry in the statement.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Banking · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, dialog, iso, parse, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const METHODS = {
+  in: ['Cash deposit', 'Cheque', 'NEFT / RTGS / IMPS', 'UPI', 'Card settlement', 'Interest', 'Other'],
+  out: ['Cheque', 'NEFT / RTGS / IMPS', 'UPI', 'Cash withdrawal', 'Bank charges', 'Other']
+};
+const OPENING = 'Opening balance';
+const BIG = 500000;   // ask before saving more than this, to catch an extra zero
+let accounts = [], recent = [], dir = 'in', curTab = 'add', curMonth = todayIso().slice(0, 7), curAcc = '', stRows = [];
+
+const inr = v => { const n = Math.round(Number(v) * 100) / 100; return (n < 0 ? '−₹' : '₹') + Math.abs(n).toLocaleString('en-IN', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2}); };
+const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
+const fmtDay = d => { const t = todayIso(); return d === t ? 'Today' : d === addDays(t, -1) ? 'Yesterday' : parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'}); };
+const monthEnd = m => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + 1); d.setDate(0); return iso(d); };
+const amount = s => { const v = String(s).replace(/[,\s₹]/g, ''); return /^\d+(\.\d{1,2})?$/.test(v) ? Number(v) : NaN; };
+const signed = r => r.direction === 'in' ? Number(r.amount) : -Number(r.amount);
+const accName = id => (accounts.find(a => a.id === id) || {}).name || 'Removed account';
+const accLabel = a => a.name + (a.last4 ? ' ··' + a.last4 : '');
+const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && iso(new Date(r.created_at)) === todayIso()));
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+function showTab(name){
+  if(name !== 'add' && !NJ.me.is_owner) name = 'add';
+  curTab = name;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  ['add', 'statement', 'accounts'].forEach(t => $('tab-' + t).hidden = t !== name);
+  if(name === 'statement') loadStatement().catch(e => toast(e.message));
+  if(name === 'accounts') loadAccounts().catch(e => toast(e.message));
+}
+
+/* ---------- loading ---------- */
+async function loadAccountList(){
+  accounts = must(await sb.from('bank_accounts').select('*').order('created_at')) || [];
+  const act = accounts.filter(a => a.active);
+  const opts = act.map(a => '<option value="' + esc(a.id) + '">' + esc(accLabel(a)) + '</option>').join('');
+  const keep = [$('fAcc').value, $('fToAcc').value];
+  $('fAcc').innerHTML = act.length ? opts : '<option value="">No accounts yet</option>';
+  $('fToAcc').innerHTML = opts;
+  if(act.some(a => a.id === keep[0])) $('fAcc').value = keep[0];
+  if(act.some(a => a.id === keep[1])) $('fToAcc').value = keep[1];
+  else if(act[1]) $('fToAcc').value = act[1].id;
+  if(!curAcc || !accounts.some(a => a.id === curAcc)) curAcc = (act[0] || accounts[0] || {}).id || '';
+}
+async function loadRecent(){
+  recent = must(await sb.from('bank_entries').select('*').gte('day', addDays(todayIso(), -6)).order('day', {ascending: false}).order('created_at', {ascending: false})) || [];
+  renderRecent();
+}
+
+/* ---------- add tab ---------- */
+function describe(r){
+  if(r.method === 'Transfer') return r.direction === 'out' ? 'Transfer to ' + (r.party || 'another account') : 'Transfer from ' + (r.party || 'another account');
+  return r.method || (r.direction === 'in' ? 'Money in' : 'Money out');
+}
+function row(r, showDay){
+  const sub = [showDay ? fmtDay(r.day) : '', accName(r.account_id), r.method !== 'Transfer' && r.party && (r.direction === 'in' ? 'from ' : 'to ') + r.party,
+    r.reference && 'Ref ' + r.reference, r.note].filter(Boolean).join(' · ');
+  const by = NJ.me.is_owner ? 'Entered by ' + (r.created_by_name || 'someone') + (r.updated_by_name ? ' · changed by ' + r.updated_by_name : '') : '';
+  const cls = r.method === 'Transfer' ? 'tr' : r.direction;
+  return '<div class="erow" data-id="' + esc(r.id) + '"><div><div class="what">' + esc(describe(r)) + '</div>' +
+    '<div class="sub">' + esc(sub) + '</div>' + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
+    '<div class="amt ' + cls + '">' + (r.direction === 'in' ? '+' : '−') + esc(inr(r.amount)) + '</div>' +
+    '<div class="acts">' + (canChange(r) ? '<button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button>' : '') + '</div></div>';
+}
+function renderRecent(){
+  const t = todayIso(), today = recent.filter(r => r.day === t && r.method !== 'Transfer' && r.method !== OPENING);
+  $('tIn').textContent = inr(today.filter(r => r.direction === 'in').reduce((s, r) => s + Number(r.amount), 0));
+  $('tOut').textContent = inr(today.filter(r => r.direction === 'out').reduce((s, r) => s + Number(r.amount), 0));
+  $('tCount').textContent = recent.length;
+  $('aEyebrow').textContent = parse(t).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'});
+  $('aTitle').textContent = NJ.me.is_owner ? 'Bank entries' : 'Your bank entries';
+  const days = [...new Set(recent.map(r => r.day))];
+  $('recent').innerHTML = days.length ? days.map(d => '<div class="lhead dhead"><span>' + esc(fmtDay(d)) + '</span></div>' + recent.filter(r => r.day === d).map(r => row(r, false)).join('')).join('')
+    : '<div class="empty" style="padding:32px 20px">No bank entries in the last 7 days.</div>';
+  $('recentNote').textContent = NJ.me.is_owner ? 'Everyone’s entries from the last 7 days. Money moved between your own accounts is not counted in “money in” or “money out”.'
+    : 'Your entries from the last 7 days. You can fix or delete an entry on the day you enter it; after that, ask the owner.';
+  const none = !accounts.some(a => a.active);
+  $('fSave').disabled = none;
+  if(none) $('fErr').textContent = NJ.me.is_owner ? 'Add a bank account first, in the Accounts tab.' : 'The owner has not added any bank accounts yet.';
+}
+
+function setDir(d){
+  dir = d;
+  $('fDir').querySelectorAll('[data-dir]').forEach(b => b.setAttribute('aria-pressed', b.dataset.dir === d));
+  const tr = d === 'tr';
+  $('fToAccL').hidden = !tr; $('fMethodL').hidden = tr; $('fPartyL').hidden = tr;
+  $('fAccT').textContent = tr ? 'From account' : 'Account';
+  $('fPartyT').textContent = d === 'in' ? 'Received from' : 'Paid to';
+  if(!tr){
+    const cur = $('fMethod').value;
+    $('fMethod').innerHTML = METHODS[d].map(m => '<option>' + esc(m) + '</option>').join('');
+    if(METHODS[d].includes(cur)) $('fMethod').value = cur;
+  }
+}
+$('fDir').addEventListener('click', e => { const b = e.target.closest('[data-dir]'); if(b){ setDir(b.dataset.dir); pickOther(); } });
+// a transfer goes to a different account: keep "To" away from "From"
+function pickOther(){
+  if($('fToAcc').value !== $('fAcc').value) return;
+  const other = accounts.find(a => a.active && a.id !== $('fAcc').value);
+  if(other) $('fToAcc').value = other.id;
+}
+$('fAcc').addEventListener('change', pickOther);
+setDir('in');
+$('fDay').value = todayIso(); $('fDay').max = todayIso();
+
+$('bForm').addEventListener('submit', async e => {
+  e.preventDefault(); $('fErr').textContent = '';
+  const a = amount($('fAmt').value), day = $('fDay').value, acc = $('fAcc').value, to = $('fToAcc').value;
+  if(!(a > 0)) return $('fErr').textContent = 'Type the amount in rupees, e.g. 25000 or 25000.50.';
+  if(a >= 1e10) return $('fErr').textContent = 'That amount is too large.';
+  if(!acc) return $('fErr').textContent = 'Choose the account.';
+  if(dir === 'tr' && accounts.filter(x => x.active).length < 2) return $('fErr').textContent = 'A transfer needs two bank accounts in use.';
+  if(dir === 'tr' && (!to || to === acc)) return $('fErr').textContent = 'Choose a different account to move the money to.';
+  if(!day || day > todayIso()) return $('fErr').textContent = 'Choose a date that is not in the future.';
+  if(a > BIG && !await ask('Save ' + inr(a) + '?', 'This is a large amount. Check there is no extra zero.', 'Save')) return;
+  const base = {day, amount: a, reference: $('fRef').value.trim(), note: $('fNote').value.trim()};
+  let rows;
+  if(dir === 'tr'){
+    const t = crypto.randomUUID ? crypto.randomUUID() : null;
+    const A = accounts.find(x => x.id === acc), B = accounts.find(x => x.id === to);
+    rows = [Object.assign({}, base, {account_id: acc, direction: 'out', method: 'Transfer', party: B.name, transfer_id: t}),
+            Object.assign({}, base, {account_id: to, direction: 'in', method: 'Transfer', party: A.name, transfer_id: t})];
+  } else rows = [Object.assign({}, base, {account_id: acc, direction: dir, method: $('fMethod').value, party: $('fParty').value.trim()})];
+  $('fSave').setAttribute('aria-busy', 'true');
+  try{
+    must(await sb.from('bank_entries').insert(rows).select());
+    await loadRecent();
+    toast(dir === 'tr' ? 'Moved ' + inr(a) + ' to ' + accName(to) : 'Saved ' + inr(a) + (dir === 'in' ? ' in to ' : ' out of ') + accName(acc));
+    ['fAmt', 'fParty', 'fRef', 'fNote'].forEach(id => $(id).value = '');
+    $('fAmt').focus();
+  }catch(x){ $('fErr').textContent = x.message; }
+  $('fSave').removeAttribute('aria-busy');
+});
+
+/* edit or delete an entry; both halves of a transfer change together */
+async function editEntry(r){
+  const isTr = r.method === 'Transfer' && r.transfer_id;
+  const fields = [
+    {id: 'amount', label: 'Amount (₹)', type: 'text', value: String(Number(r.amount)), maxlength: 14},
+    {id: 'day', label: 'Date', type: 'date', value: r.day}
+  ];
+  if(!isTr) fields.push(
+    {id: 'account', label: 'Account', type: 'select', value: r.account_id, options: accounts.map(a => [a.id, accLabel(a)])},
+    {id: 'direction', label: 'Money in or out', type: 'select', value: r.direction, options: [['in', 'Money in'], ['out', 'Money out']]},
+    {id: 'method', label: 'How', type: 'select', value: r.method, options: [...new Set([...METHODS.in, ...METHODS.out, OPENING, r.method].filter(Boolean))].map(m => [m, m])},
+    {id: 'party', label: r.direction === 'in' ? 'Received from' : 'Paid to', type: 'text', value: r.party, maxlength: 80});
+  fields.push({id: 'reference', label: 'Cheque no. or reference', type: 'text', value: r.reference, maxlength: 40},
+              {id: 'note', label: 'Note', type: 'text', value: r.note, maxlength: 300});
+  const v = await dialog({
+    title: isTr ? 'Edit transfer' : 'Edit entry', msg: isTr ? describe(r) + '. Both accounts change together.' : '', ok: 'Save', fields,
+    validate: async v => {
+      const a = amount(v.amount);
+      if(!(a > 0) || a >= 1e10) return 'Type the amount in rupees.';
+      if(!v.day || v.day > todayIso()) return 'Choose a date that is not in the future.';
+      const patch = {amount: a, day: v.day, reference: v.reference, note: v.note};
+      if(isTr) must(await sb.from('bank_entries').update(patch).eq('transfer_id', r.transfer_id).select());
+      else must(await sb.from('bank_entries').update(Object.assign(patch, {account_id: v.account, direction: v.direction, method: v.method, party: v.party})).eq('id', r.id).select());
+      return '';
+    }
+  });
+  if(v){ toast('Saved'); await refresh(); }
+}
+async function deleteEntry(r){
+  const isTr = r.method === 'Transfer' && r.transfer_id;
+  if(!await ask(isTr ? 'Delete this transfer?' : 'Delete this entry?', describe(r) + ' · ' + inr(r.amount) + ' · ' + fmtDay(r.day) + (isTr ? '\n\nBoth accounts lose the entry.' : ''), 'Delete', true)) return;
+  try{
+    must(isTr ? await sb.from('bank_entries').delete().eq('transfer_id', r.transfer_id) : await sb.from('bank_entries').delete().eq('id', r.id));
+    toast('Deleted'); await refresh();
+  }catch(x){ toast(x.message); }
+}
+async function refresh(){
+  await loadRecent();
+  if(curTab === 'statement') await loadStatement();
+  if(curTab === 'accounts') await loadAccounts();
+}
+$('recent').addEventListener('click', e => {
+  const el = e.target.closest('.erow'), act = e.target.closest('[data-act]'); if(!el || !act) return;
+  const r = recent.find(x => x.id === el.dataset.id); if(!r) return;
+  act.dataset.act === 'del' ? deleteEntry(r) : editEntry(r);
+});
+
+/* ---------- statement (owner) ---------- */
+async function loadStatement(){
+  $('mMonth').value = curMonth;
+  $('sAccs').innerHTML = accounts.map(a => '<button type="button" class="bubble" data-acc="' + esc(a.id) + '" aria-pressed="' + (a.id === curAcc) + '">' + esc(accLabel(a)) + '</button>').join('');
+  if(!curAcc){ $('sTitle').textContent = 'No accounts yet'; $('sTable').innerHTML = '<tbody><tr><td style="padding:24px;color:var(--muted)">Add a bank account in the Accounts tab.</td></tr></tbody>'; return; }
+  const first = curMonth + '-01', last = monthEnd(curMonth);
+  const [bal, rows] = await Promise.all([
+    sb.rpc('bank_balances', {p_until: addDays(first, -1)}),
+    sb.from('bank_entries').select('*').eq('account_id', curAcc).gte('day', first).lte('day', last).order('day').order('created_at')
+  ]);
+  const open = Number(((must(bal) || []).find(x => x.account_id === curAcc) || {}).balance || 0);
+  stRows = must(rows) || [];
+  const inn = stRows.filter(r => r.direction === 'in').reduce((s, r) => s + Number(r.amount), 0);
+  const out = stRows.filter(r => r.direction === 'out').reduce((s, r) => s + Number(r.amount), 0);
+  const acc = accounts.find(a => a.id === curAcc);
+  $('sEyebrow').textContent = 'Statement · ' + accLabel(acc) + (acc.bank ? ' · ' + acc.bank : '');
+  $('sTitle').textContent = parse(first).toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
+  $('sOpen').textContent = inr(open); $('sIn').textContent = inr(inn); $('sOut').textContent = inr(out); $('sClose').textContent = inr(open + inn - out);
+  let run = open;
+  $('sTable').innerHTML = '<thead><tr><th>Date</th><th>Details</th><th>In</th><th>Out</th><th>Balance</th></tr></thead><tbody>' +
+    '<tr class="edge"><td>' + esc(parse(first).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td><td>Opening balance</td><td></td><td></td><td>' + esc(inr(open)) + '</td></tr>' +
+    stRows.map(r => { run += signed(r);
+      const det = [r.method !== 'Transfer' && r.party, r.reference && 'Ref ' + r.reference, r.note].filter(Boolean).join(' · ');
+      return '<tr data-id="' + esc(r.id) + '"><td>' + esc(parse(r.day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td>' +
+        '<td class="d">' + esc(describe(r)) + (det ? '<small>' + esc(det) + '</small>' : '') + '</td>' +
+        '<td class="in">' + (r.direction === 'in' ? esc(inr(r.amount)) : '') + '</td><td class="out">' + (r.direction === 'out' ? esc(inr(r.amount)) : '') + '</td><td>' + esc(inr(run)) + '</td></tr>'; }).join('') +
+    '<tr class="edge"><td>' + esc(parse(last).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td><td>Closing balance</td><td class="in">' + esc(inr(inn)) + '</td><td class="out">' + esc(inr(out)) + '</td><td>' + esc(inr(run)) + '</td></tr></tbody>';
+}
+$('sAccs').addEventListener('click', e => { const b = e.target.closest('[data-acc]'); if(!b) return; curAcc = b.dataset.acc; loadStatement().catch(x => toast(x.message)); });
+$('sTable').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if(!tr) return; const r = stRows.find(x => x.id === tr.dataset.id); if(r) editEntry(r); });
+const shiftMonth = n => { const d = parse(curMonth + '-01'); d.setMonth(d.getMonth() + n); curMonth = iso(d).slice(0, 7); loadStatement().catch(e => toast(e.message)); };
+$('mPrev').onclick = () => shiftMonth(-1);
+$('mNext').onclick = () => shiftMonth(1);
+$('mMonth').onchange = () => { if($('mMonth').value){ curMonth = $('mMonth').value; loadStatement().catch(e => toast(e.message)); } };
+$('sCsv').onclick = () => {
+  const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  let run = 0; const open = $('sOpen').textContent;
+  const rows = [['Date', 'Details', 'Received from / paid to', 'Reference', 'Note', 'In', 'Out', 'Entered by']]
+    .concat(stRows.map(r => [r.day, describe(r), r.method === 'Transfer' ? '' : r.party, r.reference, r.note, r.direction === 'in' ? Number(r.amount) : '', r.direction === 'out' ? Number(r.amount) : '', r.created_by_name]));
+  rows.splice(1, 0, ['', 'Opening balance ' + open, '', '', '', '', '', '']);
+  NJ.download('natraj-bank-' + accName(curAcc).replace(/[^A-Za-z0-9]+/g, '-') + '-' + curMonth + '.csv', '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+};
+
+/* ---------- accounts (owner) ---------- */
+async function loadAccounts(){
+  const bal = must(await sb.rpc('bank_balances', {p_until: todayIso()})) || [];
+  const b = id => Number((bal.find(x => x.account_id === id) || {}).balance || 0);
+  const total = accounts.filter(a => a.active).reduce((s, a) => s + b(a.id), 0);
+  $('accTotal').textContent = accounts.length ? 'All active accounts together: ' + inr(total) : '';
+  $('accList').innerHTML = accounts.length ? accounts.map(a =>
+    '<div class="acc' + (a.active ? '' : ' off') + '" data-id="' + esc(a.id) + '"><div><div class="nm">' + esc(a.name) + '</div>' +
+    '<div class="sub">' + esc([a.bank, a.last4 && 'ending ' + a.last4, !a.active && 'not in use'].filter(Boolean).join(' · ') || 'Bank account') + '</div></div>' +
+    '<div class="bal' + (b(a.id) < 0 ? ' neg' : '') + '">' + esc(inr(b(a.id))) + '</div>' +
+    '<div class="acts"><button class="btn mini" data-aact="st">Statement</button><button class="btn mini" data-aact="edit">Edit</button>' +
+    '<button class="btn mini" data-aact="toggle">' + (a.active ? 'Stop using' : 'Use again') + '</button></div></div>').join('')
+    : '<div class="empty"><h3>No accounts yet</h3><p>Add each bank account the shop uses, with its balance on the day you start.</p></div>';
+}
+$('accAdd').onclick = async () => {
+  const v = await dialog({
+    title: 'Add bank account', ok: 'Add account',
+    fields: [
+      {id: 'name', label: 'Name you call it', type: 'text', placeholder: 'e.g. SBI Current', maxlength: 60},
+      {id: 'bank', label: 'Bank and branch (optional)', type: 'text', placeholder: 'e.g. SBI, Tiruppur main', maxlength: 60},
+      {id: 'last4', label: 'Last 4 digits of the account number (optional)', type: 'text', maxlength: 4},
+      {id: 'open', label: 'Balance on the starting day (₹, optional; put a minus sign for an overdraft)', type: 'text', maxlength: 16},
+      {id: 'openDay', label: 'Starting day', type: 'date', value: todayIso()}
+    ],
+    validate: async v => {
+      if(!v.name) return 'Type a name for the account.';
+      if(!/^\d{0,4}$/.test(v.last4)) return 'The last 4 digits are numbers only.';
+      const neg = /^-/.test(v.open), ob = v.open ? amount(v.open.replace(/^-/, '')) : 0;
+      if(v.open && !(ob >= 0)) return 'Type the balance in rupees, e.g. 250000.';
+      if(ob && (!v.openDay || v.openDay > todayIso())) return 'Choose a starting day that is not in the future.';
+      const a = must(await sb.from('bank_accounts').insert({name: v.name, bank: v.bank, last4: v.last4}).select().single());
+      if(ob) must(await sb.from('bank_entries').insert({account_id: a.id, day: v.openDay, direction: neg ? 'out' : 'in', amount: ob, method: OPENING}).select());
+      curAcc = curAcc || a.id;
+      return '';
+    }
+  });
+  if(v){ toast('Account added'); await loadAccountList(); await loadAccounts(); renderRecent(); }
+};
+$('accList').addEventListener('click', async e => {
+  const el = e.target.closest('.acc'), act = e.target.closest('[data-aact]'); if(!el || !act) return;
+  const a = accounts.find(x => x.id === el.dataset.id); if(!a) return;
+  if(act.dataset.aact === 'st'){ curAcc = a.id; showTab('statement'); return; }
+  if(act.dataset.aact === 'toggle'){
+    try{ must(await sb.from('bank_accounts').update({active: !a.active}).eq('id', a.id).select()); toast(a.active ? a.name + ' is no longer offered for new entries' : a.name + ' is back in use'); }
+    catch(x){ return toast(x.message); }
+  } else {
+    const v = await dialog({
+      title: 'Edit ' + a.name, ok: 'Save',
+      fields: [
+        {id: 'name', label: 'Name you call it', type: 'text', value: a.name, maxlength: 60},
+        {id: 'bank', label: 'Bank and branch', type: 'text', value: a.bank, maxlength: 60},
+        {id: 'last4', label: 'Last 4 digits', type: 'text', value: a.last4, maxlength: 4}
+      ],
+      validate: async v => {
+        if(!v.name) return 'Type a name for the account.';
+        if(!/^\d{0,4}$/.test(v.last4)) return 'The last 4 digits are numbers only.';
+        must(await sb.from('bank_accounts').update({name: v.name, bank: v.bank, last4: v.last4}).eq('id', a.id).select());
+        return '';
+      }
+    });
+    if(!v) return; toast('Saved');
+  }
+  await loadAccountList(); await loadAccounts(); renderRecent();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('banking') && !document.querySelector('dialog[open]'))
+    loadAccountList().then(refresh).catch(e => toast(e.message));
+});
+
+NJ.start({onReady: async me => {
+  const ok = !!me && NJ.canUse('banking');
+  document.body.classList.toggle('no-access', !!me && !ok);
+  if(!ok) return;
+  try{ await loadAccountList(); await loadRecent(); }catch(e){ toast(e.message); }
+  const h = location.hash.slice(1);
+  showTab(['statement', 'accounts'].includes(h) ? h : curTab);
+}});
+})();
+</script>
+</body>
+</html>
