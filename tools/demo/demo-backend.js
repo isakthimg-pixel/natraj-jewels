@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v6';
-const APPS = ['attendance', 'rates'];
+const KEY = 'natraj-demo-db-v7';
+const APPS = ['attendance', 'rates', 'todo'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
@@ -17,10 +17,11 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo'], staff_id: staff[0].id, created_at: now()};
+  const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00'}], attendance: [], leave_requests: [], rates: [],
-    users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}},
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00'}], attendance: [], leave_requests: [], rates: [], tasks: [],
+    users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
   // last month and this month up to yesterday, with a fixed pattern so the demo looks the same each time
@@ -56,6 +57,17 @@ function seed(){
     push(at(10, 15));
     if(rnd() < 0.15){ g += 20; push(at(15, 30)); }
   }
+  // tasks: some open, one late, one done
+  const task = (title, to, by, due, high, details, done) => ({id: uid(), title, details: details || '', assigned_to: to.user_id, assigned_name: to.name, due, high: !!high,
+    status: done ? 'done' : 'open', done_note: done || '', done_at: done ? addDays(today, -1) + 'T17:20:00Z' : null, done_by_name: done ? to.name : '',
+    created_by: by.user_id, created_by_name: by.name, created_at: addDays(today, -3) + 'T10:00:00Z'});
+  db.tasks.push(
+    task('Polish the silver display', worker, manager, today, false, 'Front counter and the window shelf.'),
+    task('Call Ramesh about the bangle order', worker, owner, addDays(today, -1), true, 'He wants the 22K pair by Saturday.'),
+    task('Count the 916 chain stock', manager, owner, addDays(today, 2), false),
+    task('Order new jewel boxes', manager, owner, null, false, '100 small red boxes.'),
+    task('Clean the hallmark machine', worker, manager, addDays(today, -1), false, '', 'Done before closing')
+  );
   return db;
 }
 let db;
@@ -158,6 +170,7 @@ function rpc(name, a, me){
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'rate_updaters': return {status: 200, body: db.profiles.filter(p => !p.is_owner && p.apps.includes('rates')).map(p => ({name: p.name})).sort((x, y) => x.name.localeCompare(y.name))};
+    case 'assignable_people': return {status: 200, body: canUse(me, 'todo') ? db.profiles.map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'leave_staff': return {status: 200, body: db.staff.filter(s => s.active).map(s => ({id: s.id, name: s.name})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'request_leave': {
       if(!db.staff.some(s => s.id === a.p_staff && s.active)) return pg('Choose your name.');
@@ -203,7 +216,8 @@ function rest(method, table, params, body, headers, me){
     staff: {read: true, write: me.is_owner}, profiles: {read: true, write: false}, settings: {read: true, write: me.is_owner},
     attendance: {read: canUse(me, 'attendance'), write: canUse(me, 'attendance')},
     rates: {read: true, write: method === 'POST' ? canUse(me, 'rates') : me.is_owner},
-    leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner}
+    leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
+    tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
   if(method === 'GET' ? !rule.read : !rule.write) return denied;
@@ -211,6 +225,7 @@ function rest(method, table, params, body, headers, me){
   if(table === 'profiles' && !me.is_owner) rows = rows.filter(p => p.user_id === me.user_id);
   const single = /vnd\.pgrst\.object/.test(headers.get('accept') || '');
   const wantRows = /return=representation/.test(headers.get('prefer') || '');
+  if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
   let out;
   if(method === 'GET'){
     out = rows.filter(r => matches(r, params));
@@ -250,6 +265,43 @@ function rest(method, table, params, body, headers, me){
   if(single){
     if(!out.length && method === 'GET') return {status: 406, body: {code: 'PGRST116', message: 'No rows'}};
     return {status: 200, body: out[0] || null};
+  }
+  return {status: 200, body: out};
+}
+
+/* tasks: same rules as the stamp_task trigger and the row policies */
+function tasksRest(method, params, body, single, wantRows, me){
+  const assigner = canUse(me, 'todo');
+  const nameOf = id => (db.profiles.find(p => p.user_id === id) || {}).name || '';
+  const fix = (row, old) => {
+    row.assigned_name = nameOf(row.assigned_to);
+    if(row.status === 'done' && (!old || old.status !== 'done')){ row.done_at = now(); row.done_by_name = me.name; }
+    else if(row.status === 'open'){ row.done_at = null; row.done_by_name = ''; }
+    return row;
+  };
+  let rows = db.tasks.filter(t => assigner || t.assigned_to === me.user_id || t.created_by === me.user_id);
+  let out = rows.filter(r => matches(r, params));
+  if(method === 'GET'){
+    const ord = params.get('order');
+    if(ord){ const [c, dir] = ord.split('.'); out = out.slice().sort((x, y) => String(x[c]).localeCompare(String(y[c])) * (dir === 'desc' ? -1 : 1)); }
+  } else if(method === 'POST'){
+    if(!assigner) return {status: 403, body: {code: '42501', message: 'permission denied'}};
+    const t = fix(Object.assign({id: uid(), details: '', assigned_to: null, due: null, high: false, status: 'open', done_note: ''}, body,
+      {created_by: me.user_id, created_by_name: me.name, created_at: now()}));
+    db.tasks.push(t); out = [t];
+  } else if(method === 'PATCH'){
+    out = out.filter(t => assigner || t.assigned_to === me.user_id);
+    if(!assigner && Object.keys(body).some(k => !['status', 'done_note'].includes(k)))
+      return {status: 403, body: {code: '42501', message: 'Only the person who assigns tasks can change this.'}};
+    out.forEach(t => { const old = Object.assign({}, t); Object.assign(t, body); fix(t, old); });
+  } else if(method === 'DELETE'){
+    out = out.filter(t => me.is_owner || (assigner && t.created_by === me.user_id));
+    db.tasks = db.tasks.filter(t => !out.includes(t));
+  }
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){
+    if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}};
+    return {status: 200, body: out[0]};
   }
   return {status: 200, body: out};
 }
@@ -304,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const b = document.createElement('div');
   b.setAttribute('role', 'note');
   b.style.cssText = 'background:#E7D3AE;color:#3B2420;font:500 .85rem/1.4 Figtree,system-ui,sans-serif;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;align-items:center;text-align:center';
-  b.innerHTML = '<span><b>Demo with sample data.</b> Nothing here is saved online.</span><span>Owner PIN <b>111111</b> · Sample Manager PIN <b>222222</b></span>' +
+  b.innerHTML = '<span><b>Demo with sample data.</b> Nothing here is saved online.</span><span>Owner PIN <b>111111</b> · Sample Manager PIN <b>222222</b> · Sample Staff 2 PIN <b>333333</b></span>' +
     '<button type="button" style="font:600 .8rem Figtree,system-ui,sans-serif;border:1px solid #3B2420;background:transparent;color:#3B2420;border-radius:999px;padding:4px 12px;cursor:pointer">Reset demo</button>';
   b.querySelector('button').onclick = () => window.NJ_DEMO.reset();
   document.body.prepend(b);

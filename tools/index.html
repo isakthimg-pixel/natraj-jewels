@@ -86,8 +86,9 @@ async function render(me){
   if(!apps.length && !me.is_owner) h += '<div class="form panel"><h3>No apps yet</h3><p>Ask the owner to give you access to the apps you need.</p></div>';
   h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.');
   box.className = '';
-  box.innerHTML = '<p class="notice" id="due" hidden></p><div class="tiles">' + h + '</div>';
+  box.innerHTML = '<p class="notice" id="due" hidden></p><p class="notice" id="taskDue" hidden></p><div class="tiles">' + h + '</div>';
   rateReminder(me).catch(() => {});
+  taskReminder(me).catch(() => {});
 }
 
 /* The person who updates the gold & silver rate sees a reminder until today's rate is in. */
@@ -105,6 +106,20 @@ async function rateReminder(me){
   box.innerHTML = (s.mine ? (s.late ? 'Late: please enter today’s gold &amp; silver rate. It was due by ' : 'Today’s gold &amp; silver rate is due by ') + esc(s.dueLabel) + '.'
     : 'Today’s rate is not in yet (' + esc(s.name) + ' ' + s.verb + ' it). It was due by ' + esc(s.dueLabel) + '.') +
     ' <a href="' + NJ.APPS.rates.path + '" style="color:inherit;font-weight:600">' + (s.mine ? 'Enter the rate ›' : 'Open the rate ›') + '</a>';
+}
+
+/* Anyone with open tasks sees how many, and how many are late. */
+async function taskReminder(me){
+  const {data} = await NJ.sb.from('tasks').select('due').eq('status', 'open').eq('assigned_to', me.user_id);
+  const box = document.getElementById('taskDue');
+  if(!box || !data || !data.length) return;
+  const today = NJ.todayIso();
+  const late = data.filter(t => t.due && t.due < today).length, td = data.filter(t => t.due === today).length;
+  box.hidden = false;
+  if(late) box.style.cssText = 'border-color:var(--a);background:var(--a-bg);color:var(--a);font-weight:600';
+  box.innerHTML = 'You have ' + data.length + ' open task' + (data.length > 1 ? 's' : '') +
+    (late ? ', ' + late + ' overdue' : '') + (td ? ', ' + td + ' due today' : '') + '.' +
+    ' <a href="' + NJ.APPS.todo.path + '" style="color:inherit;font-weight:600">Open my tasks ›</a>';
 }
 
 NJ.start({home: true, onReady: render});

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Tasks · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&family=Noto+Serif+Tamil:wght@500&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.not-assigner .assigner-only{display:none!important}
+
+.tally .od b{color:var(--a)} .tally .td b{color:var(--h)} .tally .dn b{color:var(--p)}
+.tally4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:640px){.tally4{grid-template-columns:repeat(2,1fr)}.tally4 div:nth-child(3){padding-left:0;border-left:0}.tally4 div:nth-child(n+3){padding-top:14px}}
+
+/* one task per row: round tick on the left, details, actions on the right */
+.trow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 14px;align-items:start;padding:16px 18px}
+.tick{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:var(--card);cursor:pointer;display:grid;place-items:center;color:transparent;font-weight:700;margin-top:1px;transition:background .2s,border-color .2s,transform .15s ease}
+.tick:hover{border-color:var(--p);color:var(--p)}
+.tick:active{transform:scale(.92)}
+.tick[aria-pressed="true"]{background:var(--p);border-color:var(--p);color:#fff}
+.tick:disabled{cursor:default;opacity:.5}
+.ttl{font:600 1.08rem/1.3 var(--heading);color:var(--ink)}
+.done .ttl{text-decoration:line-through;color:var(--muted)}
+.det{margin:4px 0 0;color:var(--muted);font-size:.92rem;white-space:pre-line}
+.meta{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:8px;align-items:center;font-size:.8rem;color:var(--muted)}
+.tag.who{color:var(--ink)}
+.tag.late{border-color:var(--a);color:var(--a);background:var(--a-bg)}
+.tag.today{border-color:var(--h);color:var(--h);background:var(--h-bg)}
+.tag.hi{border-color:var(--maroon);color:#FFF7EE;background:var(--maroon)}
+.tag.ok{border-color:var(--p);color:var(--p);background:var(--p-bg)}
+.donenote{margin-top:6px;font-size:.85rem;color:var(--p)}
+.tacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.trow{grid-template-columns:auto minmax(0,1fr)}.tacts{grid-column:2;justify-content:flex-start}}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lhead{display:flex;justify-content:space-between;align-items:center}
+</style>
+</head>
+<body class="signed-out not-owner not-assigner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <span class="tamil">நடராஜ் ஜுவல்ஸ் · திருப்பூர்</span>
+      <h1>Tasks</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="mine" aria-selected="true">My tasks<span class="count" id="mineCount" hidden></span></button>
+      <button role="tab" data-tab="all" aria-selected="false" class="assigner-only">All tasks</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to see your tasks.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+
+<main>
+  <div class="band"><div class="wrap">
+    <div class="heading"><span class="eyebrow" id="eyebrow">Tasks</span><h2 id="title">My tasks</h2></div>
+    <div class="bar">
+      <button class="btn btn-maroon assigner-only" id="newTask">New task</button>
+      <span class="grow"></span>
+      <div class="bubbles filters" id="filters" hidden></div>
+    </div>
+    <div class="tally tally4">
+      <div><b id="nOpen">–</b><span>Open</span></div>
+      <div class="td"><b id="nToday">–</b><span>Due today</span></div>
+      <div class="od"><b id="nLate">–</b><span>Overdue</span></div>
+      <div class="dn"><b id="nDone">–</b><span>Done this week</span></div>
+    </div>
+  </div></div>
+  <div class="wrap content">
+    <div class="ledger" id="list"><div class="loading">Loading…</div></div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Tasks · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, dialog, iso, parse, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+let tasks = [], people = [], assigner = false, curTab = location.hash === '#all' ? 'all' : 'mine', who = '';   // who: person filter on All tasks
+
+const today = () => todayIso();
+const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
+const fmtD = d => parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
+const fmtStamp = t => new Date(t).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+function dueTag(t){
+  if(!t.due) return '';
+  if(t.status === 'done') return '<span class="tag">Due ' + esc(fmtD(t.due)) + '</span>';
+  const d = today();
+  if(t.due < d) return '<span class="tag late">Overdue · ' + esc(fmtD(t.due)) + '</span>';
+  if(t.due === d) return '<span class="tag today">Due today</span>';
+  if(t.due === addDays(d, 1)) return '<span class="tag">Due tomorrow</span>';
+  return '<span class="tag">Due ' + esc(fmtD(t.due)) + '</span>';
+}
+// open tasks: overdue and due-soon first, high priority first on the same day, no date last
+const order = (a, b) => (a.due || '9999') .localeCompare(b.due || '9999') || (b.high - a.high) || a.created_at.localeCompare(b.created_at);
+
+async function load(){
+  const since = new Date(Date.now() - 14 * 864e5).toISOString();
+  tasks = must(await sb.from('tasks').select('*').or('status.eq.open,done_at.gte.' + since).order('created_at')) || [];
+  if(assigner && !people.length) people = must(await sb.rpc('assignable_people')) || [];
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+function showTab(name){
+  if(name === 'all' && !assigner) name = 'mine';
+  curTab = name;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  render();
+}
+
+function render(){
+  const me = NJ.me; if(!me) return;
+  const mine = tasks.filter(t => t.assigned_to === me.user_id);
+  const openMine = mine.filter(t => t.status === 'open').length;
+  $('mineCount').hidden = !openMine; $('mineCount').textContent = openMine;
+  let list = curTab === 'mine' ? mine : tasks.filter(t => !who || (who === 'none' ? !t.assigned_to : t.assigned_to === who));
+  $('title').textContent = curTab === 'mine' ? 'My tasks' : 'All tasks';
+  $('eyebrow').textContent = curTab === 'mine' ? 'Given to you' : (who ? 'Showing one person' : 'Everyone');
+  // person filter bubbles
+  const f = $('filters');
+  f.hidden = curTab !== 'all';
+  if(curTab === 'all'){
+    const names = [['', 'Everyone'], ...people.map(p => [p.user_id, p.name]), ['none', 'Not given to anyone']];
+    f.innerHTML = names.map(([v, l]) => '<button type="button" class="bubble" data-who="' + esc(v) + '" aria-pressed="' + (who === v) + '">' + esc(l) + '</button>').join('');
+  }
+  const d = today(), weekAgo = Date.now() - 7 * 864e5;
+  const open = list.filter(t => t.status === 'open').sort(order);
+  const done = list.filter(t => t.status === 'done').sort((a, b) => b.done_at.localeCompare(a.done_at));
+  $('nOpen').textContent = open.length;
+  $('nToday').textContent = open.filter(t => t.due === d).length;
+  $('nLate').textContent = open.filter(t => t.due && t.due < d).length;
+  $('nDone').textContent = done.filter(t => new Date(t.done_at) >= weekAgo).length;
+
+  const row = t => {
+    const canEdit = assigner;
+    const canTick = assigner || t.assigned_to === me.user_id;
+    return '<div class="trow' + (t.status === 'done' ? ' done' : '') + '" data-id="' + esc(t.id) + '">' +
+      '<button type="button" class="tick" data-tick aria-pressed="' + (t.status === 'done') + '" aria-label="' + (t.status === 'done' ? 'Mark not done: ' : 'Mark done: ') + esc(t.title) + '"' + (canTick ? '' : ' disabled') + '>✓</button>' +
+      '<div><div class="ttl">' + esc(t.title) + '</div>' + (t.details ? '<p class="det">' + esc(t.details) + '</p>' : '') +
+        '<div class="meta">' + (t.high ? '<span class="tag hi">High priority</span>' : '') + dueTag(t) +
+          (curTab === 'all' || t.assigned_to !== me.user_id ? '<span class="tag who">' + (t.assigned_name ? 'For ' + esc(t.assigned_name) : 'Not given to anyone') + '</span>' : '') +
+          '<span>Given by ' + esc(t.created_by_name || 'someone') + '</span></div>' +
+        (t.status === 'done' ? '<div class="donenote">✓ Done by ' + esc(t.done_by_name || 'someone') + ', ' + esc(fmtStamp(t.done_at)) + (t.done_note ? ' · “' + esc(t.done_note) + '”' : '') + '</div>' : '') +
+      '</div>' +
+      '<div class="tacts">' +
+        (t.status === 'done' && canTick ? '<button class="btn mini" data-act="note">' + (t.done_note ? 'Edit note' : 'Add note') + '</button>' : '') +
+        (canEdit ? '<button class="btn mini" data-act="edit">Edit</button>' : '') +
+        (canEdit && (me.is_owner || t.created_by === me.user_id) ? '<button class="btn mini btn-danger" data-act="del">Delete</button>' : '') +
+      '</div></div>';
+  };
+  $('list').innerHTML =
+    (open.length ? open.map(row).join('') : '<div class="empty" style="padding:32px 20px">' + (curTab === 'mine' ? 'Nothing to do. No tasks are waiting for you.' : 'No open tasks.') + '</div>') +
+    (done.length ? '<div class="lhead">Done in the last 2 weeks</div>' + done.map(row).join('') : '');
+}
+
+/* ---------- actions ---------- */
+$('filters').addEventListener('click', e => { const b = e.target.closest('[data-who]'); if(!b) return; who = b.dataset.who; render(); });
+
+$('list').addEventListener('click', async e => {
+  const r = e.target.closest('.trow'); if(!r) return;
+  const t = tasks.find(x => x.id === r.dataset.id);
+  if(e.target.closest('[data-tick]')){
+    const b = e.target.closest('[data-tick]'); b.disabled = true;
+    const next = t.status === 'done' ? 'open' : 'done';
+    try{
+      const row = must(await sb.from('tasks').update({status: next}).eq('id', t.id).select().single());
+      Object.assign(t, row);
+      toast(next === 'done' ? 'Done: ' + t.title : 'Moved back to open');
+    }catch(x){ toast(x.message); }
+    render(); return;
+  }
+  const act = (e.target.closest('[data-act]') || {}).dataset; if(!act) return;
+  if(act.act === 'note'){
+    const v = await dialog({title: 'Note for “' + t.title + '”', ok: 'Save note',
+      fields: [{id: 'note', label: 'Note (optional)', type: 'textarea', value: t.done_note, maxlength: 300, placeholder: 'e.g. Ordered, arriving Friday'}],
+      validate: async v => { Object.assign(t, must(await sb.from('tasks').update({done_note: v.note}).eq('id', t.id).select().single())); return ''; }});
+    if(v){ toast('Note saved'); render(); }
+  } else if(act.act === 'edit'){
+    if(await taskDialog(t)){ toast('Saved'); render(); }
+  } else if(act.act === 'del'){
+    if(!await ask('Delete this task?', t.title, 'Delete', true)) return;
+    try{ must(await sb.from('tasks').delete().eq('id', t.id)); tasks = tasks.filter(x => x !== t); toast('Task deleted'); render(); }
+    catch(x){ toast(x.message); }
+  }
+});
+
+/* new or edit: title, details, who, due date, high priority */
+async function taskDialog(t){
+  const v = await dialog({
+    title: t ? 'Edit task' : 'New task', ok: t ? 'Save' : 'Give task',
+    fields: [
+      {id: 'title', label: 'Task', type: 'text', maxlength: 120, value: t ? t.title : '', placeholder: 'e.g. Polish the silver display'},
+      {id: 'details', label: 'Details (optional)', type: 'textarea', maxlength: 1000, value: t ? t.details : ''},
+      {id: 'who', label: 'Give it to', type: 'select', value: t ? (t.assigned_to || '') : (who && who !== 'none' ? who : ''),
+        options: [['', 'Choose a person'], ...people.map(p => [p.user_id, p.name])]},
+      {id: 'due', label: 'Due by', type: 'date', value: t ? (t.due || '') : today()},
+      {id: 'high', label: 'High priority', type: 'checkbox', value: t ? t.high : false}
+    ],
+    validate: async v => {
+      if(!v.title) return 'Type the task.';
+      if(!v.who) return 'Choose who will do it.';
+      const data = {title: v.title, details: v.details, assigned_to: v.who, due: v.due || null, high: v.high};
+      const row = must(t ? await sb.from('tasks').update(data).eq('id', t.id).select().single() : await sb.from('tasks').insert(data).select().single());
+      if(t) Object.assign(t, row); else tasks.push(row);
+      return '';
+    }
+  });
+  return !!v;
+}
+$('newTask').onclick = async () => { if(await taskDialog(null)){ toast('Task given'); render(); } };
+
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && NJ.me && !document.querySelector('dialog[open]')) load().then(render).catch(e => toast(e.message)); });
+
+NJ.start({onReady: async me => {
+  assigner = NJ.canUse('todo');
+  document.body.classList.toggle('not-assigner', !assigner);
+  people = [];
+  if(!me) return;
+  try{ await load(); }catch(e){ toast(e.message); }
+  showTab(curTab);
+}});
+})();
+</script>
+</body>
+</html>

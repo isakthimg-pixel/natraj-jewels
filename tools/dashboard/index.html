@@ -91,6 +91,10 @@
       <div class="list" id="leaveWaiting"><small>Loading…</small></div>
     </div>
     <div class="card wide">
+      <div class="head"><h3>Open tasks</h3><a href="../todo/#all">All tasks ›</a></div>
+      <div class="list" id="taskBox"><small>Loading…</small></div>
+    </div>
+    <div class="card wide">
       <div class="head"><h3 id="mTitle">Days worked this month</h3><a href="../attendance/">Monthly register ›</a></div>
       <div class="bars" id="bars"><small>Loading…</small></div>
       <p class="axisnote" id="barNote"></p>
@@ -98,7 +102,7 @@
     <div class="card wide">
       <div class="head"><h3>Coming next</h3></div>
       <p style="margin:0;color:var(--muted)">Each new app adds its figures here as it is built.</p>
-      <div class="soon"><span class="tag">To-do list</span><span class="tag">Expenses</span><span class="tag">Banking</span><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
+      <div class="soon"><span class="tag">Expenses</span><span class="tag">Banking</span><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
     </div>
     <div class="card wide">
       <div class="head"><h3>Backup</h3></div>
@@ -132,6 +136,7 @@ async function load(){
   const today = todayIso(), month = today.slice(0,7);
   const first = month + '-01';
   loadRates().catch(e => { $('rateBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
+  loadTasks().catch(e => { $('taskBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   const [s, a, l] = await Promise.all([
     sb.from('staff').select('id,name,active,joined').order('name'),
     sb.from('attendance').select('staff_id,day,status').gte('day', first).lte('day', today),
@@ -168,6 +173,21 @@ async function load(){
     : '<small>No staff yet.</small>';
   $('barNote').textContent = 'Bars are out of the ' + daysSoFar + ' days so far this month. Present, Home and Thottam count as 1, Half day as ½.';
   $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN',{hour:'numeric', minute:'2-digit'});
+}
+
+/* open tasks per person: how many, how many overdue, the next one due */
+async function loadTasks(){
+  const today = todayIso();
+  const rows = must(await sb.from('tasks').select('title,assigned_name,due,high').eq('status', 'open')) || [];
+  if(!rows.length){ $('taskBox').innerHTML = '<small>No open tasks. <a href="../todo/#all">Give a task</a>.</small>'; return; }
+  const by = {};
+  rows.forEach(t => { const k = t.assigned_name || 'Not given to anyone'; (by[k] = by[k] || []).push(t); });
+  const late = t => t.due && t.due < today;
+  $('taskBox').innerHTML = Object.entries(by).map(([n, ts]) => {
+    const od = ts.filter(late).length, td = ts.filter(t => t.due === today).length;
+    return {n, ts, od, html: '<div><span>' + esc(n) + '</span><small>' + ts.length + ' open' +
+      (td ? ' · ' + td + ' due today' : '') + (od ? ' · <b style="color:var(--a)">' + od + ' overdue</b>' : '') + '</small></div>'};
+  }).sort((a, b) => b.od - a.od || b.ts.length - a.ts.length || a.n.localeCompare(b.n)).map(x => x.html).join('');
 }
 
 async function loadRates(){
