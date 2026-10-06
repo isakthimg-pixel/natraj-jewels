@@ -35,10 +35,13 @@ Upload BOTH (keep the img folder next to index.html).
      press Deactivate (keeps their history) rather than Delete.
    - Daily tab: for each person tap Present, Home, Thottam or Half day.
      The Leave button opens a list: Absent, Leave applied or Week off.
-     "Check in now" / "Check out now" records the time.
      Days worked = Present + Home + Thottam, plus half for a Half day.
    - Monthly register: full month grid with totals per person.
      "Download Excel (CSV)" opens in Excel or Google Sheets for salary.
+   - PIN lock: the first time the app opens, set the owner PIN and
+     write down the recovery code it shows. In Settings the owner can
+     give other people their own PIN to mark attendance. Without a PIN
+     the app is view only. It signs out after 5 minutes without use.
    - IMPORTANT: records are saved only in the browser on the device you
      use. Use one device for attendance, and press "Download backup"
      in Backup & settings every week. Restore it to move to a new device.

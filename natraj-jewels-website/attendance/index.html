@@ -64,6 +64,29 @@ h3{font-weight:600}
 .tabs button:hover::after,.tabs button:focus-visible::after,.tabs button[aria-selected="true"]::after{transform:scaleX(1)}
 .tabs button[aria-selected="true"]{color:#FFF7EE;font-weight:600}
 @media (max-width:640px){.brand img{height:50px}.tabs{gap:20px}}
+.access{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--on-dark-muted)}
+.access b{color:#FFF7EE;font-weight:600}
+.btn-gold{background:var(--gold-soft);color:#3B2420;border-color:var(--gold-soft)}
+.btn-gold:hover{background:#F1E2C4;border-color:#F1E2C4}
+.btn-on-dark{background:transparent;color:var(--on-dark);border-color:rgba(231,211,174,.55)}
+.btn-on-dark:hover{border-color:var(--gold-soft);color:#FFF7EE}
+@media (max-width:640px){.access{flex-basis:100%;justify-content:space-between;margin-left:0}}
+
+/* who may do what: body.locked = view only, body.not-owner = no staff/settings changes */
+.locked .edit-only,.not-owner .owner-only{display:none!important}
+.viewnote{display:none}
+.locked .viewnote{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.seg button:disabled{cursor:default}
+.seg button:disabled:not([aria-pressed="true"]){opacity:.5}
+.seg button:disabled:active,.btn:disabled:active{transform:none}
+.cell:disabled{cursor:default}
+.cell:disabled:hover{box-shadow:none}
+.input:disabled{background:var(--paper);color:var(--muted)}
+.by{display:block;margin-top:6px;font-size:.75rem;color:var(--muted)}
+.err{color:var(--err);font-size:.85rem;min-height:1.2em;margin:0}
+.code{font:600 1.6rem/1 var(--display);letter-spacing:.12em;color:var(--ink);font-variant-numeric:lining-nums;user-select:all;padding:14px 0;text-align:center;border-block:1px solid var(--line)}
+.linkish{background:none;border:0;padding:0;color:var(--gold);font-weight:600;font-size:.85rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px;justify-self:start}
+.full{grid-column:1/-1}
 
 footer{padding-block:28px;font-size:.82rem;color:var(--on-dark-muted)}
 footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 20px;align-items:center}
@@ -131,18 +154,13 @@ footer img{height:54px;width:auto}
 [data-s="WO"]{--c:var(--wo);--cb:var(--wo-bg)}
 
 .times{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.times label{display:flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
-.times .input{font-weight:400;letter-spacing:0}
-.times input[type=time]{width:136px}
-.times .note{flex:1;min-width:120px}
+.times .note{flex:1;min-width:120px;max-width:520px}
 @media (max-width:640px){
   .row{grid-template-columns:1fr;padding:16px 14px}
   .row .seg,.row .times{grid-column:1}.row .who{grid-row:auto}
   .seg{display:grid;grid-template-columns:repeat(6,1fr)}
   .seg button{grid-column:span 2;padding:9px 6px}
   .seg button:nth-child(n+4){grid-column:span 3}
-  .times label{flex:1 1 40%;min-width:0}
-  .times input[type=time]{width:100%;min-width:0;padding-inline:8px}
 }
 
 /* pop-up list */
@@ -216,11 +234,12 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
       <span class="tamil">நடராஜ் ஜுவல்ஸ் · திருப்பூர்</span>
       <h1>Staff Attendance</h1>
     </div>
+    <div class="access" id="access"></div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="today" aria-selected="true">Daily</button>
       <button role="tab" data-tab="register" aria-selected="false">Monthly register</button>
       <button role="tab" data-tab="staff" aria-selected="false">Staff</button>
-      <button role="tab" data-tab="backup" aria-selected="false">Backup &amp; settings</button>
+      <button role="tab" data-tab="backup" aria-selected="false" class="owner-only">Settings</button>
     </nav>
   </div>
 </header>
@@ -231,13 +250,14 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
   <section id="tab-today">
     <div class="band"><div class="wrap">
       <div class="heading"><span class="eyebrow" id="dEyebrow">Today</span><h2 id="dTitle"></h2></div>
+      <p class="notice viewnote" style="margin:0"><span>View only. Sign in with your PIN to mark attendance.</span><button class="btn btn-maroon" data-signin>Sign in</button></p>
       <div class="bar">
         <button class="btn btn-icon" id="dPrev" aria-label="Previous day">‹</button>
         <input type="date" class="input" id="dDate" aria-label="Date">
         <button class="btn btn-icon" id="dNext" aria-label="Next day">›</button>
         <button class="btn" id="dToday">Today</button>
         <span class="grow"></span>
-        <button class="btn btn-maroon" id="dAllPresent">Mark unmarked as present</button>
+        <button class="btn btn-maroon edit-only" id="dAllPresent">Mark unmarked as present</button>
       </div>
       <div class="tally">
         <div class="p"><b id="sP">0</b><span>Present</span></div>
@@ -263,7 +283,7 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
         <input type="month" class="input" id="mMonth" aria-label="Month">
         <button class="btn btn-icon" id="mNext" aria-label="Next month">›</button>
         <span class="grow"></span>
-        <button class="btn" id="mCsv">Download Excel (CSV)</button>
+        <button class="btn edit-only" id="mCsv">Download Excel (CSV)</button>
         <button class="btn" onclick="window.print()">Print</button>
       </div>
     </div></div>
@@ -279,7 +299,7 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
       <div class="heading"><span class="eyebrow" id="stEyebrow">Team</span><h2>Staff</h2></div>
     </div></div>
     <div class="wrap content grid2">
-      <form class="form" id="staffForm" autocomplete="off">
+      <form class="form owner-only" id="staffForm" autocomplete="off">
         <h3 id="sfTitle">Add staff</h3>
         <input type="hidden" id="sfId">
         <label>Name<input class="input" id="sfName" required maxlength="60"></label>
@@ -298,9 +318,19 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
   <!-- BACKUP -->
   <section id="tab-backup" hidden>
     <div class="band"><div class="wrap">
-      <div class="heading"><span class="eyebrow">Keep your records safe</span><h2>Backup &amp; settings</h2></div>
+      <div class="heading"><span class="eyebrow">Owner only</span><h2>Settings</h2></div>
     </div></div>
     <div class="wrap content grid2">
+      <div class="form panel full">
+        <h3>Who can mark attendance</h3>
+        <p>Each person gets their own PIN. Without a PIN, anyone can look at attendance but cannot change it. The app signs out by itself after 5 minutes without use. Every change records who made it.</p>
+        <div class="ledger" id="userList"></div>
+        <div class="bar">
+          <button class="btn btn-maroon" id="uAdd">Add a person</button>
+          <button class="btn" id="uRecovery">New recovery code</button>
+        </div>
+        <p>The PIN lock stops people without a PIN from changing attendance on this device. Records are stored only on this device, so keep it in the shop or with you.</p>
+      </div>
       <div class="form panel">
         <h3>Shop settings</h3>
         <label class="field">Weekly holiday
@@ -344,6 +374,24 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
     </div>
   </form>
 </dialog>
+<dialog id="pinDlg" aria-labelledby="pinTitle">
+  <form method="dialog" id="pinForm" novalidate>
+    <h2 id="pinTitle"></h2>
+    <p id="pinMsg"></p>
+    <label class="field" id="pinNameWrap">Name<input class="input" id="pinName" maxlength="40" autocomplete="off"></label>
+    <label class="field" id="pinRoleWrap">Access
+      <select class="input" id="pinRole"><option value="editor">Can mark attendance</option><option value="owner">Owner: full access</option></select>
+    </label>
+    <label class="field"><span id="pinALabel">PIN (4 to 6 digits)</span><input class="input" id="pinA" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <label class="field" id="pinBWrap">Type the PIN again<input class="input" id="pinB" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <button type="button" class="linkish" id="pinForgot">Forgot your PIN?</button>
+    <p class="err" id="pinErr" role="alert"></p>
+    <div class="actions">
+      <button type="button" class="btn" id="pinCancel">Cancel</button>
+      <button class="btn btn-maroon" value="ok" id="pinOk">Save</button>
+    </div>
+  </form>
+</dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -381,7 +429,7 @@ function firstRun(){
   d.staff = STARTING_STAFF.map(([id,name,role]) => ({id, name, role, phone:'', joined:'', active:true}));
   return d;
 }
-function blank(){ return {version:1, staff:[], att:{}, settings:{weeklyOff:0}, lastBackup:null}; }
+function blank(){ return {version:1, staff:[], att:{}, settings:{weeklyOff:0}, lastBackup:null, users:[], recovery:null}; }
 function load(){
   try{
     const raw = localStorage.getItem(KEY);
@@ -393,7 +441,8 @@ function normalize(d){
   if(!d || typeof d!=='object' || !Array.isArray(d.staff) || typeof d.att!=='object') throw new Error('Not an attendance backup');
   const b = blank();
   Object.values(d.att||{}).forEach(day => Object.values(day).forEach(r => { if(r && r.s==='L') r.s = 'LA'; }));
-  return {version:1, staff:d.staff, att:d.att||{}, settings:Object.assign(b.settings, d.settings||{}), lastBackup:d.lastBackup||null};
+  return {version:1, staff:d.staff, att:d.att||{}, settings:Object.assign(b.settings, d.settings||{}), lastBackup:d.lastBackup||null,
+          users:Array.isArray(d.users) ? d.users : [], recovery:d.recovery||null};
 }
 let db = load();
 let storageOk = true;
@@ -407,7 +456,6 @@ const pad = n => String(n).padStart(2,'0');
 const iso = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d||1); };
 const todayIso = () => iso(new Date());
-const nowTime = () => { const d = new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,2200); }
@@ -455,11 +503,203 @@ document.addEventListener('pointerdown', e => { if(!e.target.closest('.menu')) c
 window.addEventListener('resize', () => closeMenu());
 document.addEventListener('scroll', () => closeMenu(), true);
 
+/* ---------- PIN access ----------
+   PINs are stored only as SHA-256 hashes (salted with the person's id). */
+function sha256(str){
+  const rotr = (v,n) => (v>>>n) | (v<<(32-n));
+  const H = [], K = [];
+  for(let n = 2, c = 0; c < 64; n++){
+    let prime = true; for(let i = 2; i*i <= n; i++) if(n % i === 0){ prime = false; break; }
+    if(prime){ if(c < 8) H[c] = (Math.pow(n,1/2)*4294967296)|0; K[c++] = (Math.pow(n,1/3)*4294967296)|0; }
+  }
+  const b = Array.from(new TextEncoder().encode(str)), bits = b.length*8;
+  b.push(0x80); while(b.length % 64 !== 56) b.push(0);
+  b.push(0,0,0,0, (bits>>>24)&255, (bits>>>16)&255, (bits>>>8)&255, bits&255);
+  for(let o = 0; o < b.length; o += 64){
+    const w = [];
+    for(let i = 0; i < 64; i++){
+      if(i < 16) w[i] = (b[o+i*4]<<24) | (b[o+i*4+1]<<16) | (b[o+i*4+2]<<8) | b[o+i*4+3];
+      else {
+        const s0 = rotr(w[i-15],7) ^ rotr(w[i-15],18) ^ (w[i-15]>>>3);
+        const s1 = rotr(w[i-2],17) ^ rotr(w[i-2],19) ^ (w[i-2]>>>10);
+        w[i] = (w[i-16] + s0 + w[i-7] + s1)|0;
+      }
+    }
+    let [a,bb,c,d,e,f,g,h] = H;
+    for(let i = 0; i < 64; i++){
+      const t1 = (h + (rotr(e,6)^rotr(e,11)^rotr(e,25)) + ((e&f)^(~e&g)) + K[i] + w[i])|0;
+      const t2 = ((rotr(a,2)^rotr(a,13)^rotr(a,22)) + ((a&bb)^(a&c)^(bb&c)))|0;
+      h = g; g = f; f = e; e = (d + t1)|0; d = c; c = bb; bb = a; a = (t1 + t2)|0;
+    }
+    [a,bb,c,d,e,f,g,h].forEach((v,i) => H[i] = (H[i] + v)|0);
+  }
+  return H.map(v => (v>>>0).toString(16).padStart(8,'0')).join('');
+}
+const pinHash = (user, pin) => sha256('natraj|'+user.id+'|'+pin);
+const findUserByPin = pin => (db.users||[]).find(u => u.pin === pinHash(u, pin));
+let me = null;                                     // who is signed in (kept in memory only)
+const setupDone = () => (db.users||[]).length > 0;
+const canEdit = () => !setupDone() || !!me;        // before PINs are set up, everyone can edit
+const isOwner = () => !setupDone() || (!!me && me.role === 'owner');
+const IDLE_MS = 5*60*1000;
+let idleTimer = null;
+function touch(){
+  if(!me) return;
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { signOut(); toast('Signed out after 5 minutes without use'); }, IDLE_MS);
+}
+['pointerdown','keydown'].forEach(ev => document.addEventListener(ev, touch, true));
+function signIn(u){ me = u; touch(); applyAccess(); toast('Signed in as '+u.name); }
+function signOut(){ me = null; clearTimeout(idleTimer); closeMenu(); applyAccess(); }
+function applyAccess(){
+  document.body.classList.toggle('locked', !canEdit());
+  document.body.classList.toggle('not-owner', !isOwner());
+  const a = $('access');
+  if(!setupDone()) a.innerHTML = '<span>No PIN lock yet</span><button class="btn btn-gold" id="aSetup">Set up PIN lock</button>';
+  else if(me) a.innerHTML = '<span>Signed in as <b>'+esc(me.name)+'</b></span><button class="btn btn-on-dark" id="aOut">Sign out</button>';
+  else a.innerHTML = '<span>View only</span><button class="btn btn-gold" data-signin>Sign in</button>';
+  if($('aSetup')) $('aSetup').onclick = setupOwner;
+  if($('aOut')) $('aOut').onclick = () => { signOut(); toast('Signed out'); };
+  const curTab = document.querySelector('.tabs [aria-selected="true"]');
+  if(curTab && curTab.dataset.tab==='backup' && !isOwner()) showTab('today'); else render();
+}
+document.addEventListener('click', e => { if(e.target.closest('[data-signin]')) signInFlow(); });
+
+const PIN_RE = /^[0-9]{4,6}$/;
+/* one dialog for every PIN form; resolves to {name, role, a, b}, 'forgot', or null */
+function pinDialog(o){
+  const d = $('pinDlg');
+  $('pinTitle').textContent = o.title; $('pinMsg').textContent = o.msg || ''; $('pinMsg').hidden = !o.msg;
+  $('pinNameWrap').hidden = !o.name; $('pinRoleWrap').hidden = !o.role; $('pinBWrap').hidden = !o.confirm;
+  $('pinForgot').hidden = !o.forgot;
+  const A = $('pinA');
+  $('pinALabel').textContent = o.code ? 'Recovery code' : 'PIN (4 to 6 digits)';
+  A.type = o.code ? 'text' : 'password'; A.inputMode = o.code ? 'text' : 'numeric'; A.maxLength = o.code ? 9 : 6;
+  A.style.textTransform = o.code ? 'uppercase' : '';
+  ['pinName','pinA','pinB'].forEach(id => $(id).value = ''); $('pinName').value = o.nameValue || '';
+  $('pinRole').value = 'editor';
+  $('pinErr').textContent = '';
+  $('pinOk').textContent = o.okLabel || 'Save'; $('pinCancel').textContent = o.cancelLabel || 'Cancel';
+  d.showModal();
+  (o.name && !o.nameValue ? $('pinName') : A).focus();
+  return new Promise(res => {
+    const form = $('pinForm');
+    const onSubmit = e => {
+      const btn = e.submitter && e.submitter.value;
+      if(btn !== 'ok') return;
+      const v = {name:$('pinName').value.trim(), role:$('pinRole').value, a:A.value.trim(), b:$('pinB').value.trim()};
+      const err = o.validate ? o.validate(v) : '';
+      if(err){ e.preventDefault(); $('pinErr').textContent = err; A.select(); return; }
+      d._v = v;
+    };
+    d._v = null;
+    $('pinCancel').onclick = () => d.close('cancel');
+    $('pinForgot').onclick = () => d.close('forgot');
+    form.addEventListener('submit', onSubmit);
+    d.addEventListener('close', () => {
+      form.removeEventListener('submit', onSubmit);
+      res(d.returnValue === 'ok' ? d._v : d.returnValue === 'forgot' ? 'forgot' : null);
+    }, {once:true});
+    d.returnValue = '';
+  });
+}
+function checkNewPin(v, exceptUser){
+  if(!PIN_RE.test(v.a)) return 'The PIN must be 4 to 6 digits.';
+  if(v.a !== v.b) return 'The two PINs do not match. Type them again.';
+  const clash = findUserByPin(v.a);
+  if(clash && clash !== exceptUser) return 'Someone else already uses this PIN. Choose a different one.';
+  return '';
+}
+let failed = 0, waitUntil = 0;
+async function signInFlow(){
+  if(!setupDone()) return setupOwner();
+  const v = await pinDialog({title:'Sign in', msg:'Enter your PIN to mark attendance.', okLabel:'Sign in', forgot:true,
+    validate: v => {
+      const wait = Math.ceil((waitUntil - Date.now())/1000);
+      if(wait > 0) return 'Too many wrong PINs. Try again in '+wait+' seconds.';
+      if(findUserByPin(v.a)){ failed = 0; return ''; }
+      if(++failed >= 5){ failed = 0; waitUntil = Date.now() + 30000; return 'Too many wrong PINs. Try again in 30 seconds.'; }
+      return 'That PIN is not right. Try again.';
+    }});
+  if(v === 'forgot') return recoverFlow();
+  if(v) signIn(findUserByPin(v.a));
+}
+function newRecoveryCode(){
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = new Uint32Array(8);
+  crypto.getRandomValues(r);
+  const code = Array.from(r, n => abc[n % abc.length]).join('');
+  db.recovery = sha256('natraj-recovery|'+code); save();
+  return code.slice(0,4)+'-'+code.slice(4);
+}
+function showRecoveryCode(code){
+  return ask('Write down your recovery code', code+'\n\nIf you forget your owner PIN, tap Sign in, then “Forgot your PIN?”, and enter this code. Keep it somewhere safe. It is shown only once.', null);
+}
+async function setupOwner(){
+  const v = await pinDialog({title:'Set up the PIN lock', msg:'First, choose the owner PIN. The owner can mark attendance, manage staff and decide who else gets a PIN.',
+    name:true, confirm:true, okLabel:'Save PIN', cancelLabel:'Later',
+    validate: v => !v.name ? 'Type your name.' : checkNewPin(v)});
+  if(!v) return;
+  const u = {id:uid(), name:v.name, role:'owner'}; u.pin = pinHash(u, v.a);
+  db.users = [u]; save();
+  me = u; touch(); applyAccess();
+  await showRecoveryCode(newRecoveryCode());
+}
+async function recoverFlow(){
+  const v = await pinDialog({title:'Forgot your PIN?', msg:'Enter the owner recovery code you wrote down when the PIN lock was set up.', code:true, okLabel:'Continue',
+    validate: v => db.recovery && sha256('natraj-recovery|'+v.a.toUpperCase().replace(/[^A-Z0-9]/g,'')) === db.recovery ? '' : 'That recovery code is not right.'});
+  if(!v || v === 'forgot') return;
+  const owners = db.users.filter(u => u.role === 'owner');
+  signIn(owners[0]);
+  showTab('backup');
+  toast('Set a new PIN with “Change PIN”');
+}
+
+/* ---------- people with access (owner) ---------- */
+function renderUsers(){
+  const list = (db.users||[]).slice().sort((a,b) => (a.role==='owner' ? 0 : 1) - (b.role==='owner' ? 0 : 1) || a.name.localeCompare(b.name));
+  $('userList').innerHTML = list.length ? list.map(u =>
+    '<div class="srow" data-uid="'+esc(u.id)+'"><div class="who"><b>'+esc(u.name)+(me && me.id===u.id ? ' (you)' : '')+'</b><span>'+(u.role==='owner' ? 'Owner · full access' : 'Can mark attendance')+'</span></div>'+
+      '<button class="btn mini" data-uact="pin">Change PIN</button>'+
+      '<button class="btn mini btn-danger" data-uact="del">Remove</button></div>').join('')
+    : '<div class="empty">The PIN lock is not set up yet. Anyone using this device can change attendance.<p style="margin-top:14px"><button class="btn btn-maroon" id="uSetup">Set up PIN lock</button></p></div>';
+  if($('uSetup')) $('uSetup').onclick = setupOwner;
+  $('uAdd').hidden = $('uRecovery').hidden = !list.length;
+}
+$('uAdd').onclick = async () => {
+  if(!isOwner()) return;
+  const v = await pinDialog({title:'Add a person', msg:'They will sign in with this PIN to mark attendance.', name:true, role:true, confirm:true, okLabel:'Add',
+    validate: v => !v.name ? 'Type their name.' : checkNewPin(v)});
+  if(!v) return;
+  const u = {id:uid(), name:v.name, role:v.role}; u.pin = pinHash(u, v.a);
+  db.users.push(u); save(); renderUsers(); toast(u.name+' can now sign in');
+};
+$('uRecovery').onclick = async () => {
+  if(!isOwner()) return;
+  if(await ask('Make a new recovery code?', 'The old recovery code will stop working.', 'Make new code')) showRecoveryCode(newRecoveryCode());
+};
+$('userList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-uact]'); if(!b || !isOwner()) return;
+  const u = db.users.find(x => x.id === b.closest('[data-uid]').dataset.uid);
+  if(b.dataset.uact === 'pin'){
+    const v = await pinDialog({title:'New PIN for '+u.name, confirm:true, okLabel:'Save PIN', validate: v => checkNewPin(v, u)});
+    if(!v) return;
+    u.pin = pinHash(u, v.a); save(); toast('PIN changed for '+u.name);
+  } else {
+    const owners = db.users.filter(x => x.role === 'owner');
+    if(u.role === 'owner' && owners.length === 1){ ask('Keep at least one owner', 'Add another owner first, or change this person’s PIN instead.', null); return; }
+    if(!await ask('Remove '+u.name+'?', u.name+' will no longer be able to sign in. Attendance they already marked is kept.', 'Remove', true)) return;
+    db.users = db.users.filter(x => x !== u); save();
+    if(me === u) signOut(); else renderUsers();
+    toast(u.name+' removed');
+  }
+});
+
 function rec(date, sid){ return (db.att[date]||{})[sid]; }
 function setRec(date, sid, patch){
+  if(!canEdit()) return;
   const day = db.att[date] || (db.att[date] = {});
-  const r = Object.assign({}, day[sid], patch);
-  if(!r.s && !r.in && !r.out && !r.note){ delete day[sid]; if(!Object.keys(day).length) delete db.att[date]; }
+  const r = Object.assign({}, day[sid], patch, me ? {by: me.name, at: new Date().toISOString()} : {});
+  if(!r.s && !r.note){ delete day[sid]; if(!Object.keys(day).length) delete db.att[date]; }
   else day[sid] = r;
   save();
 }
@@ -491,6 +731,7 @@ $('dToday').onclick = () => { curDate = todayIso(); renderDay(); };
 function shiftDay(n){ const d = parse(curDate); d.setDate(d.getDate()+n); curDate = iso(d); renderDay(); }
 const isWeekOff = date => db.settings.weeklyOff == parse(date).getDay();
 $('dAllPresent').onclick = () => {
+  if(!canEdit()) return;
   const k = isWeekOff(curDate) ? 'WO' : 'P';
   let n = 0;
   staffFor(curDate, false).forEach(s => { if(!(rec(curDate,s.id)||{}).s){ setRec(curDate, s.id, {s:k}); n++; } });
@@ -521,26 +762,25 @@ function renderDay(){
   }
   if(!list.length){ box.innerHTML = '<div class="ledger empty"><p>No active staff on this date.</p></div>'; return; }
 
+  const dis = canEdit() ? '' : ' disabled';
   box.innerHTML = '<div class="ledger">' + list.map(s => {
     const r = rec(curDate, s.id) || {};
+    const by = r.by ? '<small class="by">Marked by '+esc(r.by)+(r.at ? ', '+esc(new Date(r.at).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})) : '')+'</small>' : '';
     return '<div class="row" data-id="'+esc(s.id)+'">'+
-      '<div class="who"><b>'+esc(s.name)+'</b><span>'+esc(s.role||'')+(s.active?'':' · inactive')+'</span></div>'+
+      '<div class="who"><b>'+esc(s.name)+'</b><span>'+esc(s.role||'')+(s.active?'':' · inactive')+'</span>'+by+'</div>'+
       '<div class="seg" role="group" aria-label="Status for '+esc(s.name)+'">'+
-        MAIN.map(k => '<button type="button" data-s="'+k+'" aria-pressed="'+(r.s===k)+'">'+STATUS[k].label+'</button>').join('')+
+        MAIN.map(k => '<button type="button" data-s="'+k+'" aria-pressed="'+(r.s===k)+'"'+dis+'>'+STATUS[k].label+'</button>').join('')+
         (STATUS[r.s] && STATUS[r.s].leave
-          ? '<button type="button" class="lv" data-leave data-s="'+r.s+'" aria-pressed="true" aria-haspopup="menu">'+STATUS[r.s].label+'</button>'
-          : '<button type="button" class="lv" data-leave aria-pressed="false" aria-haspopup="menu">Leave</button>')+
+          ? '<button type="button" class="lv" data-leave data-s="'+r.s+'" aria-pressed="true" aria-haspopup="menu"'+dis+'>'+STATUS[r.s].label+'</button>'
+          : '<button type="button" class="lv" data-leave aria-pressed="false" aria-haspopup="menu"'+dis+'>Leave</button>')+
       '</div>'+
       '<div class="times">'+
-        '<label>In <input type="time" class="input" data-f="in" value="'+esc(r.in||'')+'"></label>'+
-        '<label>Out <input type="time" class="input" data-f="out" value="'+esc(r.out||'')+'"></label>'+
-        (curDate===todayIso() ? (!r.in ? '<button type="button" class="btn mini" data-now="in">Check in now</button>' : (!r.out ? '<button type="button" class="btn mini" data-now="out">Check out now</button>' : '')) : '')+
-        '<input class="input note" data-f="note" placeholder="Note" maxlength="80" value="'+esc(r.note||'')+'">'+
+        '<input class="input note" data-f="note" placeholder="Note (optional)" aria-label="Note for '+esc(s.name)+'" maxlength="80" value="'+esc(r.note||'')+'"'+dis+'>'+
       '</div></div>';
   }).join('') + '</div>';
 }
 $('dayList').addEventListener('click', e => {
-  const row = e.target.closest('.row'); if(!row) return;
+  const row = e.target.closest('.row'); if(!row || !canEdit()) return;
   const id = row.dataset.id;
   const sb = e.target.closest('.seg button');
   const cur = (rec(curDate,id)||{}).s;
@@ -552,19 +792,11 @@ $('dayList').addEventListener('click', e => {
     setRec(curDate, id, {s: cur===sb.dataset.s ? undefined : sb.dataset.s});
     renderDay(); return;
   }
-  const nb = e.target.closest('[data-now]');
-  if(nb){
-    const patch = {[nb.dataset.now]: nowTime()};
-    if(nb.dataset.now==='in' && !(rec(curDate,id)||{}).s) patch.s = 'P';
-    setRec(curDate, id, patch); renderDay();
-  }
 });
 $('dayList').addEventListener('change', e => {
-  const f = e.target.dataset.f; if(!f) return;
+  const f = e.target.dataset.f; if(!f || !canEdit()) return;
   const id = e.target.closest('.row').dataset.id;
-  const patch = {[f]: e.target.value.trim() || undefined};
-  if(f==='in' && e.target.value && !(rec(curDate,id)||{}).s) patch.s = 'P';
-  setRec(curDate, id, patch); renderDay();
+  setRec(curDate, id, {[f]: e.target.value.trim() || undefined}); renderDay();
 });
 
 /* ---------- register ---------- */
@@ -606,8 +838,8 @@ function renderReg(){
       const r = rec(d, s.id) || {};
       const off = isWeekOff(d);
       const before = s.joined && s.joined > d;
-      const tip = [LABEL(r.s), r.in && ('In '+r.in), r.out && ('Out '+r.out), r.note].filter(Boolean).join(' · ');
-      h += '<td class="'+(off?'off':'')+'">'+(before ? '' : '<button class="cell" data-id="'+esc(s.id)+'" data-d="'+d+'" data-s="'+(r.s||'')+'" title="'+esc(d+(tip?' · '+tip:''))+'">'+(STATUS[r.s] ? STATUS[r.s].code : '')+'</button>')+'</td>';
+      const tip = [LABEL(r.s), r.note, r.by && ('by '+r.by)].filter(Boolean).join(' · ');
+      h += '<td class="'+(off?'off':'')+'">'+(before ? '' : '<button class="cell"'+(canEdit() ? '' : ' disabled')+' data-id="'+esc(s.id)+'" data-d="'+d+'" data-s="'+(r.s||'')+'" title="'+esc(d+(tip?' · '+tip:''))+'">'+(STATUS[r.s] ? STATUS[r.s].code : '')+'</button>')+'</td>';
     });
     const tt = totals(s, days);
     h += ORDER.map(k => '<td class="tot">'+tt[k]+'</td>').join('') + '<td class="tot worked">'+fmtDays(tt.days)+'</td></tr>';
@@ -615,7 +847,7 @@ function renderReg(){
   tbl.innerHTML = h + '</tbody>';
 }
 $('regTable').addEventListener('click', e => {
-  const c = e.target.closest('.cell'); if(!c) return;
+  const c = e.target.closest('.cell'); if(!c || !canEdit()) return;
   pick(c, ORDER, c.dataset.s, true).then(k => {
     if(k===null) return;
     setRec(c.dataset.d, c.dataset.id, {s: k || undefined});
@@ -624,6 +856,7 @@ $('regTable').addEventListener('click', e => {
   });
 });
 $('mCsv').onclick = () => {
+  if(!canEdit()) return;
   const days = monthDays();
   const q = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
   const rows = [['Name','Role', ...days.map(d => parse(d).getDate()), ...ORDER.map(LABEL), 'Days worked']];
@@ -633,14 +866,15 @@ $('mCsv').onclick = () => {
   });
   rows.push([]);
   rows.push(['Daily detail']);
-  rows.push(['Date','Name','Status','In','Out','Note']);
-  days.forEach(d => sortStaff(db.staff).forEach(s => { const r = rec(d,s.id); if(r) rows.push([d, s.name, LABEL(r.s), r.in||'', r.out||'', r.note||'']); }));
+  rows.push(['Date','Name','Status','Note','Marked by']);
+  days.forEach(d => sortStaff(db.staff).forEach(s => { const r = rec(d,s.id); if(r) rows.push([d, s.name, LABEL(r.s), r.note||'', r.by||'']); }));
   download('natraj-attendance-'+curMonth+'.csv', '﻿'+rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 };
 
 /* ---------- staff ---------- */
 $('staffForm').addEventListener('submit', e => {
   e.preventDefault();
+  if(!isOwner()) return;
   const name = $('sfName').value.trim(); if(!name) return;
   const data = {name, role:$('sfRole').value.trim(), phone:$('sfPhone').value.trim(), joined:$('sfJoined').value||''};
   const id = $('sfId').value;
@@ -663,13 +897,13 @@ function renderStaff(){
     '<div class="srow'+(s.active?'':' inactive')+'" data-id="'+esc(s.id)+'">'+
       '<div class="who"><b>'+esc(s.name)+'</b><span>'+[s.role, s.phone, s.joined && ('joined '+parse(s.joined).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}))].filter(Boolean).map(esc).join(' · ')+'</span></div>'+
       (s.active?'':'<span class="tag">Inactive</span>')+
-      '<button class="btn mini" data-act="edit">Edit</button>'+
-      '<button class="btn mini" data-act="toggle">'+(s.active?'Deactivate':'Reactivate')+'</button>'+
-      '<button class="btn mini btn-danger" data-act="del" aria-label="Delete '+esc(s.name)+'">Delete</button>'+
+      '<button class="btn mini owner-only" data-act="edit">Edit</button>'+
+      '<button class="btn mini owner-only" data-act="toggle">'+(s.active?'Deactivate':'Reactivate')+'</button>'+
+      '<button class="btn mini btn-danger owner-only" data-act="del" aria-label="Delete '+esc(s.name)+'">Delete</button>'+
     '</div>').join('');
 }
 $('staffList').addEventListener('click', e => {
-  const b = e.target.closest('[data-act]'); if(!b) return;
+  const b = e.target.closest('[data-act]'); if(!b || !isOwner()) return;
   const s = db.staff.find(x => x.id === b.closest('.srow').dataset.id);
   if(b.dataset.act==='edit'){
     $('sfId').value=s.id; $('sfName').value=s.name; $('sfRole').value=s.role||''; $('sfPhone').value=s.phone||''; $('sfJoined').value=s.joined||'';
@@ -689,7 +923,7 @@ $('staffList').addEventListener('click', e => {
 });
 
 /* ---------- backup & settings ---------- */
-$('setOff').addEventListener('change', e => { db.settings.weeklyOff = Number(e.target.value); save(); toast('Saved'); });
+$('setOff').addEventListener('change', e => { if(!isOwner()) return; db.settings.weeklyOff = Number(e.target.value); save(); toast('Saved'); });
 function download(name, text, type){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], {type}));
@@ -697,23 +931,26 @@ function download(name, text, type){
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 $('bDownload').onclick = () => {
+  if(!isOwner()) return;
   db.lastBackup = new Date().toISOString(); save();
   download('natraj-attendance-backup-'+todayIso()+'.json', JSON.stringify(db, null, 1), 'application/json');
   renderBackup();
 };
 $('bRestore').addEventListener('change', e => {
-  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  const f = e.target.files[0]; e.target.value = ''; if(!f || !isOwner()) return;
   const rd = new FileReader();
   rd.onload = () => {
     try{
       const d = normalize(JSON.parse(rd.result));
+      if(!d.users.length){ d.users = db.users; d.recovery = db.recovery; }   // older backups had no PINs: keep this device's
       ask('Restore this backup?', 'The backup has '+d.staff.length+' staff and '+Object.keys(d.att).length+' days of attendance. It will replace everything currently on this device.', 'Restore', true)
-        .then(ok => { if(ok){ db = d; save(); toast('Backup restored'); render(); } });
+        .then(ok => { if(ok){ db = d; save(); toast('Backup restored'); if(me && !db.users.some(u => u.id===me.id)) signOut(); else applyAccess(); } });
     }catch(err){ ask('This file can\'t be restored', 'Choose a backup file downloaded from this app. Its name starts with natraj-attendance-backup.', null); }
   };
   rd.readAsText(f);
 });
 function renderBackup(){
+  renderUsers();
   $('setOff').value = String(db.settings.weeklyOff);
   $('lastBackup').innerHTML = db.lastBackup
     ? 'Last backup downloaded: <b>'+esc(new Date(db.lastBackup).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}))+'</b>'
@@ -731,13 +968,18 @@ function render(){
   if(!$('tab-backup').hidden) renderBackup();
 }
 // keep other open tabs/windows in sync
-window.addEventListener('storage', e => { if(e.key===KEY){ db = load(); render(); } });
+window.addEventListener('storage', e => { if(e.key===KEY){ db = load(); if(me) me = (db.users||[]).find(u => u.id===me.id) || null; applyAccess(); } });
 
 let startTab = 'today';
 try{ startTab = sessionStorage.getItem(KEY+'-tab') || 'today'; }catch(e){}
 if(!db.staff.length) startTab = 'staff';
 $('year').textContent = new Date().getFullYear();
+if(startTab==='backup' && setupDone()) startTab = 'today';   // settings need the owner to sign in first
 showTab(startTab);
+applyAccess();
+let promptedSetup = false;
+try{ promptedSetup = !!sessionStorage.getItem(KEY+'-setup-asked'); sessionStorage.setItem(KEY+'-setup-asked','1'); }catch(e){}
+if(!setupDone() && !promptedSetup) setupOwner();
 })();
 </script>
 </body>
