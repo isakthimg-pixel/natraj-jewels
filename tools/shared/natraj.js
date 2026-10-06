@@ -13,7 +13,8 @@ const PIN_RE = /^[0-9]{6}$/;
 const APPS = {
   attendance: {name: 'Attendance', path: 'attendance/', desc: 'Daily attendance, leave requests and the monthly register.'},
   rates: {name: 'Gold & silver rate', path: 'rates/', desc: 'Today’s rate, WhatsApp message and history.', everyone: true, access: 'Updates the daily rate', short: 'Daily rate'},
-  todo: {name: 'Tasks', path: 'todo/', desc: 'Your to-do list: tasks given to you, and tasks you give others.', everyone: true, access: 'Assigns tasks', short: 'Assigns tasks'}
+  todo: {name: 'Tasks', path: 'todo/', desc: 'Your to-do list: tasks given to you, and tasks you give others.', everyone: true, access: 'Assigns tasks', short: 'Assigns tasks'},
+  expenses: {name: 'Expenses', path: 'expenses/', desc: 'Money paid out of the shop: enter it as it happens, see the month by category.'}
 };
 
 const ROOT = (document.currentScript && document.currentScript.src || '').replace(/shared\/natraj\.js.*$/, '');
@@ -311,7 +312,7 @@ function rateStatus(settings, last, updaters){
 }
 
 /* Owner backup: every table, as one JSON file. Add new apps' tables here. */
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
   for(const t of TABLES) out.tables[t] = must(await sb.from(t).select('*'));

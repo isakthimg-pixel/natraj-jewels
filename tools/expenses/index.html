@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Expenses · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.no-access main{display:none!important}
+.no-access-msg{display:none}
+.no-access .no-access-msg{display:block}
+.not-owner .owner-only{display:none!important}
+
+.tally3{grid-template-columns:repeat(3,1fr)}
+.tally .money-fig{font-variant-numeric:lining-nums tabular-nums}
+@media (max-width:640px){.tally3 b{font-size:clamp(1.05rem,5vw,1.5rem);overflow-wrap:anywhere}}
+
+.money{position:relative}
+.money .input{padding-left:30px}
+.money::before{content:"₹";position:absolute;left:13px;bottom:15px;color:var(--muted);font-weight:500;letter-spacing:0}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:420px){.form .two{grid-template-columns:1fr}}
+.form .field > span{font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.amt-big .input{font:500 1.5rem var(--display);font-variant-numeric:lining-nums tabular-nums}
+.amt-big::before{font-size:1.2rem;bottom:13px}
+.amt-big .input{padding-left:34px}
+
+/* one expense per row: category and details on the left, amount on the right */
+.erow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:14px 18px;align-items:start}
+.erow .cat{font:600 1.02rem/1.3 var(--heading);color:var(--ink)}
+.erow .sub{font-size:.85rem;color:var(--muted);margin-top:2px}
+.erow .amt{font:500 1.15rem/1.2 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink);text-align:right;white-space:nowrap}
+.erow .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.erow .acts:empty{display:none}
+.dhead{display:flex;justify-content:space-between;gap:12px}
+.dhead b{font-variant-numeric:lining-nums tabular-nums;letter-spacing:.04em}
+
+/* month by category: one hue, bars from a shared baseline, value at the end */
+.cards{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px;margin-bottom:24px}
+@media (max-width:860px){.cards{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:clamp(18px,3vw,24px);display:grid;gap:12px;align-content:start;min-width:0}
+.card h3{font-size:1.35rem;color:var(--maroon)}
+.bars{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:minmax(90px,170px) minmax(0,1fr) auto;gap:12px;align-items:center;font-size:.92rem;background:none;border:0;padding:0;text-align:left;color:inherit;font-family:inherit;cursor:pointer}
+.bar-row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{position:relative;height:12px}
+.track i{position:absolute;left:0;top:0;bottom:0;background:var(--maroon);border-radius:0 4px 4px 0;min-width:2px}
+.bar-row b{font:600 .98rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;text-align:right;color:var(--ink);min-width:5.5em}
+.bar-row:hover .track i,.bar-row[aria-pressed="true"] .track i{background:var(--maroon-deep)}
+.bar-row[aria-pressed="true"] .nm{font-weight:600;color:var(--maroon)}
+.modes{display:grid;gap:0}
+.modes div{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:.94rem}
+.modes div:first-child{border-top:0}
+.modes b{font-variant-numeric:lining-nums tabular-nums;font-weight:600}
+.axisnote{font-size:.78rem;color:var(--muted);margin:0}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <h1>Expenses</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="add" aria-selected="true">Add</button>
+      <button role="tab" data-tab="month" aria-selected="false">Month</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to enter expenses.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+<div class="wrap content no-access-msg"><div class="form panel"><h3>No access</h3><p>Ask the owner to switch on Expenses for you in People &amp; settings.</p></div></div>
+
+<main>
+  <!-- ADD -->
+  <section id="tab-add">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="aEyebrow">Today</span><h2 id="aTitle">Expenses</h2></div>
+      <div class="tally tally3">
+        <div><b class="money-fig" id="tToday">–</b><span>Today</span></div>
+        <div><b class="money-fig" id="tWeek">–</b><span>Last 7 days</span></div>
+        <div><b class="money-fig" id="tMonth">–</b><span>This month</span></div>
+      </div>
+    </div></div>
+    <div class="wrap content grid2">
+      <form class="form" id="eForm" autocomplete="off" novalidate>
+        <h3>New expense</h3>
+        <label class="money amt-big">Amount<input class="input" id="fAmt" inputmode="decimal" placeholder="0"></label>
+        <label>Category<select class="input" id="fCat"></select></label>
+        <div class="field"><span>Paid by</span><div class="bubbles" id="fMode" role="group" aria-label="Paid by"></div></div>
+        <div class="two">
+          <label>Date<input class="input" type="date" id="fDay"></label>
+          <label>Paid to<input class="input" id="fTo" maxlength="80" placeholder="optional"></label>
+        </div>
+        <label>Note<input class="input" id="fNote" maxlength="300" placeholder="optional, e.g. 2 dozen boxes"></label>
+        <p class="err" id="fErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="submit" id="fSave">Save expense</button></div>
+      </form>
+      <div>
+        <div class="ledger" id="recent"><div class="loading">Loading…</div></div>
+        <p class="axisnote" id="recentNote" style="margin-top:10px"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MONTH -->
+  <section id="tab-month" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="mEyebrow">Month</span><h2 id="mTitle"></h2></div>
+      <div class="bar">
+        <button class="btn btn-icon" id="mPrev" aria-label="Previous month">‹</button>
+        <input type="month" class="input" id="mMonth" aria-label="Month">
+        <button class="btn btn-icon" id="mNext" aria-label="Next month">›</button>
+        <span class="grow"></span>
+        <button class="btn owner-only" id="mCats">Categories</button>
+        <button class="btn" id="mCsv">Download Excel (CSV)</button>
+      </div>
+      <div class="tally tally3">
+        <div><b class="money-fig" id="mTotal">–</b><span>Total spent</span></div>
+        <div><b id="mCount">–</b><span>Entries</span></div>
+        <div><b class="money-fig" id="mAvg">–</b><span>Per day, on average</span></div>
+      </div>
+    </div></div>
+    <div class="wrap content">
+      <div class="cards">
+        <div class="card"><h3>By category</h3><div class="bars" id="mBars"></div><p class="axisnote">Tap a category to see only its entries.</p></div>
+        <div class="card"><h3>Paid by</h3><div class="modes" id="mModes"></div></div>
+      </div>
+      <div class="ledger" id="mList"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Expenses · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, dialog, iso, parse, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const MODES = ['Cash', 'UPI', 'Card', 'Bank transfer', 'Cheque'];
+const BIG = 50000;   // ask before saving more than this, to catch an extra zero
+let cats = [], recent = [], monthRows = [], curTab = 'add', curMonth = todayIso().slice(0, 7), catFilter = '', mode = 'Cash';
+
+const inr = v => { const n = Math.round(Number(v) * 100) / 100; return '₹' + n.toLocaleString('en-IN', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2}); };
+const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
+const fmtDay = d => { const t = todayIso(); return d === t ? 'Today' : d === addDays(t, -1) ? 'Yesterday' : parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'}); };
+const monthEnd = m => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + 1); d.setDate(0); return iso(d); };
+const sum = rows => rows.reduce((s, r) => s + Number(r.amount), 0);
+const amount = s => { const v = String(s).replace(/[,\s₹]/g, ''); return /^\d+(\.\d{1,2})?$/.test(v) ? Number(v) : NaN; };
+// the owner can change any entry; others only their own, on the day they entered it
+const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && iso(new Date(r.created_at)) === todayIso()));
+const catOptions = cur => [['', 'Choose a category'], ...cats.map(c => [c, c]), ...(cur && !cats.includes(cur) ? [[cur, cur]] : [])];
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+function showTab(name){
+  curTab = name;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  $('tab-add').hidden = name !== 'add'; $('tab-month').hidden = name !== 'month';
+  if(name === 'month') loadMonth().catch(e => toast(e.message));
+}
+
+/* ---------- loading ---------- */
+async function loadSettings(){
+  const s = must(await sb.from('settings').select('expense_categories').eq('id', 1).maybeSingle());
+  cats = (s && s.expense_categories) || [];
+  const cur = $('fCat').value;
+  $('fCat').innerHTML = catOptions('').map(([v, l]) => '<option value="' + esc(v) + '">' + esc(l) + '</option>').join('');
+  if(cats.includes(cur)) $('fCat').value = cur;
+}
+async function loadRecent(){
+  const t = todayIso(), from = [addDays(t, -6), t.slice(0, 7) + '-01'].sort()[0];
+  recent = must(await sb.from('expenses').select('*').gte('day', from).order('day', {ascending: false}).order('created_at', {ascending: false})) || [];
+  renderRecent();
+}
+
+/* ---------- add tab ---------- */
+function row(r, showDay){
+  const sub = [showDay ? fmtDay(r.day) : '', r.mode, r.paid_to && ('to ' + r.paid_to), r.note].filter(Boolean).join(' · ');
+  const by = NJ.me.is_owner ? 'Entered by ' + (r.created_by_name || 'someone') + (r.updated_by_name ? ' · changed by ' + r.updated_by_name : '') : '';
+  return '<div class="erow" data-id="' + esc(r.id) + '"><div><div class="cat">' + esc(r.category) + '</div>' +
+    (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
+    '<div class="amt">' + esc(inr(r.amount)) + '</div>' +
+    '<div class="acts">' + (canChange(r) ? '<button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button>' : '') + '</div></div>';
+}
+function renderRecent(){
+  const t = todayIso(), wk = addDays(t, -6), m = t.slice(0, 7);
+  $('tToday').textContent = inr(sum(recent.filter(r => r.day === t)));
+  $('tWeek').textContent = inr(sum(recent.filter(r => r.day >= wk && r.day <= t)));
+  $('tMonth').textContent = inr(sum(recent.filter(r => r.day.slice(0, 7) === m && r.day <= t)));
+  $('aEyebrow').textContent = parse(t).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'});
+  $('aTitle').textContent = NJ.me.is_owner ? 'Shop expenses' : 'Your expenses';
+  const last7 = recent.filter(r => r.day >= wk);
+  const days = [...new Set(last7.map(r => r.day))];
+  $('recent').innerHTML = days.length ? days.map(d => {
+    const rs = last7.filter(r => r.day === d);
+    return '<div class="lhead dhead"><span>' + esc(fmtDay(d)) + '</span><b>' + esc(inr(sum(rs))) + '</b></div>' + rs.map(r => row(r, false)).join('');
+  }).join('') : '<div class="empty" style="padding:32px 20px">No expenses in the last 7 days.</div>';
+  $('recentNote').textContent = NJ.me.is_owner ? 'Everyone’s entries from the last 7 days.'
+    : 'Your entries from the last 7 days. You can fix or delete an entry on the day you enter it; after that, ask the owner.';
+}
+
+$('fMode').innerHTML = MODES.map(m => '<button type="button" class="bubble" data-mode="' + m + '" aria-pressed="' + (m === mode) + '">' + m + '</button>').join('');
+$('fMode').addEventListener('click', e => {
+  const b = e.target.closest('[data-mode]'); if(!b) return;
+  mode = b.dataset.mode;
+  $('fMode').querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x === b));
+});
+$('fDay').value = todayIso(); $('fDay').max = todayIso();
+
+$('eForm').addEventListener('submit', async e => {
+  e.preventDefault(); $('fErr').textContent = '';
+  const a = amount($('fAmt').value), cat = $('fCat').value, day = $('fDay').value;
+  if(!(a > 0)) return $('fErr').textContent = 'Type the amount in rupees, e.g. 450 or 450.50.';
+  if(a >= 1e7) return $('fErr').textContent = 'That amount is too large.';
+  if(!cat) return $('fErr').textContent = 'Choose a category.';
+  if(!day) return $('fErr').textContent = 'Choose the date.';
+  if(day > todayIso()) return $('fErr').textContent = 'The date can’t be in the future.';
+  if(a > BIG && !await ask('Save ' + inr(a) + '?', 'This is a large amount. Check there is no extra zero.', 'Save')) return;
+  $('fSave').setAttribute('aria-busy', 'true');
+  try{
+    const r = must(await sb.from('expenses').insert({day, amount: a, category: cat, mode, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim()}).select().single());
+    recent.unshift(r); recent.sort((x, y) => y.day.localeCompare(x.day) || y.created_at.localeCompare(x.created_at));
+    renderRecent();
+    toast('Saved ' + inr(a) + ' for ' + cat);
+    $('fAmt').value = ''; $('fTo').value = ''; $('fNote').value = ''; $('fCat').value = '';
+    $('fAmt').focus();
+  }catch(x){ $('fErr').textContent = x.message; }
+  $('fSave').removeAttribute('aria-busy');
+});
+
+/* edit or delete, from either list */
+async function onListClick(e){
+  const el = e.target.closest('.erow'); const act = e.target.closest('[data-act]');
+  if(!el || !act) return;
+  const r = recent.find(x => x.id === el.dataset.id) || monthRows.find(x => x.id === el.dataset.id);
+  if(!r) return;
+  if(act.dataset.act === 'del'){
+    if(!await ask('Delete this expense?', r.category + ' · ' + inr(r.amount) + ' · ' + fmtDay(r.day), 'Delete', true)) return;
+    try{
+      must(await sb.from('expenses').delete().eq('id', r.id));
+      recent = recent.filter(x => x.id !== r.id); monthRows = monthRows.filter(x => x.id !== r.id);
+      toast('Expense deleted'); renderRecent(); if(curTab === 'month') renderMonth();
+    }catch(x){ toast(x.message); }
+    return;
+  }
+  const v = await dialog({
+    title: 'Edit expense', ok: 'Save',
+    fields: [
+      {id: 'amount', label: 'Amount (₹)', type: 'text', value: String(Number(r.amount)), maxlength: 12},
+      {id: 'category', label: 'Category', type: 'select', value: r.category, options: catOptions(r.category)},
+      {id: 'mode', label: 'Paid by', type: 'select', value: r.mode, options: MODES.map(m => [m, m])},
+      {id: 'day', label: 'Date', type: 'date', value: r.day},
+      {id: 'paid_to', label: 'Paid to (optional)', type: 'text', value: r.paid_to, maxlength: 80},
+      {id: 'note', label: 'Note (optional)', type: 'text', value: r.note, maxlength: 300}
+    ],
+    validate: async v => {
+      const a = amount(v.amount);
+      if(!(a > 0) || a >= 1e7) return 'Type the amount in rupees, e.g. 450 or 450.50.';
+      if(!v.category) return 'Choose a category.';
+      if(!v.day || v.day > todayIso()) return 'Choose a date that is not in the future.';
+      const row = must(await sb.from('expenses').update({amount: a, category: v.category, mode: v.mode, day: v.day, paid_to: v.paid_to, note: v.note}).eq('id', r.id).select().single());
+      [recent, monthRows].forEach(list => { const x = list.find(y => y.id === r.id); if(x) Object.assign(x, row); });
+      return '';
+    }
+  });
+  if(v){ toast('Saved'); await loadRecent(); if(curTab === 'month') renderMonth(); }
+}
+$('recent').addEventListener('click', onListClick);
+$('mList').addEventListener('click', onListClick);
+
+/* ---------- month tab ---------- */
+async function loadMonth(){
+  $('mMonth').value = curMonth;
+  monthRows = must(await sb.from('expenses').select('*').gte('day', curMonth + '-01').lte('day', monthEnd(curMonth))
+    .order('day', {ascending: false}).order('created_at', {ascending: false})) || [];
+  renderMonth();
+}
+function renderMonth(){
+  const label = parse(curMonth + '-01').toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
+  $('mTitle').textContent = label;
+  $('mEyebrow').textContent = NJ.me.is_owner ? 'All expenses' : 'Your entries';
+  const total = sum(monthRows);
+  const t = todayIso();
+  const daysIn = curMonth === t.slice(0, 7) ? Number(t.slice(8)) : Number(monthEnd(curMonth).slice(8));
+  $('mTotal').textContent = inr(total); $('mCount').textContent = monthRows.length;
+  $('mAvg').textContent = curMonth > t.slice(0, 7) ? '–' : inr(Math.round(total / daysIn));
+  // by category, largest first, same scale for all
+  const byCat = {}; monthRows.forEach(r => byCat[r.category] = (byCat[r.category] || 0) + Number(r.amount));
+  const cs = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  if(catFilter && !byCat[catFilter]) catFilter = '';
+  const max = cs.length ? cs[0][1] : 1;
+  $('mBars').innerHTML = cs.length ? cs.map(([c, v]) =>
+    '<button type="button" class="bar-row" data-cat="' + esc(c) + '" aria-pressed="' + (catFilter === c) + '" title="' + esc(c + ': ' + inr(v) + ' (' + Math.round(v / total * 100) + '%)') + '">' +
+    '<span class="nm">' + esc(c) + '</span><span class="track"><i style="width:' + (v / max * 100).toFixed(1) + '%"></i></span><b>' + esc(inr(v)) + '</b></button>').join('')
+    : '<p class="axisnote">No expenses this month.</p>';
+  const byMode = {}; monthRows.forEach(r => byMode[r.mode] = (byMode[r.mode] || 0) + Number(r.amount));
+  $('mModes').innerHTML = MODES.filter(m => byMode[m]).map(m => '<div><span>' + m + '</span><b>' + esc(inr(byMode[m])) + '</b></div>').join('') || '<p class="axisnote">Nothing yet.</p>';
+  const list = catFilter ? monthRows.filter(r => r.category === catFilter) : monthRows;
+  $('mList').innerHTML = (catFilter ? '<div class="lhead dhead"><span>' + esc(catFilter) + ' only · <button type="button" class="linkish" id="clearCat">show all</button></span><b>' + esc(inr(sum(list))) + '</b></div>' : '') +
+    (list.length ? list.map(r => row(r, true)).join('') : '<div class="empty" style="padding:32px 20px">No expenses in ' + esc(label) + '.</div>');
+}
+$('mBars').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if(!b) return; catFilter = catFilter === b.dataset.cat ? '' : b.dataset.cat; renderMonth(); });
+$('mList').addEventListener('click', e => { if(e.target.id === 'clearCat'){ catFilter = ''; renderMonth(); } });
+const shiftMonth = n => { const d = parse(curMonth + '-01'); d.setMonth(d.getMonth() + n); curMonth = iso(d).slice(0, 7); catFilter = ''; loadMonth().catch(e => toast(e.message)); };
+$('mPrev').onclick = () => shiftMonth(-1);
+$('mNext').onclick = () => shiftMonth(1);
+$('mMonth').onchange = () => { if($('mMonth').value){ curMonth = $('mMonth').value; catFilter = ''; loadMonth().catch(e => toast(e.message)); } };
+
+$('mCsv').onclick = () => {
+  const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = [['Date', 'Category', 'Amount', 'Paid by', 'Paid to', 'Note', 'Entered by']]
+    .concat(monthRows.slice().reverse().map(r => [r.day, r.category, Number(r.amount), r.mode, r.paid_to, r.note, r.created_by_name]));
+  NJ.download('natraj-expenses-' + curMonth + '.csv', '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+};
+
+/* owner: the category list, one per line */
+$('mCats').onclick = async () => {
+  const v = await dialog({
+    title: 'Expense categories', msg: 'One per line. Removing a category does not change expenses already entered.', ok: 'Save',
+    fields: [{id: 'list', label: 'Categories', type: 'textarea', value: cats.join('\n'), maxlength: 2000}],
+    validate: async v => {
+      const list = [...new Set(v.list.split('\n').map(s => s.trim().replace(/\s+/g, ' ')).filter(Boolean))];
+      if(!list.length) return 'Keep at least one category.';
+      const long = list.find(s => s.length > 40); if(long) return '“' + long.slice(0, 20) + '…” is too long (40 letters at most).';
+      must(await sb.from('settings').update({expense_categories: list}).eq('id', 1).select().single());
+      return '';
+    }
+  });
+  if(v){ await loadSettings(); toast('Categories saved'); }
+};
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('expenses') && !document.querySelector('dialog[open]'))
+    loadRecent().then(() => curTab === 'month' && loadMonth()).catch(e => toast(e.message));
+});
+
+NJ.start({onReady: async me => {
+  const ok = !!me && NJ.canUse('expenses');
+  document.body.classList.toggle('no-access', !!me && !ok);
+  if(!ok) return;
+  try{ await Promise.all([loadSettings(), loadRecent()]); }catch(e){ toast(e.message); }
+  showTab(location.hash === '#month' ? 'month' : curTab);
+}});
+})();
+</script>
+</body>
+</html>

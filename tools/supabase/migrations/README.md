@@ -19,4 +19,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `006_rates.sql` — gold & silver rate app. Applied.
 - `007_rate_assignee.sql` — rate due-by time (and a single assigned person, replaced by 008). Applied.
 - `009_tasks.sql` — to-do list: tasks, who can see and change them. Applied.
+- `010_expenses.sql` — expense tracker: expenses, category list in settings, who can see and change entries. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

@@ -30,11 +30,11 @@
 .list small{color:var(--muted)}
 /* days worked: one hue, thin bars from a shared baseline, value at the end */
 .bars{display:grid;gap:10px}
-.bar-row{display:grid;grid-template-columns:minmax(90px,160px) minmax(0,1fr) 3.2em;gap:12px;align-items:center;font-size:.92rem}
+.bar-row{display:grid;grid-template-columns:minmax(90px,160px) minmax(0,1fr) auto;gap:12px;align-items:center;font-size:.92rem}
 .bar-row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .track{position:relative;height:12px}
 .track i{position:absolute;left:0;top:0;bottom:0;background:var(--maroon);border-radius:0 4px 4px 0;min-width:2px}
-.bar-row b{font:600 1rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;text-align:right;color:var(--ink)}
+.bar-row b{min-width:3.2em;font:600 1rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;text-align:right;color:var(--ink)}
 .bar-row:hover .track i{background:var(--maroon-deep)}
 .axisnote{font-size:.78rem;color:var(--muted)}
 .soon{display:flex;flex-wrap:wrap;gap:8px}
@@ -90,6 +90,10 @@
       <div class="list" id="leaveWaiting"><small>Loading…</small></div>
     </div>
     <div class="card wide">
+      <div class="head"><h3 id="xTitle">Expenses this month</h3><a href="../expenses/#month">Expenses ›</a></div>
+      <div id="expBox"><small>Loading…</small></div>
+    </div>
+    <div class="card wide">
       <div class="head"><h3>Open tasks</h3><a href="../todo/#all">All tasks ›</a></div>
       <div class="list" id="taskBox"><small>Loading…</small></div>
     </div>
@@ -101,7 +105,7 @@
     <div class="card wide">
       <div class="head"><h3>Coming next</h3></div>
       <p style="margin:0;color:var(--muted)">Each new app adds its figures here as it is built.</p>
-      <div class="soon"><span class="tag">Expenses</span><span class="tag">Banking</span><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
+      <div class="soon"><span class="tag">Banking</span><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
     </div>
     <div class="card wide">
       <div class="head"><h3>Backup</h3></div>
@@ -135,6 +139,7 @@ async function load(){
   const today = todayIso(), month = today.slice(0,7);
   const first = month + '-01';
   loadRates().catch(e => { $('rateBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
+  loadExpenses().catch(e => { $('expBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   loadTasks().catch(e => { $('taskBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   const [s, a, l] = await Promise.all([
     sb.from('staff').select('id,name,active,joined').order('name'),
@@ -172,6 +177,34 @@ async function load(){
     : '<small>No staff yet.</small>';
   $('barNote').textContent = 'Bars are out of the ' + daysSoFar + ' days so far this month. Present, Home and Thottam count as 1, Half day as ½.';
   $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN',{hour:'numeric', minute:'2-digit'});
+}
+
+/* expenses: this month's total against last month's same days, and the biggest categories */
+async function loadExpenses(){
+  const today = todayIso(), month = today.slice(0, 7);
+  const lm = parse(month + '-01'); lm.setMonth(lm.getMonth() - 1);
+  const lastFirst = iso(lm), lastSameDay = lastFirst.slice(0, 8) + today.slice(8);
+  const rows = must(await sb.from('expenses').select('day,amount,category').gte('day', lastFirst).lte('day', today)) || [];
+  const inr = v => '₹' + Math.round(v).toLocaleString('en-IN');
+  const sum = rs => rs.reduce((s, r) => s + Number(r.amount), 0);
+  const cur = rows.filter(r => r.day.slice(0, 7) === month);
+  const prev = sum(rows.filter(r => r.day.slice(0, 7) === lastFirst.slice(0, 7) && r.day <= lastSameDay));
+  const total = sum(cur), todays = sum(cur.filter(r => r.day === today));
+  $('xTitle').textContent = 'Expenses in ' + parse(month + '-01').toLocaleDateString('en-IN', {month: 'long'});
+  if(!cur.length){ $('expBox').innerHTML = '<small>No expenses entered this month yet.</small>'; return; }
+  const by = {}; cur.forEach(r => by[r.category] = (by[r.category] || 0) + Number(r.amount));
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1]);
+  const shown = top.slice(0, 5), rest = top.slice(5).reduce((s, x) => s + x[1], 0);
+  if(rest) shown.push(['Everything else', rest]);
+  const max = Math.max(...shown.map(x => x[1]));
+  const diff = prev ? Math.round((total - prev) / prev * 100) : null;
+  $('expBox').innerHTML = '<div class="rates" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:16px">' +
+      '<div><span>So far</span><b>' + inr(total) + '</b><em class="' + (diff > 0 ? 'down' : diff < 0 ? 'up' : '') + '">' +
+        (diff == null ? '' : diff === 0 ? 'Same as last month' : (diff > 0 ? '▲ ' : '▼ ') + Math.abs(diff) + '% vs same days last month') + '</em></div>' +
+      '<div><span>Today</span><b>' + inr(todays) + '</b></div>' +
+      '<div><span>Entries</span><b>' + cur.length + '</b></div></div>' +
+    '<div class="bars">' + shown.map(([c, v]) =>
+      '<div class="bar-row" title="' + esc(c + ': ' + inr(v)) + '"><span class="nm">' + esc(c) + '</span><span class="track"><i style="width:' + (v / max * 100).toFixed(1) + '%"></i></span><b style="min-width:5em">' + esc(inr(v)) + '</b></div>').join('') + '</div>';
 }
 
 /* open tasks per person: how many, how many overdue, the next one due */

@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v7';
-const APPS = ['attendance', 'rates', 'todo'];
+const KEY = 'natraj-demo-db-v8';
+const APPS = ['attendance', 'rates', 'todo', 'expenses'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
@@ -17,10 +17,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00'}], attendance: [], leave_requests: [], rates: [], tasks: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -68,6 +68,22 @@ function seed(){
     task('Order new jewel boxes', manager, owner, null, false, '100 small red boxes.'),
     task('Clean the hallmark machine', worker, manager, addDays(today, -1), false, '', 'Done before closing')
   );
+  // expenses: last month and this month, a fixed pattern
+  const exp = (day, amount, category, mode, paid_to, note, by) => db.expenses.push({id: uid(), day, amount, category, mode, paid_to: paid_to || '', note: note || '',
+    created_by: by.user_id, created_by_name: by.name, created_at: day + 'T12:00:00Z', updated_by_name: '', updated_at: null});
+  for(let d = start; d <= today; d = addDays(d, 1)){
+    if(dow(d) === 0) continue;
+    exp(d, 60 + Math.round(rnd() * 8) * 10, 'Tea & snacks', 'Cash', 'Murugan tea stall', '', manager);
+    if(rnd() < 0.3) exp(d, 100 + Math.round(rnd() * 20) * 10, 'Transport & petrol', rnd() < 0.5 ? 'Cash' : 'UPI', '', 'Bank and supplier trip', manager);
+    if(rnd() < 0.12) exp(d, 400 + Math.round(rnd() * 30) * 50, 'Packing & boxes', 'UPI', 'Sri Vinayaga Packaging', '', manager);
+    if(rnd() < 0.06) exp(d, 300 + Math.round(rnd() * 10) * 50, 'Repairs & maintenance', 'Cash', '', 'AC service', manager);
+    const dd = Number(d.slice(8));
+    if(dd === 1) exp(d, 45000, 'Rent', 'Bank transfer', 'Building owner', '', owner);
+    if(dd === 5) exp(d, 6820, 'Electricity', 'UPI', 'TNEB', '', owner);
+    if(dd === 7) exp(d, 180000, 'Salary & wages', 'Bank transfer', '', 'Monthly salary', owner);
+    if(dd === 10) exp(d, 1500, 'Hallmarking', 'UPI', 'BIS centre', '', manager);
+    if(dd === 15) exp(d, 2500, 'Advertising', 'UPI', 'Local paper', 'Weekend ad', owner);
+  }
   return db;
 }
 let db;
@@ -216,6 +232,7 @@ function rest(method, table, params, body, headers, me){
     staff: {read: true, write: me.is_owner}, profiles: {read: true, write: false}, settings: {read: true, write: me.is_owner},
     attendance: {read: canUse(me, 'attendance'), write: canUse(me, 'attendance')},
     rates: {read: true, write: method === 'POST' ? canUse(me, 'rates') : me.is_owner},
+    expenses: {read: canUse(me, 'expenses'), write: canUse(me, 'expenses')},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
@@ -225,12 +242,12 @@ function rest(method, table, params, body, headers, me){
   if(table === 'profiles' && !me.is_owner) rows = rows.filter(p => p.user_id === me.user_id);
   const single = /vnd\.pgrst\.object/.test(headers.get('accept') || '');
   const wantRows = /return=representation/.test(headers.get('prefer') || '');
+  if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
   if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
   let out;
   if(method === 'GET'){
     out = rows.filter(r => matches(r, params));
-    const ord = params.get('order');
-    if(ord){ const [c, dir] = ord.split('.'); out = out.slice().sort((x, y) => String(x[c]).localeCompare(String(y[c])) * (dir === 'desc' ? -1 : 1)); }
+    out = sortBy(out.slice(), params.get('order'));
   } else if(method === 'POST'){
     out = [];
     for(const item of (Array.isArray(body) ? body : [body])){
@@ -269,6 +286,36 @@ function rest(method, table, params, body, headers, me){
   return {status: 200, body: out};
 }
 
+function sortBy(out, ord){
+  if(!ord) return out;
+  const keys = ord.split(',').map(k => k.split('.'));
+  return out.sort((a, b) => { for(const [c, dir] of keys){ const r = String(a[c]).localeCompare(String(b[c])) * (dir === 'desc' ? -1 : 1); if(r) return r; } return 0; });
+}
+
+/* expenses: the owner sees all; others see their own and change them on the day they entered them */
+function expensesRest(method, params, body, single, wantRows, me){
+  const owner = me.is_owner, may = canUse(me, 'expenses');
+  const ownToday = r => r.created_by === me.user_id && iso(new Date(r.created_at)) === iso(new Date());
+  let out = db.expenses.filter(r => owner || r.created_by === me.user_id).filter(r => matches(r, params));
+  if(method === 'GET') out = sortBy(out.slice(), params.get('order'));
+  else if(method === 'POST'){
+    const r = Object.assign({id: uid(), mode: 'Cash', paid_to: '', note: ''}, body, {created_by: me.user_id, created_by_name: me.name, created_at: now(), updated_by_name: '', updated_at: null});
+    db.expenses.push(r); out = [r];
+  } else if(method === 'PATCH'){
+    out = out.filter(r => owner || (may && ownToday(r)));
+    out.forEach(r => Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}));
+  } else if(method === 'DELETE'){
+    out = out.filter(r => owner || (may && ownToday(r)));
+    db.expenses = db.expenses.filter(r => !out.includes(r));
+  }
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){
+    if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}};
+    return {status: 200, body: out[0]};
+  }
+  return {status: 200, body: out};
+}
+
 /* tasks: same rules as the stamp_task trigger and the row policies */
 function tasksRest(method, params, body, single, wantRows, me){
   const assigner = canUse(me, 'todo');
@@ -282,8 +329,7 @@ function tasksRest(method, params, body, single, wantRows, me){
   let rows = db.tasks.filter(t => assigner || t.assigned_to === me.user_id || t.created_by === me.user_id);
   let out = rows.filter(r => matches(r, params));
   if(method === 'GET'){
-    const ord = params.get('order');
-    if(ord){ const [c, dir] = ord.split('.'); out = out.slice().sort((x, y) => String(x[c]).localeCompare(String(y[c])) * (dir === 'desc' ? -1 : 1)); }
+    out = sortBy(out.slice(), params.get('order'));
   } else if(method === 'POST'){
     if(!assigner) return {status: 403, body: {code: '42501', message: 'permission denied'}};
     const t = fix(Object.assign({id: uid(), details: '', assigned_to: null, due: null, high: false, status: 'open', done_note: ''}, body,

@@ -32,7 +32,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 | 1 | Foundation + Attendance & Leave (built in `tools/`: online database, sign-in, home, people & settings, dashboard) | staff | who is in today, leave waiting, days worked |
 | 2 | Gold & silver rate (built: `tools/rates/`, rupees per gram for 22K, 24K, 18K and silver; WhatsApp message; history charts) | silver sales, stock | today's rate, trend |
 | 3 | To-do list (built: `tools/todo/`, give tasks to anyone who signs in, due dates, high priority, tick done with a note) | staff | open and overdue tasks per person |
-| 4 | Expense tracker | — | spend this month by category |
+| 4 | Expense tracker (built: `tools/expenses/`, amount, category, paid by, paid to, note; staff see and fix only their own entries on the day; month by category, CSV; owner edits the category list) | — | spend this month by category |
 | 5 | Banking entry log | — | deposits and withdrawals, balance per account |
 | 6 | CRM (customers, follow-ups) | customers | follow-ups due, birthdays and anniversaries |
 | 7 | Design library, gold and silver (photos, design code, type, weight, purity, supplier or karigar, tags; search, filter, share on WhatsApp) | stock, customers (designs a customer liked) | designs added this month, most requested |
