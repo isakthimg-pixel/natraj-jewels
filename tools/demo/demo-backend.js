@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v1';
+const KEY = 'natraj-demo-db-v2';
 const APPS = ['attendance'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -14,13 +14,13 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random
 const now = () => new Date().toISOString();
 
 function seed(){
-  const staff = [['Senthil Kumar', 'Store Manager'], ['Ponraj', 'Sales'], ['Narasimman', 'Sales'], ['Anand', 'Goldsmith']]
+  const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const senthil = {user_id: uid(), name: 'Senthil Kumar', username: 'senthil-kumar', is_owner: false, apps: ['attendance'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance'], staff_id: staff[0].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, senthil], settings: [{id: 1, weekly_off: 0}], attendance: [], leave_requests: [],
-    users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'senthil-kumar': {id: senthil.user_id, pin: '222222'}},
+    staff, profiles: [owner, manager], settings: [{id: 1, weekly_off: 0}], attendance: [], leave_requests: [],
+    users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}},
     tokens: {}
   };
   // last month and this month up to yesterday, with a fixed pattern so the demo looks the same each time
@@ -33,11 +33,11 @@ function seed(){
       let st;
       if(dow(d) === 0) st = 'WO';
       else { const x = rnd(); st = x < .74 ? 'P' : x < .82 ? (i === 3 ? 'T' : 'HM') : x < .9 ? 'H' : x < .95 ? 'LA' : 'A'; }
-      db.attendance.push({staff_id: s.id, day: d, status: st, note: '', leave_id: null, marked_by: senthil.user_id, marked_by_name: 'Senthil Kumar', marked_at: d + 'T09:45:00Z'});
+      db.attendance.push({staff_id: s.id, day: d, status: st, note: '', leave_id: null, marked_by: manager.user_id, marked_by_name: 'Sample Manager', marked_at: d + 'T09:45:00Z'});
     });
   }
   // today: two people already marked
-  [[0, 'P'], [3, 'P']].forEach(([i, st]) => db.attendance.push({staff_id: staff[i].id, day: today, status: st, note: '', leave_id: null, marked_by: senthil.user_id, marked_by_name: 'Senthil Kumar', marked_at: now()}));
+  [[0, 'P'], [3, 'P']].forEach(([i, st]) => db.attendance.push({staff_id: staff[i].id, day: today, status: st, note: '', leave_id: null, marked_by: manager.user_id, marked_by_name: 'Sample Manager', marked_at: now()}));
   // leave waiting for approval
   const leave = (s, from, to, half, reason, status) => ({id: uid(), staff_id: s.id, from_day: from, to_day: to, half, reason, status, created_at: now(), decided_by_name: status === 'pending' ? '' : 'Owner', decided_at: status === 'pending' ? null : now()});
   db.leave_requests.push(
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const b = document.createElement('div');
   b.setAttribute('role', 'note');
   b.style.cssText = 'background:#E7D3AE;color:#3B2420;font:500 .85rem/1.4 Figtree,system-ui,sans-serif;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;align-items:center;text-align:center';
-  b.innerHTML = '<span><b>Demo with sample data.</b> Nothing here is saved online.</span><span>Owner PIN <b>111111</b> · Senthil Kumar PIN <b>222222</b></span>' +
+  b.innerHTML = '<span><b>Demo with sample data.</b> Nothing here is saved online.</span><span>Owner PIN <b>111111</b> · Sample Manager PIN <b>222222</b></span>' +
     '<button type="button" style="font:600 .8rem Figtree,system-ui,sans-serif;border:1px solid #3B2420;background:transparent;color:#3B2420;border-radius:999px;padding:4px 12px;cursor:pointer">Reset demo</button>';
   b.querySelector('button').onclick = () => window.NJ_DEMO.reset();
   document.body.prepend(b);

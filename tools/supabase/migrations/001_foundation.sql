@@ -81,5 +81,5 @@ revoke execute on function public.is_member(), public.is_owner(), public.can_use
 grant execute on function public.is_member(), public.is_owner(), public.can_use(text) to authenticated;
 grant execute on function public.login_names(), public.setup_needed() to anon, authenticated;
 
-insert into public.staff (name, designation) values
-  ('Senthil Kumar', 'Store Manager'), ('Ponraj', ''), ('Narasimman', ''), ('Anand', '');
+-- (Four placeholder staff rows were inserted here at first; they were sample names
+-- and are removed by the owner. Real staff are added in People & settings.)

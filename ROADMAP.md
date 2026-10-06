@@ -46,4 +46,4 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 - Attendance categories: Present, Home, Thottam, Half day (½), and under one
   Leave button: Absent, Leave applied, Week off. Days worked = Present + Home +
   Thottam + ½ × Half day.
-- Starting staff: Senthil Kumar (Store Manager), Ponraj, Narasimman, Anand.
+- Staff are added by the owner in People & settings (no staff are pre-loaded).
