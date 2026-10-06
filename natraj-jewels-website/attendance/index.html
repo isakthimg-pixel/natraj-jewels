@@ -119,6 +119,13 @@ footer img{height:54px;width:auto}
 /* inputs: same as the website enquiry form */
 .input{font-size:.95rem;color:var(--ink);background:var(--cream);border:1px solid var(--line);border-radius:3px;padding:9px 12px;min-height:40px}
 .input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 22%,transparent)}
+/* iPhone Safari draws date boxes its own way (centred, wider than the card, collapsed when empty): even them out */
+input[type=date].input,input[type=month].input{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;text-align:left;line-height:1.3}
+.input::-webkit-date-and-time-value{text-align:left;min-height:1.3em}
+.input::-webkit-datetime-edit{padding:0}
+select.input{line-height:1.3}
+/* 16px text stops iPhones zooming in when a box is tapped */
+@media (max-width:640px){.input{font-size:16px}}
 
 /* tally: big Playfair numerals over tracked labels, like the website timeline */
 .tally{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--line)}
@@ -199,7 +206,7 @@ table.reg{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:1
 .form{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:clamp(20px,3vw,30px);display:grid;gap:14px}
 .form h3,.panel h3{font-size:1.6rem;color:var(--maroon)}
 .form label,.field{display:grid;gap:6px;font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
-.form .input,.field .input{width:100%;padding:12px 14px;font-weight:400;letter-spacing:0}
+.form .input,.field .input{display:block;width:100%;min-width:0;padding:0 14px;height:50px;font-weight:400;letter-spacing:0}
 .form .actions{display:flex;gap:10px;margin-top:4px}
 .srow{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:16px 18px}
 .srow .who{flex:1 1 200px}
@@ -211,7 +218,7 @@ table.reg{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:1
 .tag.pending{border-color:var(--gold);color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--card))}
 .tag.approved{border-color:var(--p);color:var(--p);background:var(--p-bg)}
 .tag.rejected{border-color:var(--a);color:var(--a);background:var(--a-bg)}
-textarea.input{min-height:90px;resize:vertical;line-height:1.5}
+.form textarea.input{height:auto;min-height:96px;padding:12px 14px;resize:vertical;line-height:1.5}
 .check{display:flex!important;align-items:center;gap:10px;font-size:.92rem!important;letter-spacing:0!important;color:var(--ink)!important;font-weight:500!important}
 .check input{width:20px;height:20px;accent-color:var(--maroon)}
 .lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;padding:16px 18px;align-items:start}
