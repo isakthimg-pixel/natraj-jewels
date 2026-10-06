@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#3B2420">
+<meta name="theme-color" content="#FBFBFD">
 <link rel="icon" href="../favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <title>Staff Attendance · Natraj Jewels</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="../shared/natraj.css">
 <style>
 /* attendance: only people with access see Daily and the register */
@@ -22,7 +22,7 @@
 
 <header class="top">
   <div class="wrap">
-    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <span class="brand"><img src="../img/logo-maroon.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
     <div class="title">
       <h1>Staff Attendance</h1>
     </div>
@@ -110,7 +110,7 @@
 
 <footer>
   <div class="wrap">
-    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <img src="../img/logo-grey.png" alt="Natraj Jewels">
     <span>Staff attendance · 24, Eswaran Kovil St, Tiruppur 641604</span>
     <span>© <span id="year">2026</span> Natraj Jewels</span>
   </div>
@@ -366,7 +366,7 @@ async function renderLeave(reload){
     const tag = {pending:'Waiting', approved:'Approved', rejected:'Not approved', cancelled:'Cancelled'}[l.status];
     const decided = l.decided_at ? tag+' by '+esc(l.decided_by_name || 'someone')+', '+fmtStamp(l.decided_at) : '';
     let acts = '';
-    if(l.status==='pending') acts = '<button class="btn btn-maroon mini" style="color:#FFF7EE" data-lact="approved">Approve</button><button class="btn mini btn-danger" data-lact="rejected">Don’t approve</button>';
+    if(l.status==='pending') acts = '<button class="btn btn-maroon mini" style="color:#fff" data-lact="approved">Approve</button><button class="btn mini btn-danger" data-lact="rejected">Don’t approve</button>';
     if(l.status==='approved') acts = '<button class="btn mini" data-lact="cancelled">Cancel this leave</button>';
     return '<div class="lrow" data-lid="'+esc(l.id)+'">'+
       '<div class="who"><b>'+esc(s.name)+'</b><div class="when">'+describeDates(l)+'</div>'+

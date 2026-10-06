@@ -2,7 +2,8 @@
 
 Small apps for running the shop, sharing one online database and one sign-in,
 with a dashboard that only the owner can see. Every app uses the website's
-design (see `natraj-jewels-website/index.html`; first built in `staff-attendance/`).
+design: Apple-inspired (system font, light grey canvas, white rounded cards, frosted header,
+pill buttons, segmented tabs), with Natraj maroon as the accent and the Natraj logo.
 
 ## Setup
 
