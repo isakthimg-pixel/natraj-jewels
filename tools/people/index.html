@@ -15,6 +15,29 @@
 <link rel="stylesheet" href="../shared/natraj.css">
 <style>
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+/* access grid: one row per person, one column per app */
+.accwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px}
+table.acc{border-collapse:collapse;width:100%}
+.acc th,.acc td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
+.acc tbody tr:last-child td,.acc tbody tr:last-child th{border-bottom:0}
+.acc thead th{font:600 .66rem/1.3 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
+.acc th.p{text-align:left;font:600 1.05rem/1.25 var(--heading);color:var(--ink);min-width:190px}
+.acc thead th.p{font:600 .66rem/1.3 var(--body);color:var(--gold)}
+.acc th.p small{display:block;font:600 .64rem/1.3 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:3px}
+.acc .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.acc .acts .btn{font-family:var(--body)}
+.acc input[type=checkbox]{width:22px;height:22px;accent-color:var(--maroon);cursor:pointer}
+.acc input[type=checkbox]:disabled{cursor:default;opacity:.6}
+.acc .ownerall{color:var(--p);font-weight:600;font-size:.85rem}
+.acc th.p{position:sticky;left:0;z-index:1;background:var(--card)}
+.acc thead th.p{background:var(--paper)}
+@media (max-width:640px){
+  .acc th,.acc td{padding:10px 8px}
+  .acc th.p{min-width:0;width:44%}
+  .acc thead th{letter-spacing:.08em}
+  .acc .acts{gap:4px}
+  .acc .acts .btn{padding:6px 9px;font-size:.72rem}
+}
 .owner-only-msg{display:none}
 .not-owner .owner-only-msg{display:block}
 .not-owner main section{display:none!important}
@@ -45,15 +68,11 @@
   <section id="tab-people">
     <div class="band"><div class="wrap">
       <div class="heading"><span class="eyebrow">Owner only</span><h2>Who can sign in</h2></div>
+      <p style="margin:0;color:var(--muted);max-width:68ch">Tick the apps each person can use. Changes save straight away. Owners can use everything. Everyone who signs in can see the gold &amp; silver rate, and anyone can send a leave request.</p>
+      <div class="bar"><button class="btn btn-maroon" id="pAdd">Add a person</button></div>
     </div></div>
-    <div class="wrap content grid2">
-      <div class="form panel">
-        <h3>How access works</h3>
-        <p>Each person signs in with their name and their own 6-digit PIN. You choose which apps they can use. Owners can use everything, see the dashboard and manage this page.</p>
-        <p>Anyone can send a leave request without signing in.</p>
-        <div class="bar"><button class="btn btn-maroon" id="pAdd">Add a person</button></div>
-      </div>
-      <div class="ledger" id="peopleList"><div class="loading">Loading…</div></div>
+    <div class="wrap content">
+      <div class="accwrap" id="peopleList"><div class="loading">Loading…</div></div>
     </div>
   </section>
 
@@ -97,10 +116,7 @@
         </label>
         <p>Shaded in the attendance register and skipped when leave is approved.</p>
         <h3 style="margin-top:12px">Daily rate update</h3>
-        <p>One person enters the gold &amp; silver rate every day. Only they and owners can change it. Until it is in, it shows as due on their home page and on your dashboard.</p>
-        <label class="field">Who updates the rate
-          <select class="input" id="rateWho"></select>
-        </label>
+        <p>The people ticked under “Daily rate” in Who can sign in enter the gold &amp; silver rate every day. Until one of them does, it shows as due on their home page and on your dashboard.</p>
         <label class="field">Due by
           <input class="input" id="rateDue" type="time">
         </label>
@@ -153,8 +169,6 @@ async function load(){
   staff = must(s) || []; profiles = must(p) || [];
   const set = shop = must(st) || {weekly_off: 0};
   $('setOff').value = String(set.weekly_off);
-  $('rateWho').innerHTML = '<option value="">No one assigned</option>' + profiles.map(u => '<option value="' + esc(u.user_id) + '">' + esc(u.name) + (u.is_owner ? ' (owner)' : '') + '</option>').join('');
-  $('rateWho').value = set.rate_assignee || '';
   $('rateDue').value = String(set.rate_due || '10:30').slice(0, 5);
 }
 function render(){
@@ -163,60 +177,57 @@ function render(){
 }
 
 /* ---------- people who can sign in ---------- */
-const appOptions = (sel) => Object.entries(APPS).filter(([k, a]) => !a.assigned).map(([k, a]) => ({id: 'app_' + k, label: (a.everyone ? 'Can update ' : 'Can use ') + a.name, type: 'checkbox', value: (sel || []).includes(k)}));
+const appLabel = a => a.short || a.name;
+const appOptions = (sel) => Object.entries(APPS).map(([k, a]) => ({id: 'app_' + k, label: a.access ? a.access : 'Can use ' + a.name, type: 'checkbox', value: (sel || []).includes(k)}));
 const staffOptions = () => [['', 'Not linked'], ...staff.filter(s => s.active).map(s => [s.id, s.name])];
 const pickedApps = v => Object.keys(APPS).filter(k => v['app_' + k]);
-const ACCESS_NOTE = 'Everyone who signs in can see the gold & silver rate. More apps will appear here as they are added.';
-
-/* The daily rate duty belongs to one person; the tick box moves it to this person. */
 let shop = {};
-function rateDutyField(userId){
-  const holder = shop.rate_assignee, other = holder && holder !== userId;
-  return {id: 'rate', type: 'checkbox', value: holder === userId,
-    label: 'Updates the daily gold & silver rate' + (other ? ' (now ' + (shop.rate_assignee_name || 'someone else') + ')' : '')};
-}
-async function setRateDuty(userId, name, on){
-  const holder = shop.rate_assignee;
-  if(on && holder !== userId) must(await sb.from('settings').update({rate_assignee: userId, rate_assignee_name: name}).eq('id', 1));
-  else if(!on && holder === userId) must(await sb.from('settings').update({rate_assignee: null, rate_assignee_name: ''}).eq('id', 1));
-  else if(on && holder === userId && shop.rate_assignee_name !== name) must(await sb.from('settings').update({rate_assignee_name: name}).eq('id', 1));
-}
 
 function renderPeople(){
   const box = $('peopleList');
   if(!profiles.length){ box.innerHTML = '<div class="empty">No one yet.</div>'; return; }
   const list = profiles.slice().sort((a, b) => (b.is_owner - a.is_owner) || a.name.localeCompare(b.name));
-  box.innerHTML = list.map(u => {
-    const own = u.apps.filter(k => APPS[k] && !APPS[k].assigned);
-    const chips = (u.is_owner ? '<span class="tag approved">Owner · everything</span>'
-      : (own.length ? own.map(k => '<span class="tag">' + esc(APPS[k].name) + '</span>').join('') : '<span class="tag">Sees the rate only</span>')) +
-      (shop.rate_assignee === u.user_id ? '<span class="tag pending">Updates the daily rate</span>' : '');
-    const st = staff.find(s => s.id === u.staff_id);
-    return '<div class="srow" data-uid="' + esc(u.user_id) + '"><div class="who"><b>' + esc(u.name) + (NJ.me && NJ.me.user_id === u.user_id ? ' (you)' : '') + '</b>' +
-      (st ? '<span>Staff: ' + esc(st.name) + '</span>' : '') + '<div class="chips">' + chips + '</div></div>' +
-      '<button class="btn mini" data-uact="edit">Change access</button>' +
-      '<button class="btn mini" data-uact="pin">Change PIN</button>' +
-      '<button class="btn mini btn-danger" data-uact="del">Remove</button></div>';
-  }).join('');
+  const apps = Object.entries(APPS);
+  box.innerHTML = '<table class="acc"><thead><tr><th class="p">Person</th>' + apps.map(([k, a]) => '<th>' + esc(appLabel(a)) + '</th>').join('') + '</tr></thead><tbody>' +
+    list.map(u => {
+      const st = staff.find(s => s.id === u.staff_id);
+      const cells = u.is_owner
+        ? '<td colspan="' + apps.length + '"><span class="ownerall">Owner · everything</span></td>'
+        : apps.map(([k, a]) => '<td><input type="checkbox" data-app="' + k + '"' + (u.apps.includes(k) ? ' checked' : '') + ' aria-label="' + esc(appLabel(a) + ' for ' + u.name) + '"></td>').join('');
+      return '<tr data-uid="' + esc(u.user_id) + '"><th class="p">' + esc(u.name) + (NJ.me && NJ.me.user_id === u.user_id ? ' (you)' : '') +
+        (st ? '<small>Staff: ' + esc(st.name) + '</small>' : '') +
+        '<span class="acts"><button class="btn mini" data-uact="edit">Edit</button><button class="btn mini" data-uact="pin">PIN</button><button class="btn mini btn-danger" data-uact="del">Remove</button></span></th>' + cells + '</tr>';
+    }).join('') + '</tbody></table>';
 }
+/* tick or untick an app: saves straight away */
+$('peopleList').addEventListener('change', async e => {
+  const c = e.target.closest('input[data-app]'); if(!c) return;
+  const u = profiles.find(x => x.user_id === c.closest('tr').dataset.uid);
+  const apps = c.checked ? [...new Set([...u.apps, c.dataset.app])] : u.apps.filter(k => k !== c.dataset.app);
+  c.disabled = true;
+  try{
+    await people('update', {user_id: u.user_id, apps});
+    u.apps = apps;
+    toast(u.name + ': ' + appLabel(APPS[c.dataset.app]) + (c.checked ? ' on' : ' off'));
+  }catch(x){ c.checked = !c.checked; toast(x.message); }
+  c.disabled = false;
+});
 $('pAdd').onclick = async () => {
   const v = await dialog({
-    title: 'Add a person', ok: 'Add', msg: 'They will sign in with their name and this PIN. ' + ACCESS_NOTE,
+    title: 'Add a person', ok: 'Add', msg: 'They will sign in with their name and this PIN.',
     fields: [
       {id: 'name', label: 'Name', type: 'text'},
       {id: 'staff', label: 'Which staff member is this? (optional)', type: 'select', options: staffOptions()},
       {id: 'pin', label: 'PIN (6 digits)', type: 'pin'},
       {id: 'pin2', label: 'Type the PIN again', type: 'pin'},
       {id: 'owner', label: 'Owner: full access, dashboard and this page', type: 'checkbox'},
-      ...appOptions(['attendance']),
-      rateDutyField(null)
+      ...appOptions(['attendance'])
     ],
     validate: async v => {
       if(!v.name) return 'Type their name.';
       if(!PIN_RE.test(v.pin)) return 'The PIN must be 6 digits.';
       if(v.pin !== v.pin2) return 'The two PINs do not match. Type them again.';
-      const r = await people('add', {name: v.name, pin: v.pin, is_owner: v.owner, apps: pickedApps(v), staff_id: v.staff || null});
-      if(v.rate) await setRateDuty(r.user_id, v.name, true);
+      await people('add', {name: v.name, pin: v.pin, is_owner: v.owner, apps: pickedApps(v), staff_id: v.staff || null});
       return '';
     }
   });
@@ -227,21 +238,20 @@ $('pAdd').onclick = async () => {
 $('peopleList').addEventListener('click', async e => {
   const b = e.target.closest('[data-uact]'); if(!b) return;
   const u = profiles.find(x => x.user_id === b.closest('[data-uid]').dataset.uid);
+  if(!u) return;
   const act = b.dataset.uact;
   if(act === 'edit'){
     const v = await dialog({
-      title: 'Access for ' + u.name, ok: 'Save', msg: ACCESS_NOTE,
+      title: 'Edit ' + u.name, ok: 'Save',
       fields: [
         {id: 'name', label: 'Name', type: 'text', value: u.name},
         {id: 'staff', label: 'Which staff member is this? (optional)', type: 'select', options: staffOptions(), value: u.staff_id || ''},
         {id: 'owner', label: 'Owner: full access, dashboard and this page', type: 'checkbox', value: u.is_owner},
-        ...appOptions(u.apps),
-        rateDutyField(u.user_id)
+        ...appOptions(u.apps)
       ],
       validate: async v => {
         if(!v.name) return 'Type their name.';
         await people('update', {user_id: u.user_id, name: v.name, staff_id: v.staff || null, is_owner: v.owner, apps: pickedApps(v)});
-        await setRateDuty(u.user_id, v.name, v.rate);
         return '';
       }
     });
@@ -333,11 +343,8 @@ $('setOff').addEventListener('change', async e => {
   catch(x){ toast(x.message); }
 });
 $('rateSave').onclick = async () => {
-  const id = $('rateWho').value, u = profiles.find(x => x.user_id === id);
-  try{
-    must(await sb.from('settings').update({rate_assignee: id || null, rate_assignee_name: u ? u.name : '', rate_due: $('rateDue').value || '10:30'}).eq('id', 1));
-    toast(u ? u.name + ' updates the rate daily by ' + $('rateDue').value : 'No one is assigned to the rate');
-  }catch(x){ toast(x.message); }
+  try{ must(await sb.from('settings').update({rate_due: $('rateDue').value || '10:30'}).eq('id', 1)); toast('The daily rate is due by ' + $('rateDue').value); }
+  catch(x){ toast(x.message); }
 };
 $('newCode').onclick = async () => {
   if(!await ask('Make a new recovery code?', 'The old recovery code will stop working.', 'Make new code')) return;

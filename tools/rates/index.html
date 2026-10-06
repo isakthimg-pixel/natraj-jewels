@@ -173,6 +173,7 @@ const inr = v => v == null ? '–' : '₹' + Number(v).toLocaleString('en-IN', {
 const when = t => new Date(t).toLocaleString('en-IN', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'});
 let rates = [];          // newest first
 let settings = {};
+let updaters = [];
 let rangeDays = 30;
 
 /* ---------- tabs ---------- */
@@ -189,6 +190,7 @@ function render(){ curTab === 'today' ? renderToday() : renderHistory(); }
 async function load(){
   const since = new Date(Date.now() - 366 * 864e5).toISOString();
   settings = must(await sb.from('settings').select('*').eq('id', 1).maybeSingle()) || {};
+  updaters = must(await sb.rpc('rate_updaters')) || [];
   rates = must(await sb.from('rates').select('*').gte('set_at', since).order('set_at', {ascending: false}).limit(2000)) || [];
   if(!rates.length){   // older than a year: still show the last known rate
     const last = must(await sb.from('rates').select('*').order('set_at', {ascending: false}).limit(1)) || [];
@@ -214,20 +216,20 @@ function renderToday(){
     c.textContent = d == null ? '' : d === 0 ? 'No change' : (d > 0 ? '▲ ' : '▼ ') + inr(Math.abs(d)) + ' since last change';
   });
   $('stamp').textContent = cur ? 'Set by ' + (cur.set_by_name || 'someone') + ' · ' + when(cur.set_at) + (cur.note ? ' · ' + cur.note : '') : 'No rate set yet.';
-  const s = NJ.rateStatus(settings, cur);
+  const s = NJ.rateStatus(settings, cur, updaters);
   document.body.classList.toggle('no-rates-access', !s.canSet);
   const duty = $('duty');
   duty.hidden = false;
   if(!s.assignee){
     duty.className = 'notice duty';
-    duty.textContent = NJ.me && NJ.me.is_owner ? 'No one is assigned to update the rate. Choose someone in People & settings → Shop settings.' : 'The owner updates the rate.';
+    duty.textContent = NJ.me && NJ.me.is_owner ? 'No one is set to update the rate daily. Tick “Daily rate” for them in People & settings.' : 'The owner updates the rate.';
   } else if(s.done){
     duty.className = 'notice duty done';
-    duty.textContent = '✓ Today’s rate is in. ' + (s.mine ? 'Thank you.' : s.name + ' updates it daily by ' + s.dueLabel + '.');
+    duty.textContent = '✓ Today’s rate is in. ' + (s.mine ? 'Thank you.' : s.name + ' ' + s.verb + ' it daily by ' + s.dueLabel + '.');
   } else {
     duty.className = 'notice duty' + (s.late ? ' late' : '');
     duty.textContent = (s.late ? 'Late: today’s rate is not updated yet. ' : 'Today’s rate is due by ' + s.dueLabel + '. ') +
-      (s.mine ? 'Please enter it below.' : s.name + ' updates it daily' + (s.late ? ' by ' + s.dueLabel + '.' : '.'));
+      (s.mine ? 'Please enter it below.' : s.name + ' ' + s.verb + ' it daily' + (s.late ? ' by ' + s.dueLabel + '.' : '.'));
   }
   // form starts with the current rate
   if(!$('rateForm').dataset.touched){

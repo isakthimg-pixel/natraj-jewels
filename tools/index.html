@@ -92,17 +92,18 @@ async function render(me){
 
 /* The person who updates the gold & silver rate sees a reminder until today's rate is in. */
 async function rateReminder(me){
-  const [st, last] = await Promise.all([
-    NJ.sb.from('settings').select('rate_assignee,rate_assignee_name,rate_due').eq('id', 1).maybeSingle(),
-    NJ.sb.from('rates').select('set_at').order('set_at', {ascending: false}).limit(1)
+  const [st, last, who] = await Promise.all([
+    NJ.sb.from('settings').select('rate_due').eq('id', 1).maybeSingle(),
+    NJ.sb.from('rates').select('set_at').order('set_at', {ascending: false}).limit(1),
+    NJ.sb.rpc('rate_updaters')
   ]);
-  const s = NJ.rateStatus(st.data, (last.data || [])[0]);
+  const s = NJ.rateStatus(st.data, (last.data || [])[0], who.data);
   const box = document.getElementById('due');
   if(!box || !s.assignee || s.done || !(s.mine || (me.is_owner && s.late))) return;
   box.hidden = false;
   if(s.late) box.style.cssText = 'border-color:var(--a);background:var(--a-bg);color:var(--a);font-weight:600';
   box.innerHTML = (s.mine ? (s.late ? 'Late: please enter today’s gold &amp; silver rate. It was due by ' : 'Today’s gold &amp; silver rate is due by ') + esc(s.dueLabel) + '.'
-    : esc(s.name) + ' has not entered today’s rate yet. It was due by ' + esc(s.dueLabel) + '.') +
+    : 'Today’s rate is not in yet (' + esc(s.name) + ' ' + s.verb + ' it). It was due by ' + esc(s.dueLabel) + '.') +
     ' <a href="' + NJ.APPS.rates.path + '" style="color:inherit;font-weight:600">' + (s.mine ? 'Enter the rate ›' : 'Open the rate ›') + '</a>';
 }
 

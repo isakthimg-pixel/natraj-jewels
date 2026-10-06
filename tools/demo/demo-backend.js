@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v5';
+const KEY = 'natraj-demo-db-v6';
 const APPS = ['attendance', 'rates'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -17,9 +17,9 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates'], staff_id: staff[0].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager], settings: [{id: 1, weekly_off: 0, rate_assignee: manager.user_id, rate_assignee_name: 'Sample Manager', rate_due: '10:30:00'}], attendance: [], leave_requests: [], rates: [],
+    staff, profiles: [owner, manager], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00'}], attendance: [], leave_requests: [], rates: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}},
     tokens: {}
   };
@@ -157,6 +157,7 @@ function rpc(name, a, me){
   switch(name){
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
+    case 'rate_updaters': return {status: 200, body: db.profiles.filter(p => !p.is_owner && p.apps.includes('rates')).map(p => ({name: p.name})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'leave_staff': return {status: 200, body: db.staff.filter(s => s.active).map(s => ({id: s.id, name: s.name})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'request_leave': {
       if(!db.staff.some(s => s.id === a.p_staff && s.active)) return pg('Choose your name.');
@@ -201,7 +202,7 @@ function rest(method, table, params, body, headers, me){
   const rule = {
     staff: {read: true, write: me.is_owner}, profiles: {read: true, write: false}, settings: {read: true, write: me.is_owner},
     attendance: {read: canUse(me, 'attendance'), write: canUse(me, 'attendance')},
-    rates: {read: true, write: method === 'POST' ? (canUse(me, 'rates') || db.settings[0].rate_assignee === me.user_id) : me.is_owner},
+    rates: {read: true, write: method === 'POST' ? canUse(me, 'rates') : me.is_owner},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};

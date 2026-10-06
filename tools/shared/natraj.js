@@ -12,7 +12,7 @@ const PIN_RE = /^[0-9]{6}$/;
 /* Every app in the toolkit. "path" is relative to the toolkit's home page. */
 const APPS = {
   attendance: {name: 'Attendance', path: 'attendance/', desc: 'Daily attendance, leave requests and the monthly register.'},
-  rates: {name: 'Gold & silver rate', path: 'rates/', desc: 'Today’s rate, WhatsApp message and history.', everyone: true, assigned: true}
+  rates: {name: 'Gold & silver rate', path: 'rates/', desc: 'Today’s rate, WhatsApp message and history.', everyone: true, access: 'Updates the daily rate', short: 'Daily rate'}
 };
 
 const ROOT = (document.currentScript && document.currentScript.src || '').replace(/shared\/natraj\.js.*$/, '');
@@ -276,21 +276,25 @@ async function start(opts){
   });
 }
 
-/* Daily rate duty. settings: {rate_assignee, rate_assignee_name, rate_due}; last: newest rates row or null.
+/* Daily rate duty. settings: {rate_due}; last: newest rates row or null;
+   updaters: [{name}] from the rate_updaters() function (everyone with the 'rates' app).
    Returns who is responsible, whether today's rate is in, and whether it is late. */
-function rateStatus(settings, last){
+const listNames = n => n.length <= 1 ? (n[0] || '') : n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1];
+function rateStatus(settings, last, updaters){
   const st = settings || {};
+  const names = (updaters || []).map(u => u.name);
   const [h, m] = String(st.rate_due || '10:30').split(':').map(Number);
   const due = new Date(); due.setHours(h, m || 0, 0, 0);
   const done = !!last && iso(new Date(last.set_at)) === todayIso();
   return {
-    assignee: st.rate_assignee || null,
-    name: st.rate_assignee_name || '',
+    assignee: names.length > 0,
+    name: listNames(names),
+    verb: names.length > 1 ? 'update' : 'updates',
     dueLabel: due.toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'}),
     done,
     late: !done && Date.now() > due.getTime(),
-    mine: !!me && st.rate_assignee === me.user_id,
-    canSet: !!me && (me.is_owner || st.rate_assignee === me.user_id || canUse('rates'))
+    mine: !!me && !me.is_owner && canUse('rates'),
+    canSet: !!me && (me.is_owner || canUse('rates'))
   };
 }
 

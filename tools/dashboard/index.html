@@ -171,16 +171,17 @@ async function load(){
 }
 
 async function loadRates(){
-  const [res, st] = await Promise.all([
+  const [res, st, who] = await Promise.all([
     sb.from('rates').select('*').order('set_at', {ascending: false}).limit(2),
-    sb.from('settings').select('rate_assignee,rate_assignee_name,rate_due').eq('id', 1).maybeSingle()
+    sb.from('settings').select('rate_due').eq('id', 1).maybeSingle(),
+    sb.rpc('rate_updaters')
   ]);
   const rows = must(res) || [];
   const [cur, prev] = rows;
-  const s = NJ.rateStatus(must(st), cur);
-  const duty = !s.assignee ? ' · <a href="../people/">assign someone to update it daily</a>'
-    : s.done ? ' · ' + esc(s.name) + ' updates it daily by ' + esc(s.dueLabel)
-    : ' · <b style="color:var(--a)">' + (s.late ? 'late: ' : 'due: ') + esc(s.name) + ' updates it by ' + esc(s.dueLabel) + '</b>';
+  const s = NJ.rateStatus(must(st), cur, must(who));
+  const duty = !s.assignee ? ' · <a href="../people/">choose who updates it daily</a>'
+    : s.done ? ' · ' + esc(s.name) + ' ' + s.verb + ' it daily by ' + esc(s.dueLabel)
+    : ' · <b style="color:var(--a)">' + (s.late ? 'late: ' : 'due: ') + esc(s.name) + ' ' + s.verb + ' it by ' + esc(s.dueLabel) + '</b>';
   if(!cur){ $('rateBox').innerHTML = '<small>No rate set yet' + duty + '. <a href="../rates/">Set today’s rate</a>.</small>'; return; }
   const inr = v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits: 2});
   const kinds = [['gold_22k', 'Gold 22K'], ['gold_24k', 'Gold 24K'], ['gold_18k', 'Gold 18K'], ['silver', 'Silver']];
