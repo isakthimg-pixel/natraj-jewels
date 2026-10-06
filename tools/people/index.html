@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>People &amp; Settings · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&family=Noto+Serif+Tamil:wght@500&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.owner-only-msg{display:none}
+.not-owner .owner-only-msg{display:block}
+.not-owner main section{display:none!important}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <span class="tamil">நடராஜ் ஜுவல்ஸ் · திருப்பூர்</span>
+      <h1>People &amp; Settings</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs owner-only" role="tablist">
+      <button role="tab" data-tab="people" aria-selected="true">Who can sign in</button>
+      <button role="tab" data-tab="staff" aria-selected="false">Staff</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Shop settings</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content owner-only-msg"><div class="form panel signin"><h3>Owner only</h3><p>Only the owner can open People &amp; settings.</p><div class="bar signed-out-only"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+
+<main>
+  <!-- PEOPLE -->
+  <section id="tab-people">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Owner only</span><h2>Who can sign in</h2></div>
+    </div></div>
+    <div class="wrap content grid2">
+      <div class="form panel">
+        <h3>How access works</h3>
+        <p>Each person signs in with their name and their own 6-digit PIN. You choose which apps they can use. Owners can use everything, see the dashboard and manage this page.</p>
+        <p>Anyone can send a leave request without signing in.</p>
+        <div class="bar"><button class="btn btn-maroon" id="pAdd">Add a person</button></div>
+      </div>
+      <div class="ledger" id="peopleList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- STAFF -->
+  <section id="tab-staff" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="stEyebrow">Team</span><h2>Staff</h2></div>
+    </div></div>
+    <div class="wrap content grid2">
+      <form class="form" id="staffForm" autocomplete="off" novalidate>
+        <h3 id="sfTitle">Add staff</h3>
+        <input type="hidden" id="sfId">
+        <label>Name<input class="input" id="sfName" maxlength="60"></label>
+        <label>Designation<input class="input" id="sfRole" maxlength="40" placeholder="e.g. Sales, Cashier, Goldsmith"></label>
+        <label>Phone<input class="input" id="sfPhone" type="tel" maxlength="20"></label>
+        <label>Joining date<input class="input" id="sfJoined" type="date"></label>
+        <p class="err" id="sfErr" role="alert"></p>
+        <div class="actions">
+          <button class="btn btn-maroon" type="submit" id="sfSubmit">Add staff</button>
+          <button class="btn" type="button" id="sfCancel" hidden>Cancel</button>
+        </div>
+      </form>
+      <div class="ledger" id="staffList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Owner only</span><h2>Shop settings</h2></div>
+    </div></div>
+    <div class="wrap content grid2">
+      <div class="form panel">
+        <h3>Weekly holiday</h3>
+        <label class="field">Weekly holiday
+          <select class="input" id="setOff">
+            <option value="-1">No weekly holiday</option>
+            <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+            <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+          </select>
+        </label>
+        <p>Shaded in the attendance register and skipped when leave is approved.</p>
+      </div>
+      <div class="form panel">
+        <h3>Recovery code</h3>
+        <p>If you forget your owner PIN, the recovery code lets you choose a new one. Make a new code if the old one is lost or someone else has seen it.</p>
+        <div class="bar"><button class="btn" id="newCode">Make a new recovery code</button></div>
+        <h3 style="margin-top:12px">Backup</h3>
+        <p>Records are saved online in your Supabase database. Download a copy of everything once a week and keep it safe.</p>
+        <div class="bar"><button class="btn btn-maroon" id="exportAll">Download everything</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>People &amp; settings · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, dialog, people, parse, PIN_RE, APPS} = NJ;
+const $ = id => document.getElementById(id);
+let staff = [], profiles = [];
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+let curTab = 'people';
+function showTab(name){
+  curTab = name;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  ['people','staff','settings'].forEach(t => $('tab-'+t).hidden = t !== name);
+  render();
+}
+async function load(){
+  const [s, p, st] = await Promise.all([
+    sb.from('staff').select('*').order('name'),
+    sb.from('profiles').select('*').order('name'),
+    sb.from('settings').select('weekly_off').eq('id', 1).maybeSingle()
+  ]);
+  staff = must(s) || []; profiles = must(p) || [];
+  $('setOff').value = String((must(st) || {weekly_off: 0}).weekly_off);
+}
+function render(){
+  if(curTab === 'people') renderPeople();
+  if(curTab === 'staff') renderStaff();
+}
+
+/* ---------- people who can sign in ---------- */
+const appOptions = (sel) => Object.entries(APPS).map(([k, a]) => ({id: 'app_' + k, label: 'Can use ' + a.name, type: 'checkbox', value: (sel || []).includes(k)}));
+const staffOptions = () => [['', 'Not linked'], ...staff.filter(s => s.active).map(s => [s.id, s.name])];
+const pickedApps = v => Object.keys(APPS).filter(k => v['app_' + k]);
+
+function renderPeople(){
+  const box = $('peopleList');
+  if(!profiles.length){ box.innerHTML = '<div class="empty">No one yet.</div>'; return; }
+  const list = profiles.slice().sort((a, b) => (b.is_owner - a.is_owner) || a.name.localeCompare(b.name));
+  box.innerHTML = list.map(u => {
+    const chips = u.is_owner ? '<span class="tag approved">Owner · everything</span>'
+      : (u.apps.length ? u.apps.map(k => '<span class="tag">' + esc((APPS[k] || {name: k}).name) + '</span>').join('') : '<span class="tag">No apps yet</span>');
+    const st = staff.find(s => s.id === u.staff_id);
+    return '<div class="srow" data-uid="' + esc(u.user_id) + '"><div class="who"><b>' + esc(u.name) + (NJ.me && NJ.me.user_id === u.user_id ? ' (you)' : '') + '</b>' +
+      (st ? '<span>Staff: ' + esc(st.name) + '</span>' : '') + '<div class="chips">' + chips + '</div></div>' +
+      '<button class="btn mini" data-uact="edit">Change access</button>' +
+      '<button class="btn mini" data-uact="pin">Change PIN</button>' +
+      '<button class="btn mini btn-danger" data-uact="del">Remove</button></div>';
+  }).join('');
+}
+$('pAdd').onclick = async () => {
+  const v = await dialog({
+    title: 'Add a person', ok: 'Add', msg: 'They will sign in with their name and this PIN.',
+    fields: [
+      {id: 'name', label: 'Name', type: 'text'},
+      {id: 'staff', label: 'Which staff member is this? (optional)', type: 'select', options: staffOptions()},
+      {id: 'pin', label: 'PIN (6 digits)', type: 'pin'},
+      {id: 'pin2', label: 'Type the PIN again', type: 'pin'},
+      {id: 'owner', label: 'Owner: full access, dashboard and this page', type: 'checkbox'},
+      ...appOptions(['attendance'])
+    ],
+    validate: async v => {
+      if(!v.name) return 'Type their name.';
+      if(!PIN_RE.test(v.pin)) return 'The PIN must be 6 digits.';
+      if(v.pin !== v.pin2) return 'The two PINs do not match. Type them again.';
+      await people('add', {name: v.name, pin: v.pin, is_owner: v.owner, apps: pickedApps(v), staff_id: v.staff || null});
+      return '';
+    }
+  });
+  if(!v) return;
+  toast(v.name + ' can now sign in');
+  await load(); renderPeople();
+};
+$('peopleList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-uact]'); if(!b) return;
+  const u = profiles.find(x => x.user_id === b.closest('[data-uid]').dataset.uid);
+  const act = b.dataset.uact;
+  if(act === 'edit'){
+    const v = await dialog({
+      title: 'Access for ' + u.name, ok: 'Save',
+      fields: [
+        {id: 'name', label: 'Name', type: 'text', value: u.name},
+        {id: 'staff', label: 'Which staff member is this? (optional)', type: 'select', options: staffOptions(), value: u.staff_id || ''},
+        {id: 'owner', label: 'Owner: full access, dashboard and this page', type: 'checkbox', value: u.is_owner},
+        ...appOptions(u.apps)
+      ],
+      validate: async v => {
+        if(!v.name) return 'Type their name.';
+        await people('update', {user_id: u.user_id, name: v.name, staff_id: v.staff || null, is_owner: v.owner, apps: pickedApps(v)});
+        return '';
+      }
+    });
+    if(v){ toast('Saved'); await load(); renderPeople(); }
+  } else if(act === 'pin'){
+    const v = await dialog({
+      title: 'New PIN for ' + u.name, ok: 'Save PIN',
+      fields: [{id: 'pin', label: 'New PIN (6 digits)', type: 'pin'}, {id: 'pin2', label: 'Type it again', type: 'pin'}],
+      validate: async v => {
+        if(!PIN_RE.test(v.pin)) return 'The PIN must be 6 digits.';
+        if(v.pin !== v.pin2) return 'The two PINs do not match. Type them again.';
+        await people('update', {user_id: u.user_id, pin: v.pin});
+        return '';
+      }
+    });
+    if(v) toast('PIN changed for ' + u.name);
+  } else if(act === 'del'){
+    const ok = await dialog({
+      title: 'Remove ' + u.name + '?', ok: 'Remove', danger: true,
+      msg: u.name + ' will no longer be able to sign in. Attendance they already marked is kept.',
+      validate: async () => { await people('remove', {user_id: u.user_id}); return ''; }
+    });
+    if(!ok) return;
+    toast(u.name + ' removed');
+    if(NJ.me && NJ.me.user_id === u.user_id){ await NJ.signOut(true); return; }
+    await load(); renderPeople();
+  }
+});
+
+/* ---------- staff ---------- */
+$('staffForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('sfName').value.trim();
+  if(!name){ $('sfErr').textContent = 'Type their name.'; return; }
+  $('sfErr').textContent = '';
+  const data = {name, designation: $('sfRole').value.trim(), phone: $('sfPhone').value.trim(), joined: $('sfJoined').value || null};
+  const id = $('sfId').value;
+  try{
+    if(id) must(await sb.from('staff').update(data).eq('id', id));
+    else must(await sb.from('staff').insert(data));
+    toast(id ? 'Saved' : name + ' added');
+    resetForm(); await load(); renderStaff();
+  }catch(x){ $('sfErr').textContent = x.message; }
+});
+$('sfCancel').onclick = resetForm;
+function resetForm(){
+  $('staffForm').reset(); $('sfId').value = ''; $('sfErr').textContent = '';
+  $('sfTitle').textContent = 'Add staff'; $('sfSubmit').textContent = 'Add staff'; $('sfCancel').hidden = true;
+}
+function renderStaff(){
+  const box = $('staffList');
+  if(!staff.length){ box.innerHTML = '<div class="empty">No staff added yet. Add the first person with the form.</div>'; $('stEyebrow').textContent = 'Team'; return; }
+  const list = staff.slice().sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name));
+  const n = list.filter(s => s.active).length;
+  $('stEyebrow').textContent = n + ' active' + (list.length > n ? ' · ' + (list.length - n) + ' inactive' : '');
+  box.innerHTML = list.map(s =>
+    '<div class="srow' + (s.active ? '' : ' inactive') + '" data-id="' + esc(s.id) + '">' +
+      '<div class="who"><b>' + esc(s.name) + '</b><span>' + [s.designation, s.phone, s.joined && ('joined ' + parse(s.joined).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}))].filter(Boolean).map(esc).join(' · ') + '</span></div>' +
+      (s.active ? '' : '<span class="tag">Inactive</span>') +
+      '<button class="btn mini" data-act="edit">Edit</button>' +
+      '<button class="btn mini" data-act="toggle">' + (s.active ? 'Deactivate' : 'Reactivate') + '</button>' +
+      '<button class="btn mini btn-danger" data-act="del">Delete</button>' +
+    '</div>').join('');
+}
+$('staffList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const s = staff.find(x => x.id === b.closest('.srow').dataset.id);
+  try{
+    if(b.dataset.act === 'edit'){
+      $('sfId').value = s.id; $('sfName').value = s.name; $('sfRole').value = s.designation || ''; $('sfPhone').value = s.phone || ''; $('sfJoined').value = s.joined || '';
+      $('sfTitle').textContent = 'Edit ' + s.name; $('sfSubmit').textContent = 'Save'; $('sfCancel').hidden = false; $('sfName').focus();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    } else if(b.dataset.act === 'toggle'){
+      must(await sb.from('staff').update({active: !s.active}).eq('id', s.id));
+      toast(s.name + (s.active ? ' deactivated. Past records are kept.' : ' reactivated'));
+      await load(); renderStaff();
+    } else if(b.dataset.act === 'del'){
+      if(!await ask('Delete ' + s.name + '?', 'This removes ' + s.name + ' and all of their attendance and leave records. It cannot be undone.\n\nIf they have left but you want to keep their history, use Deactivate instead.', 'Delete', true)) return;
+      must(await sb.from('staff').delete().eq('id', s.id));
+      toast(s.name + ' deleted');
+      await load(); renderStaff();
+    }
+  }catch(x){ toast(x.message); }
+});
+
+/* ---------- settings ---------- */
+$('setOff').addEventListener('change', async e => {
+  try{ must(await sb.from('settings').update({weekly_off: Number(e.target.value)}).eq('id', 1)); toast('Saved'); }
+  catch(x){ toast(x.message); }
+});
+$('newCode').onclick = async () => {
+  if(!await ask('Make a new recovery code?', 'The old recovery code will stop working.', 'Make new code')) return;
+  try{ const r = await people('new_recovery'); NJ.showRecoveryCode(r.recovery); }catch(x){ toast(x.message); }
+};
+$('exportAll').onclick = async () => { try{ await NJ.exportAll(); }catch(x){ toast(x.message); } };
+
+NJ.start({onReady: async me => {
+  if(!me || !me.is_owner) return;
+  try{ await load(); }catch(e){ toast(e.message); }
+  showTab(curTab);
+}});
+})();
+</script>
+</body>
+</html>

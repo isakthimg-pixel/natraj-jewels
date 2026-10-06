@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Natraj Jewels Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&family=Noto+Serif+Tamil:wght@500&display=swap">
+<link rel="stylesheet" href="shared/natraj.css">
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <span class="tamil">நடராஜ் ஜுவல்ஸ் · திருப்பூர்</span>
+      <h1>Shop Tools</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <div class="tabs" aria-hidden="true"></div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="hEyebrow">Welcome</span><h2 id="hTitle">Natraj Jewels tools</h2></div>
+    </div></div>
+    <div class="wrap content">
+      <div id="home" class="loading">Loading…</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="img/logo-cream.png" alt="Natraj Jewels">
+    <span>Shop tools · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {esc, APPS} = NJ;
+const box = document.getElementById('home');
+
+function tile(href, name, desc, cls){
+  return '<a class="tile' + (cls ? ' ' + cls : '') + '" href="' + href + '"><span class="eyebrow">' + (cls === 'owner' ? 'Owner' : 'App') + '</span><h3>' + esc(name) + '</h3><p>' + esc(desc) + '</p><span class="go">Open ›</span></a>';
+}
+
+async function render(me){
+  if(!me){
+    const setup = (await NJ.sb.rpc('setup_needed')).data === true;
+    document.getElementById('hEyebrow').textContent = setup ? 'First time' : 'Welcome';
+    document.getElementById('hTitle').textContent = setup ? 'Set up the owner' : 'Sign in to continue';
+    box.className = '';
+    box.innerHTML = '<div class="tiles">' +
+      '<div class="form panel"><h3>' + (setup ? 'Set up the owner' : 'Sign in') + '</h3>' +
+        '<p>' + (setup ? 'Choose the owner’s name and a 6-digit PIN. You will get a recovery code to write down.' : 'Choose your name and enter your 6-digit PIN.') + '</p>' +
+        '<div class="bar"><button class="btn btn-maroon" id="go">' + (setup ? 'Set up the owner' : 'Sign in') + '</button></div></div>' +
+      tile('attendance/#leave', 'Apply for leave', 'No PIN needed. Send a leave request for approval.') +
+    '</div>';
+    document.getElementById('go').onclick = () => setup ? NJ.setupFlow() : NJ.signInFlow();
+    return;
+  }
+  document.getElementById('hEyebrow').textContent = me.is_owner ? 'Owner' : 'Welcome';
+  document.getElementById('hTitle').textContent = 'Hello, ' + me.name.split(' ')[0];
+  const apps = Object.entries(APPS).filter(([k]) => NJ.canUse(k));
+  let h = '';
+  if(me.is_owner){
+    h += tile('dashboard/', 'Dashboard', 'Today at a glance: attendance, leave waiting and this month’s totals.', 'owner');
+    h += tile('people/', 'People & settings', 'Who can sign in, which apps they use, the staff list and shop settings.', 'owner');
+  }
+  h += apps.map(([k, a]) => tile(a.path, a.name, a.desc)).join('');
+  if(!apps.length && !me.is_owner) h += '<div class="form panel"><h3>No apps yet</h3><p>Ask the owner to give you access to the apps you need.</p></div>';
+  h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.');
+  box.className = '';
+  box.innerHTML = '<div class="tiles">' + h + '</div>';
+}
+
+NJ.start({home: true, onReady: render});
+})();
+</script>
+</body>
+</html>

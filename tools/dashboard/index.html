@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Dashboard · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&family=Noto+Serif+Tamil:wght@500&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.owner-only-msg{display:none}
+.not-owner .owner-only-msg{display:block}
+.not-owner main{display:none!important}
+.dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.dash .wide{grid-column:1/-1}
+@media (max-width:860px){.dash{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:clamp(18px,3vw,26px);display:grid;gap:14px;min-width:0}
+.card h3{font-size:1.45rem;color:var(--maroon)}
+.card .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card .head a{font:600 .8rem/1 var(--body);color:var(--gold);text-decoration:none}
+.list{display:grid}
+.list > div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:.95rem}
+.list > div:first-child{border-top:0}
+.list small{color:var(--muted)}
+/* days worked: one hue, thin bars from a shared baseline, value at the end */
+.bars{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:minmax(90px,160px) minmax(0,1fr) 3.2em;gap:12px;align-items:center;font-size:.92rem}
+.bar-row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{position:relative;height:12px}
+.track i{position:absolute;left:0;top:0;bottom:0;background:var(--maroon);border-radius:0 4px 4px 0;min-width:2px}
+.bar-row b{font:600 1rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;text-align:right;color:var(--ink)}
+.bar-row:hover .track i{background:var(--maroon-deep)}
+.axisnote{font-size:.78rem;color:var(--muted)}
+.soon{display:flex;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <span class="tamil">நடராஜ் ஜுவல்ஸ் · திருப்பூர்</span>
+      <h1>Dashboard</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <div class="tabs" aria-hidden="true"></div>
+  </div>
+</header>
+
+<div class="wrap content owner-only-msg"><div class="form panel signin"><h3>Owner only</h3><p>Only the owner can open the dashboard.</p><div class="bar signed-out-only"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+
+<main>
+  <div class="band"><div class="wrap">
+    <div class="heading"><span class="eyebrow">Today</span><h2 id="dTitle"></h2></div>
+    <div class="tally" aria-label="Attendance today">
+      <div class="p"><b id="sP">–</b><span>Present</span></div>
+      <div class="hm"><b id="sHM">–</b><span>Home</span></div>
+      <div class="t"><b id="sT">–</b><span>Thottam</span></div>
+      <div class="h"><b id="sH">–</b><span>Half day</span></div>
+      <div class="lv"><b id="sLV">–</b><span>Leave</span></div>
+      <div class="u"><b id="sU">–</b><span>Not marked</span></div>
+    </div>
+  </div></div>
+
+  <div class="wrap content dash">
+    <div class="card">
+      <div class="head"><h3>Not marked yet</h3><a href="../attendance/">Open attendance ›</a></div>
+      <div class="list" id="notMarked"><small>Loading…</small></div>
+    </div>
+    <div class="card">
+      <div class="head"><h3>Leave waiting</h3><a href="../attendance/#leave">Review ›</a></div>
+      <div class="list" id="leaveWaiting"><small>Loading…</small></div>
+    </div>
+    <div class="card wide">
+      <div class="head"><h3 id="mTitle">Days worked this month</h3><a href="../attendance/">Monthly register ›</a></div>
+      <div class="bars" id="bars"><small>Loading…</small></div>
+      <p class="axisnote" id="barNote"></p>
+    </div>
+    <div class="card wide">
+      <div class="head"><h3>Coming next</h3></div>
+      <p style="margin:0;color:var(--muted)">Each new app adds its figures here as it is built.</p>
+      <div class="soon"><span class="tag">Gold &amp; silver rate</span><span class="tag">To-do list</span><span class="tag">Expenses</span><span class="tag">Banking</span><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
+    </div>
+    <div class="card wide">
+      <div class="head"><h3>Backup</h3></div>
+      <p style="margin:0;color:var(--muted)">Download a copy of every record once a week and keep it safe.</p>
+      <div class="bar"><button class="btn btn-maroon" id="exportAll">Download everything</button><span class="axisnote" id="updated"></span></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Owner dashboard · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, iso, parse, pad, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const WORKED = {P:1, HM:1, T:1, H:0.5};
+const LEAVE = ['A','LA','WO'];
+const fmtD = d => parse(d).toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short'});
+const fmtDays = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
+
+async function load(){
+  const today = todayIso(), month = today.slice(0,7);
+  const first = month + '-01';
+  const [s, a, l] = await Promise.all([
+    sb.from('staff').select('id,name,active,joined').order('name'),
+    sb.from('attendance').select('staff_id,day,status').gte('day', first).lte('day', today),
+    sb.from('leave_requests').select('*').eq('status','pending').order('from_day')
+  ]);
+  const staff = must(s) || [], att = must(a) || [], pending = must(l) || [];
+  const active = staff.filter(x => x.active && (!x.joined || x.joined <= today));
+  const name = id => (staff.find(x => x.id === id) || {}).name || '';
+
+  // today
+  $('dTitle').textContent = parse(today).toLocaleDateString('en-IN',{weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const todays = {}; att.filter(r => r.day === today && r.status).forEach(r => todays[r.staff_id] = r.status);
+  const c = {P:0,HM:0,T:0,H:0,LV:0,U:0};
+  active.forEach(x => { const k = todays[x.id]; c[!k ? 'U' : LEAVE.includes(k) ? 'LV' : k]++; });
+  Object.keys(c).forEach(k => $('s'+k).textContent = c[k]);
+  const missing = active.filter(x => !todays[x.id]);
+  $('notMarked').innerHTML = missing.length ? missing.map(x => '<div><span>'+esc(x.name)+'</span></div>').join('') : '<small>Everyone is marked for today.</small>';
+
+  // leave waiting
+  $('leaveWaiting').innerHTML = pending.length ? pending.map(r =>
+    '<div><span>'+esc(name(r.staff_id))+'</span><small>'+(r.half ? fmtD(r.from_day)+' · half day' : r.from_day===r.to_day ? fmtD(r.from_day) : fmtD(r.from_day)+' to '+fmtD(r.to_day))+'</small></div>').join('')
+    : '<small>No requests waiting.</small>';
+
+  // days worked this month, same scale for everyone, longest first
+  $('mTitle').textContent = 'Days worked in ' + parse(first).toLocaleDateString('en-IN',{month:'long'});
+  const worked = {}, leaveDays = {};
+  att.forEach(r => { if(WORKED[r.status]) worked[r.staff_id] = (worked[r.staff_id]||0) + WORKED[r.status]; if(LEAVE.includes(r.status)) leaveDays[r.staff_id] = (leaveDays[r.staff_id]||0) + 1; });
+  const rows = active.map(x => ({id: x.id, name: x.name, v: worked[x.id] || 0, off: leaveDays[x.id] || 0})).sort((p, q) => q.v - p.v || p.name.localeCompare(q.name));
+  const daysSoFar = Number(today.slice(8));
+  const max = Math.max(daysSoFar, ...rows.map(r => r.v), 1);
+  $('bars').innerHTML = rows.length ? rows.map(r =>
+    '<div class="bar-row" title="'+esc(r.name+': '+fmtDays(r.v)+' days worked, '+r.off+' days leave or absent')+'"><span class="nm">'+esc(r.name)+'</span>'+
+    '<span class="track"><i style="width:'+(r.v/max*100).toFixed(1)+'%"></i></span><b>'+fmtDays(r.v)+'</b></div>').join('')
+    : '<small>No staff yet.</small>';
+  $('barNote').textContent = 'Bars are out of the ' + daysSoFar + ' days so far this month. Present, Home and Thottam count as 1, Half day as ½.';
+  $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN',{hour:'numeric', minute:'2-digit'});
+}
+
+$('exportAll').onclick = async () => { try{ await NJ.exportAll(); }catch(x){ toast(x.message); } };
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && NJ.me && NJ.me.is_owner) load().catch(e => toast(e.message)); });
+
+NJ.start({onReady: async me => {
+  if(!me || !me.is_owner) return;
+  try{ await load(); }catch(e){ toast(e.message); }
+}});
+})();
+</script>
+</body>
+</html>

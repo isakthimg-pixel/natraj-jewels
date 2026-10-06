@@ -7,8 +7,13 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 ## Setup
 
 - **Database and sign-in:** Supabase (free plan), project `natraj-tools`, Mumbai region.
-- **Hosting:** one Netlify site, e.g. `natraj-tools.netlify.app/<app>`, with the
-  dashboard at the root.
+- **Hosting:** one Netlify site from the `tools/` folder, e.g.
+  `natraj-tools.netlify.app/<app>`; home page at the root, dashboard at `/dashboard/`.
+- **Supabase project:** `natraj-tools`, ref `uottxgpjgakinqprexsp`. Database changes are in
+  `tools/supabase/migrations/`, the sign-in server code in `tools/supabase/functions/people/`.
+- **Adding an app:** add its tables and access rules (use `can_use('<app>')`), add it to
+  `APPS` in `tools/shared/natraj.js` and in the `people` function, add its tables to
+  `TABLES` (backup), and give it a section on the dashboard.
 - **Sign-in:** each person uses their name and PIN. The owner switches on which
   apps each person can use. Only the owner sees the dashboard.
 - **Shared lists:** `staff` (attendance, to-do, report card, leave) and
@@ -23,7 +28,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 
 | # | App | Shares with | Feeds the dashboard |
 |---|-----|-------------|---------------------|
-| 1 | Foundation + Attendance & Leave (built, works on one device for now) | staff | who is in today, leave waiting, days worked |
+| 1 | Foundation + Attendance & Leave (built in `tools/`: online database, sign-in, home, people & settings, dashboard) | staff | who is in today, leave waiting, days worked |
 | 2 | Gold & silver rate | silver sales, stock | today's rate, trend |
 | 3 | To-do list (assign to a person) | staff | open and overdue tasks per person |
 | 4 | Expense tracker | — | spend this month by category |
