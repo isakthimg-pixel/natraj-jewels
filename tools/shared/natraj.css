@@ -11,7 +11,6 @@
   --heading:"Playfair Display", "Didot", Georgia, serif;
   --display:"Playfair Display", "Didot", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --tamil:"Noto Serif Tamil", "Tamil Sangam MN", serif;
   --wrap:1180px;
   /* one colour pair per attendance category */
   --p:#2E7D4F;  --p-bg:#E3F1E8;   /* present */
@@ -38,7 +37,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 h1,h2,h3{font-family:var(--heading);font-weight:400;text-wrap:balance;margin:0;line-height:1.08}
 h3{font-weight:600}
 .eyebrow{font:600 .74rem/1 var(--body);letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
-.tamil{font:500 .9rem/1.4 var(--tamil);color:var(--gold-soft);letter-spacing:.02em}
 
 /* dark bands: header and footer, with the website's red texture */
 .top,footer{background-color:var(--cocoa);background-image:url("../img/texture-red.jpg");background-repeat:repeat;background-size:562px auto;color:var(--on-dark)}
