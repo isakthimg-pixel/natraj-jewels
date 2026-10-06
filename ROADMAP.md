@@ -7,8 +7,9 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 ## Setup
 
 - **Database and sign-in:** Supabase (free plan), project `natraj-tools`, Mumbai region.
-- **Hosting:** one Netlify site from the `tools/` folder, e.g.
-  `natraj-tools.netlify.app/<app>`; home page at the root, dashboard at `/dashboard/`.
+- **Hosting:** Cloudflare Workers static assets (free; page visits are not charged), project
+  `natrajtools`, live at https://natrajtools.isakthimg.workers.dev. Update by uploading the
+  `tools/` folder (without `supabase/` and `demo/`) as a new deployment in Cloudflare.
 - **Supabase project:** `natraj-tools`, ref `uottxgpjgakinqprexsp`. Database changes are in
   `tools/supabase/migrations/`, the sign-in server code in `tools/supabase/functions/people/`.
 - **Adding an app:** add its tables and access rules (use `can_use('<app>')`), add it to

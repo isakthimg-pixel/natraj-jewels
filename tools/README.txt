@@ -13,12 +13,11 @@ One website with all the shop's small apps, sharing one online database
   supabase/        database changes and server code, kept for the record
                    (the upload zip leaves it out; nothing in it is secret)
 
-PUT IT ONLINE (Netlify, free)
-  1. Go to https://app.netlify.com/drop and sign in.
-  2. Drag the "tools" folder onto the page.
-  3. Site configuration > Change site name, e.g. natraj-tools
-     -> https://natraj-tools.netlify.app
-  To update later: Deploys > drag the new folder onto it. Records are not
+PUT IT ONLINE (Cloudflare, free)
+  Live at https://natrajtools.isakthimg.workers.dev
+  (Cloudflare > Workers & Pages > natrajtools).
+  To update: open the project, click "New deployment" and upload the new
+  tools folder (without the supabase and demo folders). Records are not
   affected; they live in the database.
 
 FIRST TIME
