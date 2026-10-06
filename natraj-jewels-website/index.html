@@ -6,7 +6,14 @@
 <meta name="description" content="Natraj Jewels, Tiruppur. Trusted since 1936 for 916 HUID hallmarked gold, silver and diamond jewellery. 24, Eswaran Kovil Street, Tiruppur 641604. Call +91 94445 22929.">
 <meta property="og:title" content="Natraj Jewels | Tiruppur">
 <meta property="og:description" content="Gold, silver and diamond jewellery. Trusted since 1936.">
-<meta property="og:image" content="img/hero-bust.webp">
+<meta property="og:image" content="https://natrajjewels.com/img/og-logo.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Natraj Jewels logo: Gold, Silver, Diamond">
+<meta property="og:url" content="https://natrajjewels.com/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://natrajjewels.com/img/og-logo.jpg">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -736,6 +743,19 @@ footer .brand{color:var(--on-dark)}
   }
   row.addEventListener("scroll", function(){ clearTimeout(raf); raf = setTimeout(mark, 60); }, {passive: true});
   mark();
+})();
+</script>
+<script>
+// Logo: always scroll to the very top of the page.
+(function(){
+  var logo = document.querySelector(".top .brand");
+  if(!logo) return;
+  logo.addEventListener("click", function(e){
+    e.preventDefault();
+    var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({top: 0, behavior: reduce ? "auto" : "smooth"});
+    if(location.hash) history.replaceState(null, "", location.pathname + location.search);
+  });
 })();
 </script>
 </body>
