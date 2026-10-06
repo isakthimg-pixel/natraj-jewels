@@ -1,4 +1,4 @@
-"""Builds the click-through demo of the shop tools (sample data, no real database).
+"""Builds the click-through demo of the Natraj Jewels System (sample data, no real database).
 
 Output: a folder with app/ (every page, loading demo-backend.js first) and a
 small shell page that shows app/index.html. Usage: python3 build_demo.py OUT_DIR
@@ -37,13 +37,13 @@ s = s.replace("href=\"' + ROOT + '\">All apps", "href=\"' + ROOT + 'index.html\"
 s = re.sub(r"path: '(" + NAMES + r")/'", lambda m: "path: '" + m.group(1) + "/index.html'", s)
 open(js, 'w').write(s)
 
-open(os.path.join(OUT, 'demo.html'), 'w').write('''<title>Natraj Tools Demo</title>
+open(os.path.join(OUT, 'demo.html'), 'w').write('''<title>Natraj System Demo</title>
 <style>
 :root{--bg:#3B2420}
 html,body{height:100%}
 body{margin:0;background:var(--bg)}
 iframe{display:block;border:0;width:100%;height:100%;background:#fff}
 </style>
-<iframe src="app/index.html" title="Natraj Jewels shop tools demo"></iframe>
+<iframe src="app/index.html" title="Natraj Jewels System demo"></iframe>
 ''')
 print('built', OUT)
