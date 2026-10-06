@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Gold &amp; Silver Rate · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&family=Noto+Serif+Tamil:wght@500&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.no-rates-access .rates-edit{display:none!important}
+.no-rates-access #tab-today .grid2{grid-template-columns:1fr}
+
+/* rate board: four big figures, like the website's timeline numerals */
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
+.board > div{padding:16px 14px 4px 0;display:grid;gap:6px;align-content:start}
+.board > div + div{padding-left:16px;border-left:1px solid var(--line)}
+.board .lbl{font:600 .68rem/1.2 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.board b{font:500 clamp(1.7rem,4vw,2.5rem)/1 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
+.board b small{font:500 .8rem var(--body);color:var(--muted);margin-left:2px}
+.chg{font-size:.82rem;font-weight:600;color:var(--muted)}
+.chg.up{color:var(--p)} .chg.down{color:var(--a)}
+@media (max-width:640px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}.board > div:nth-child(3){padding-left:0;border-left:0}.board > div:nth-child(n+3){padding-top:16px;border-top:1px solid var(--line)}}
+.stampline{font-size:.85rem;color:var(--muted);margin:0}
+
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.money{position:relative}
+.money .input{padding-left:30px}
+.money::before{content:"₹";position:absolute;left:13px;bottom:15px;color:var(--muted);font-weight:500;letter-spacing:0}
+.msg{white-space:pre-line;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:14px 16px;font-size:.92rem;line-height:1.55;color:var(--ink);margin:0}
+.btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
+.btn-wa:hover{background:#0B6358;border-color:#0B6358}
+
+/* history charts: one series each, 2px line, recessive grid, hover crosshair + tooltip */
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:860px){.charts{grid-template-columns:1fr}}
+.chart{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:18px 18px 12px;display:grid;gap:8px;min-width:0}
+.chart h3{font-size:1.25rem;color:var(--maroon)}
+.chart .sub{font-size:.82rem;color:var(--muted)}
+.plot{position:relative}
+.plot svg{display:block;width:100%;height:auto;overflow:visible}
+.plot .grid line{stroke:var(--line);stroke-width:1}
+.plot .axis text{fill:var(--muted);font:500 11px var(--body);font-variant-numeric:tabular-nums}
+.plot .series{fill:none;stroke:var(--maroon);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.plot .end{fill:var(--maroon);stroke:var(--card);stroke-width:2}
+.plot .cross{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.plot .dot{fill:var(--maroon);stroke:var(--card);stroke-width:2}
+.tip{position:absolute;pointer-events:none;background:var(--cocoa);color:var(--on-dark);border-radius:4px;padding:6px 9px;font-size:.78rem;line-height:1.35;white-space:nowrap;transform:translate(-50%,-100%);margin-top:-10px}
+.tip b{font-weight:600;color:#FFF7EE}
+.range{display:inline-flex;gap:6px}
+.range button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-weight:500;font-size:.85rem;cursor:pointer}
+.range button[aria-pressed="true"]{background:var(--cocoa);border-color:var(--cocoa);color:#FFF7EE;font-weight:600}
+.histwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px;margin-top:20px}
+table.hist{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+.hist th,.hist td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.hist th:first-child,.hist td:first-child,.hist td.l{text-align:left}
+.hist thead th{font:600 .66rem var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
+.hist td.note{white-space:normal;min-width:160px;color:var(--muted)}
+</style>
+</head>
+<body class="signed-out not-owner no-rates-access">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <span class="tamil">நடராஜ் ஜுவல்ஸ் · திருப்பூர்</span>
+      <h1>Gold &amp; Silver Rate</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="today" aria-selected="true">Today</button>
+      <button role="tab" data-tab="history" aria-selected="false">History</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to see today’s gold and silver rate.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+
+<main>
+  <!-- TODAY -->
+  <section id="tab-today">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Today’s rate · per gram</span><h2 id="tTitle"></h2></div>
+      <div class="board" id="board">
+        <div><span class="lbl">Gold 22K · 916</span><b id="r22">–</b><span class="chg" id="c22"></span></div>
+        <div><span class="lbl">Gold 24K · 999</span><b id="r24">–</b><span class="chg" id="c24"></span></div>
+        <div><span class="lbl">Gold 18K</span><b id="r18">–</b><span class="chg" id="c18"></span></div>
+        <div><span class="lbl">Silver</span><b id="rS">–</b><span class="chg" id="cS"></span></div>
+      </div>
+      <p class="stampline" id="stamp">Loading…</p>
+    </div></div>
+    <div class="wrap content grid2">
+      <form class="form rates-edit" id="rateForm" autocomplete="off" novalidate>
+        <h3>Update the rate</h3>
+        <p style="margin:0;color:var(--muted);font-size:.9rem">Rupees per gram. The boxes start with the current rate; change what has moved.</p>
+        <div class="two">
+          <label class="money">Gold 22K (916)<input class="input" id="f22" inputmode="decimal" placeholder="0"></label>
+          <label class="money">Gold 24K (999)<input class="input" id="f24" inputmode="decimal" placeholder="optional"></label>
+          <label class="money">Gold 18K<input class="input" id="f18" inputmode="decimal" placeholder="optional"></label>
+          <label class="money">Silver<input class="input" id="fS" inputmode="decimal" placeholder="0"></label>
+        </div>
+        <label>Note<input class="input" id="fNote" maxlength="200" placeholder="optional, e.g. afternoon revision"></label>
+        <p class="err" id="fErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="submit" id="fSave">Save new rate</button></div>
+      </form>
+      <div class="form panel">
+        <h3>Share with customers</h3>
+        <p class="msg" id="msg">No rate set yet.</p>
+        <div class="bar">
+          <a class="btn btn-wa" id="waLink" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
+          <button class="btn" type="button" id="copyMsg">Copy message</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="tab-history" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">History</span><h2>How the rate has moved</h2></div>
+      <div class="bar"><div class="range" role="group" aria-label="Time range">
+        <button type="button" data-days="30" aria-pressed="true">30 days</button>
+        <button type="button" data-days="90" aria-pressed="false">90 days</button>
+        <button type="button" data-days="365" aria-pressed="false">1 year</button>
+      </div></div>
+    </div></div>
+    <div class="wrap content">
+      <div class="charts">
+        <div class="chart"><h3>Gold 22K (916)</h3><span class="sub" id="sub22"></span><div class="plot" id="plot22"></div></div>
+        <div class="chart"><h3>Silver</h3><span class="sub" id="subS"></span><div class="plot" id="plotS"></div></div>
+      </div>
+      <div class="histwrap"><table class="hist" id="histTable"></table></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Gold &amp; silver rate · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask} = NJ;
+const $ = id => document.getElementById(id);
+const KINDS = [
+  {k: 'gold_22k', id: '22', label: 'Gold 22K (916)'},
+  {k: 'gold_24k', id: '24', label: 'Gold 24K (999)'},
+  {k: 'gold_18k', id: '18', label: 'Gold 18K'},
+  {k: 'silver',   id: 'S',  label: 'Silver'}
+];
+const inr = v => v == null ? '–' : '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits: 2});
+const when = t => new Date(t).toLocaleString('en-IN', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'});
+let rates = [];          // newest first
+let rangeDays = 30;
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+let curTab = 'today';
+function showTab(name){
+  curTab = name;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  ['today', 'history'].forEach(t => $('tab-' + t).hidden = t !== name);
+  render();
+}
+function render(){ curTab === 'today' ? renderToday() : renderHistory(); }
+
+async function load(){
+  const since = new Date(Date.now() - 366 * 864e5).toISOString();
+  rates = must(await sb.from('rates').select('*').gte('set_at', since).order('set_at', {ascending: false}).limit(2000)) || [];
+  if(!rates.length){   // older than a year: still show the last known rate
+    const last = must(await sb.from('rates').select('*').order('set_at', {ascending: false}).limit(1)) || [];
+    rates = last;
+  }
+}
+
+/* ---------- today ---------- */
+function message(r){
+  const lines = ['Natraj Jewels, Tiruppur', 'Today’s rate · ' + when(r.set_at), ''];
+  KINDS.forEach(x => { if(r[x.k] != null) lines.push(x.label + ': ' + inr(r[x.k]) + ' per gram'); });
+  lines.push('', '24, Eswaran Kovil St, Tiruppur · +91 94445 22929');
+  return lines.join('\n');
+}
+function renderToday(){
+  $('tTitle').textContent = new Date().toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
+  const cur = rates[0], prev = rates[1];
+  KINDS.forEach(x => {
+    $('r' + x.id).innerHTML = cur && cur[x.k] != null ? esc(inr(cur[x.k])) + '<small>/g</small>' : '–';
+    const c = $('c' + x.id);
+    const d = cur && prev && cur[x.k] != null && prev[x.k] != null ? Number(cur[x.k]) - Number(prev[x.k]) : null;
+    c.className = 'chg' + (d > 0 ? ' up' : d < 0 ? ' down' : '');
+    c.textContent = d == null ? '' : d === 0 ? 'No change' : (d > 0 ? '▲ ' : '▼ ') + inr(Math.abs(d)) + ' since last change';
+  });
+  $('stamp').textContent = cur ? 'Set by ' + (cur.set_by_name || 'someone') + ' · ' + when(cur.set_at) + (cur.note ? ' · ' + cur.note : '') : 'No rate set yet.';
+  const old = cur && (Date.now() - new Date(cur.set_at)) > 20 * 3600e3;
+  if(old) $('stamp').textContent += '  ·  Not updated today';
+  // form starts with the current rate
+  if(!$('rateForm').dataset.touched){
+    $('f22').value = cur ? Number(cur.gold_22k) : '';
+    $('f24').value = cur && cur.gold_24k != null ? Number(cur.gold_24k) : '';
+    $('f18').value = cur && cur.gold_18k != null ? Number(cur.gold_18k) : '';
+    $('fS').value = cur ? Number(cur.silver) : '';
+  }
+  const text = cur ? message(cur) : 'No rate set yet.';
+  $('msg').textContent = text;
+  $('waLink').href = cur ? 'https://wa.me/?text=' + encodeURIComponent(text) : '#';
+  $('waLink').toggleAttribute('aria-disabled', !cur);
+}
+$('rateForm').addEventListener('input', () => $('rateForm').dataset.touched = '1');
+$('rateForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const num = id => { const v = $(id).value.replace(/[,\s₹]/g, ''); return v === '' ? null : Number(v); };
+  const row = {gold_22k: num('f22'), gold_24k: num('f24'), gold_18k: num('f18'), silver: num('fS'), note: $('fNote').value.trim()};
+  const bad = Object.entries(row).find(([k, v]) => k !== 'note' && v !== null && !(v > 0));
+  const err = !row.gold_22k ? 'Enter the 22K gold rate.' : !row.silver ? 'Enter the silver rate.' : bad ? 'Rates must be numbers above zero.' : '';
+  $('fErr').textContent = err; if(err) return;
+  const cur = rates[0];
+  // catch a missing or extra digit before it reaches customers
+  const jump = cur && KINDS.find(x => row[x.k] != null && cur[x.k] != null && Math.abs(row[x.k] - Number(cur[x.k])) / Number(cur[x.k]) > 0.1);
+  if(jump && !await ask('Check the ' + jump.label + ' rate', 'It changes from ' + inr(cur[jump.k]) + ' to ' + inr(row[jump.k]) + ', more than 10%. Save it anyway?', 'Save')) return;
+  const b = $('fSave'); b.setAttribute('aria-busy', 'true');
+  try{
+    must(await sb.from('rates').insert(row));
+    toast('New rate saved');
+    delete $('rateForm').dataset.touched; $('fNote').value = '';
+    await load(); render();
+  }catch(x){ $('fErr').textContent = x.message; }
+  b.removeAttribute('aria-busy');
+});
+$('copyMsg').onclick = async () => {
+  try{ await navigator.clipboard.writeText($('msg').textContent); toast('Message copied'); }
+  catch(e){ const r = document.createRange(); r.selectNodeContents($('msg')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Press copy to copy the selected message'); }
+};
+$('waLink').addEventListener('click', e => { if(!rates[0]) e.preventDefault(); });
+
+/* ---------- history ---------- */
+document.querySelectorAll('.range button').forEach(b => b.onclick = () => {
+  rangeDays = Number(b.dataset.days);
+  document.querySelectorAll('.range button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderHistory();
+});
+
+/* One-series line chart: a step for each rate change, carried to now. */
+function lineChart(el, pts, label){
+  if(pts.length < 1){ el.innerHTML = '<p class="sub">No rates in this period.</p>'; return; }
+  const W = 560, H = 220, L = 58, R = 14, T = 12, B = 26;
+  const now = Date.now(), t0 = now - rangeDays * 864e5;
+  const series = pts.slice();
+  series.push({t: now, v: series[series.length - 1].v});        // the latest rate holds until now
+  const vs = series.map(p => p.v);
+  let lo = Math.min(...vs), hi = Math.max(...vs);
+  if(lo === hi){ lo -= lo * 0.01 || 1; hi += hi * 0.01 || 1; }
+  const step = niceStep((hi - lo) / 4);
+  lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+  const x = t => L + (t - t0) / (now - t0) * (W - L - R);
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  let d = '';
+  series.forEach((p, i) => {
+    const px = x(Math.max(p.t, t0)).toFixed(1), py = y(p.v).toFixed(1);
+    if(i === 0) d += 'M' + px + ' ' + py;
+    else d += 'H' + px + 'V' + py;                     // rates hold until the next change
+  });
+  let grid = '', axis = '';
+  for(let v = lo; v <= hi + step / 2; v += step){
+    grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>';
+    axis += '<text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + esc(inr(v)) + '</text>';
+  }
+  const ticks = 4;
+  for(let i = 0; i <= ticks; i++){
+    const t = t0 + (now - t0) * i / ticks;
+    axis += '<text x="' + x(t) + '" y="' + (H - 6) + '" text-anchor="' + (i === 0 ? 'start' : i === ticks ? 'end' : 'middle') + '">' +
+      esc(new Date(t).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</text>';
+  }
+  const last = series[series.length - 2];
+  el.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label + ' rate over the last ' + rangeDays + ' days') + '">' +
+    '<g class="grid">' + grid + '</g><g class="axis">' + axis + '</g>' +
+    '<path class="series" d="' + d + '"/>' +
+    '<circle class="end" cx="' + x(now) + '" cy="' + y(last.v) + '" r="4"/>' +
+    '<line class="cross" y1="' + T + '" y2="' + (H - B) + '" visibility="hidden"/><circle class="dot" r="4" visibility="hidden"/>' +
+    '<rect x="' + L + '" y="0" width="' + (W - L - R) + '" height="' + H + '" fill="transparent"/></svg><div class="tip" hidden></div>';
+  const svg = el.querySelector('svg'), cross = svg.querySelector('.cross'), dot = svg.querySelector('.dot'), tip = el.querySelector('.tip');
+  const hide = () => { cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.hidden = true; };
+  svg.addEventListener('pointermove', ev => {
+    const box = svg.getBoundingClientRect();
+    const t = t0 + ((ev.clientX - box.left) / box.width * W - L) / (W - L - R) * (now - t0);
+    if(t < t0 || t > now) return hide();
+    let p = pts[0];
+    for(const q of pts){ if(q.t <= t) p = q; else break; }      // the rate in force at that moment
+    if(p.t > t) return hide();
+    const px = x(t), py = y(p.v);
+    cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('visibility', 'visible');
+    dot.setAttribute('cx', px); dot.setAttribute('cy', py); dot.setAttribute('visibility', 'visible');
+    tip.hidden = false;
+    tip.innerHTML = '<b>' + esc(inr(p.v)) + '</b> per gram<br>' + esc(new Date(t).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'}));
+    tip.style.left = Math.min(Math.max(px / W * box.width, 60), box.width - 60) + 'px';
+    tip.style.top = (py / H * box.height) + 'px';
+  });
+  svg.addEventListener('pointerleave', hide);
+}
+function niceStep(raw){
+  const p = Math.pow(10, Math.floor(Math.log10(raw || 1))), f = raw / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+}
+function renderHistory(){
+  const t0 = Date.now() - rangeDays * 864e5;
+  const asc = rates.slice().reverse();
+  // the rate in force at the start of the range, then every change after it
+  const pick = k => {
+    const before = asc.filter(r => new Date(r.set_at) < t0).pop();
+    const inside = asc.filter(r => new Date(r.set_at) >= t0);
+    return (before ? [{t: t0, v: Number(before[k])}] : []).concat(inside.map(r => ({t: +new Date(r.set_at), v: Number(r[k])})));
+  };
+  const summary = (pts) => {
+    if(!pts.length) return '';
+    const a = pts[0].v, z = pts[pts.length - 1].v, d = z - a;
+    return 'Now ' + inr(z) + ' per gram · ' + (d === 0 ? 'no change' : (d > 0 ? 'up ' : 'down ') + inr(Math.abs(d)) + ' (' + Math.abs(d / a * 100).toFixed(1) + '%)') + ' over ' + (rangeDays === 365 ? 'the year' : rangeDays + ' days');
+  };
+  const p22 = pick('gold_22k'), pS = pick('silver');
+  $('sub22').textContent = summary(p22); $('subS').textContent = summary(pS);
+  lineChart($('plot22'), p22, 'Gold 22K');
+  lineChart($('plotS'), pS, 'Silver');
+  const rows = rates.filter(r => new Date(r.set_at) >= t0);
+  $('histTable').innerHTML = '<thead><tr><th>When</th><th>22K</th><th>24K</th><th>18K</th><th>Silver</th><th style="text-align:left">Set by</th><th style="text-align:left">Note</th><th class="owner-only"></th></tr></thead><tbody>' +
+    (rows.map(r => '<tr data-id="' + esc(r.id) + '"><td>' + esc(when(r.set_at)) + '</td>' + KINDS.map(x => '<td>' + esc(inr(r[x.k])) + '</td>').join('') +
+      '<td class="l">' + esc(r.set_by_name) + '</td><td class="note">' + esc(r.note) + '</td>' +
+      '<td class="owner-only"><button class="btn mini btn-danger" data-del>Remove</button></td></tr>').join('') ||
+     '<tr><td colspan="8" style="text-align:center;color:var(--muted)">No rates in this period.</td></tr>') + '</tbody>';
+}
+$('histTable').addEventListener('click', async e => {
+  if(!e.target.closest('[data-del]')) return;
+  const r = rates.find(x => x.id === e.target.closest('tr').dataset.id);
+  if(!await ask('Remove this rate?', 'Set by ' + r.set_by_name + ' on ' + when(r.set_at) + '. Use this only for a mistake.', 'Remove', true)) return;
+  try{ must(await sb.from('rates').delete().eq('id', r.id)); toast('Rate removed'); await load(); render(); }
+  catch(x){ toast(x.message); }
+});
+
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && NJ.me && !document.querySelector('dialog[open]')) load().then(render).catch(e => toast(e.message)); });
+
+NJ.start({onReady: async me => {
+  document.body.classList.toggle('no-rates-access', !NJ.canUse('rates'));
+  if(!me) return;
+  try{ await load(); }catch(e){ toast(e.message); }
+  showTab(curTab);
+}});
+})();
+</script>
+</body>
+</html>

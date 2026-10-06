@@ -76,7 +76,7 @@ async function render(me){
   }
   document.getElementById('hEyebrow').textContent = me.is_owner ? 'Owner' : 'Welcome';
   document.getElementById('hTitle').textContent = 'Hello, ' + me.name.split(' ')[0];
-  const apps = Object.entries(APPS).filter(([k]) => NJ.canUse(k));
+  const apps = Object.entries(APPS).filter(([k, a]) => NJ.canUse(k) || a.everyone);
   let h = '';
   if(me.is_owner){
     h += tile('dashboard/', 'Dashboard', 'Today at a glance: attendance, leave waiting and this month’s totals.', 'owner');

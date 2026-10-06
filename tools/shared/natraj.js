@@ -11,7 +11,8 @@ const PIN_RE = /^[0-9]{6}$/;
 
 /* Every app in the toolkit. "path" is relative to the toolkit's home page. */
 const APPS = {
-  attendance: {name: 'Attendance', path: 'attendance/', desc: 'Daily attendance, leave requests and the monthly register.'}
+  attendance: {name: 'Attendance', path: 'attendance/', desc: 'Daily attendance, leave requests and the monthly register.'},
+  rates: {name: 'Gold & silver rate', path: 'rates/', desc: 'Today’s rate, updates, WhatsApp message and history.', everyone: true}
 };
 
 const ROOT = (document.currentScript && document.currentScript.src || '').replace(/shared\/natraj\.js.*$/, '');
@@ -276,7 +277,7 @@ async function start(opts){
 }
 
 /* Owner backup: every table, as one JSON file. Add new apps' tables here. */
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
   for(const t of TABLES) out.tables[t] = must(await sb.from(t).select('*'));

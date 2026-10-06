@@ -38,6 +38,14 @@
 .bar-row:hover .track i{background:var(--maroon-deep)}
 .axisnote{font-size:.78rem;color:var(--muted)}
 .soon{display:flex;flex-wrap:wrap;gap:8px}
+.rates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.rates div{display:grid;gap:4px}
+.rates span{font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.rates b{font:500 1.6rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums}
+.rates em{font-style:normal;font-size:.78rem;font-weight:600;color:var(--muted)}
+.rates em.up{color:var(--p)} .rates em.down{color:var(--a)}
+.rates .stamp{grid-column:1/-1;font-size:.82rem;color:var(--muted)}
+@media (max-width:640px){.rates{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -70,6 +78,10 @@
   </div></div>
 
   <div class="wrap content dash">
+    <div class="card wide">
+      <div class="head"><h3>Today’s rate</h3><a href="../rates/">Gold &amp; silver rate ›</a></div>
+      <div class="rates" id="rateBox"><small>Loading…</small></div>
+    </div>
     <div class="card">
       <div class="head"><h3>Not marked yet</h3><a href="../attendance/">Open attendance ›</a></div>
       <div class="list" id="notMarked"><small>Loading…</small></div>
@@ -86,7 +98,7 @@
     <div class="card wide">
       <div class="head"><h3>Coming next</h3></div>
       <p style="margin:0;color:var(--muted)">Each new app adds its figures here as it is built.</p>
-      <div class="soon"><span class="tag">Gold &amp; silver rate</span><span class="tag">To-do list</span><span class="tag">Expenses</span><span class="tag">Banking</span><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
+      <div class="soon"><span class="tag">To-do list</span><span class="tag">Expenses</span><span class="tag">Banking</span><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
     </div>
     <div class="card wide">
       <div class="head"><h3>Backup</h3></div>
@@ -119,6 +131,7 @@ const fmtDays = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
 async function load(){
   const today = todayIso(), month = today.slice(0,7);
   const first = month + '-01';
+  loadRates().catch(e => { $('rateBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   const [s, a, l] = await Promise.all([
     sb.from('staff').select('id,name,active,joined').order('name'),
     sb.from('attendance').select('staff_id,day,status').gte('day', first).lte('day', today),
@@ -155,6 +168,21 @@ async function load(){
     : '<small>No staff yet.</small>';
   $('barNote').textContent = 'Bars are out of the ' + daysSoFar + ' days so far this month. Present, Home and Thottam count as 1, Half day as ½.';
   $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN',{hour:'numeric', minute:'2-digit'});
+}
+
+async function loadRates(){
+  const rows = must(await sb.from('rates').select('*').order('set_at', {ascending: false}).limit(2)) || [];
+  const [cur, prev] = rows;
+  if(!cur){ $('rateBox').innerHTML = '<small>No rate set yet. <a href="../rates/">Set today’s rate</a>.</small>'; return; }
+  const inr = v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits: 2});
+  const kinds = [['gold_22k', 'Gold 22K'], ['gold_24k', 'Gold 24K'], ['gold_18k', 'Gold 18K'], ['silver', 'Silver']];
+  const stale = Date.now() - new Date(cur.set_at) > 20 * 3600e3;
+  $('rateBox').innerHTML = kinds.map(([k, l]) => {
+    const d = prev && cur[k] != null && prev[k] != null ? Number(cur[k]) - Number(prev[k]) : null;
+    return '<div><span>' + l + '</span><b>' + (cur[k] == null ? '–' : esc(inr(cur[k]))) + '</b><em class="' + (d > 0 ? 'up' : d < 0 ? 'down' : '') + '">' +
+      (d == null ? '' : d === 0 ? 'No change' : (d > 0 ? '▲ ' : '▼ ') + esc(inr(Math.abs(d)))) + '</em></div>';
+  }).join('') + '<p class="stamp">Set by ' + esc(cur.set_by_name || 'someone') + ', ' + esc(new Date(cur.set_at).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'})) +
+    (stale ? ' · <b style="color:var(--a)">not updated today</b>' : '') + '</p>';
 }
 
 $('exportAll').onclick = async () => { try{ await NJ.exportAll(); }catch(x){ toast(x.message); } };

@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v2';
-const APPS = ['attendance'];
+const KEY = 'natraj-demo-db-v4';
+const APPS = ['attendance', 'rates'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
@@ -19,7 +19,7 @@ function seed(){
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance'], staff_id: staff[0].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager], settings: [{id: 1, weekly_off: 0}], attendance: [], leave_requests: [],
+    staff, profiles: [owner, manager], settings: [{id: 1, weekly_off: 0}], attendance: [], leave_requests: [], rates: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}},
     tokens: {}
   };
@@ -45,6 +45,17 @@ function seed(){
     leave(staff[2], addDays(today, 1), addDays(today, 1), true, 'Bank work in the morning', 'pending'),
     leave(staff[3], addDays(today, -9), addDays(today, -8), false, 'Fever', 'approved')
   );
+  // a year of rate history: a gentle random walk, changed most mornings, sometimes again in the afternoon
+  let g = 6650, sv = 88;
+  for(let d = addDays(today, -365); d <= today; d = addDays(d, 1)){
+    if(dow(d) === 0) continue;
+    g = Math.round((g + (rnd() - 0.47) * 40) / 5) * 5; sv = Math.round((sv + (rnd() - 0.48) * 1.0) * 10) / 10;
+    const at = (h, m) => { const [y, mo, dd] = d.split('-').map(Number); return new Date(y, mo - 1, dd, h, m).toISOString(); };
+    const push = t => db.rates.push({id: uid(), set_at: t, gold_22k: g, gold_24k: Math.round(g * 1.0909), gold_18k: Math.round(g * 0.8182), silver: sv, note: '', set_by: manager.user_id, set_by_name: 'Sample Manager'});
+    if(d === today){ if(new Date().getHours() >= 10) push(at(10, 15)); continue; }
+    push(at(10, 15));
+    if(rnd() < 0.15){ g += 20; push(at(15, 30)); }
+  }
   return db;
 }
 let db;
@@ -190,6 +201,7 @@ function rest(method, table, params, body, headers, me){
   const rule = {
     staff: {read: true, write: me.is_owner}, profiles: {read: true, write: false}, settings: {read: true, write: me.is_owner},
     attendance: {read: canUse(me, 'attendance'), write: canUse(me, 'attendance')},
+    rates: {read: true, write: method === 'POST' ? canUse(me, 'rates') : me.is_owner},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
@@ -213,6 +225,9 @@ function rest(method, table, params, body, headers, me){
         if(row){ if(item.status !== row.status) row.leave_id = null; Object.assign(row, item); }
         else { row = Object.assign({note: '', leave_id: null}, item); db.attendance.push(row); }
         stamp(row, me);
+      } else if(table === 'rates'){
+        row = Object.assign({id: uid(), gold_24k: null, gold_18k: null, note: ''}, item, {set_at: now(), set_by: me.user_id, set_by_name: me.name});
+        db.rates.push(row);
       } else {
         row = Object.assign({id: uid(), designation: '', phone: '', joined: null, active: true, created_at: now()}, item);
         db[table].push(row);

@@ -30,7 +30,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 | # | App | Shares with | Feeds the dashboard |
 |---|-----|-------------|---------------------|
 | 1 | Foundation + Attendance & Leave (built in `tools/`: online database, sign-in, home, people & settings, dashboard) | staff | who is in today, leave waiting, days worked |
-| 2 | Gold & silver rate | silver sales, stock | today's rate, trend |
+| 2 | Gold & silver rate (built: `tools/rates/`, rupees per gram for 22K, 24K, 18K and silver; WhatsApp message; history charts) | silver sales, stock | today's rate, trend |
 | 3 | To-do list (assign to a person) | staff | open and overdue tasks per person |
 | 4 | Expense tracker | — | spend this month by category |
 | 5 | Banking entry log | — | deposits and withdrawals, balance per account |

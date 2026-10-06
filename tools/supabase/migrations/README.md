@@ -16,3 +16,4 @@ the database can be rebuilt or reviewed.
 The Supabase security advisor lists the four functions that work without
 signing in (`login_names`, `setup_needed`, `leave_staff`, `request_leave`).
 That is intended: they power the sign-in screen and the public leave form.
+- `006_rates.sql` — gold & silver rate app. Applied.

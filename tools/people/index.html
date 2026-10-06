@@ -150,7 +150,7 @@ function render(){
 }
 
 /* ---------- people who can sign in ---------- */
-const appOptions = (sel) => Object.entries(APPS).map(([k, a]) => ({id: 'app_' + k, label: 'Can use ' + a.name, type: 'checkbox', value: (sel || []).includes(k)}));
+const appOptions = (sel) => Object.entries(APPS).map(([k, a]) => ({id: 'app_' + k, label: (a.everyone ? 'Can update ' : 'Can use ') + a.name, type: 'checkbox', value: (sel || []).includes(k)}));
 const staffOptions = () => [['', 'Not linked'], ...staff.filter(s => s.active).map(s => [s.id, s.name])];
 const pickedApps = v => Object.keys(APPS).filter(k => v['app_' + k]);
 
