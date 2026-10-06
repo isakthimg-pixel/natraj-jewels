@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#FBFBFD">
+<meta name="theme-color" content="#3B2420">
 <link rel="icon" href="../favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <title>Gold &amp; Silver Rate · Natraj Jewels</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../shared/natraj.css">
 <style>
 .signed-out main{display:none!important}
@@ -21,15 +21,15 @@
 .no-rates-access #tab-today .grid2{grid-template-columns:1fr}
 
 /* rate board: four big figures, like the website's timeline numerals */
-.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--card);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow)}
-.board > div{padding:2px 14px 2px 0;display:grid;gap:6px;align-content:start}
-.board > div + div{padding-left:18px;border-left:1px solid var(--hair)}
-.board .lbl{font:500 .8rem/1.2 var(--body);letter-spacing:-.005em;color:var(--muted)}
-.board b{font:600 clamp(1.6rem,4vw,2.4rem)/1.05 var(--display);letter-spacing:-.03em;font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
+.board > div{padding:16px 14px 4px 0;display:grid;gap:6px;align-content:start}
+.board > div + div{padding-left:16px;border-left:1px solid var(--line)}
+.board .lbl{font:600 .68rem/1.2 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.board b{font:500 clamp(1.7rem,4vw,2.5rem)/1 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
 .board b small{font:500 .8rem var(--body);color:var(--muted);margin-left:2px}
 .chg{font-size:.82rem;font-weight:600;color:var(--muted)}
 .chg.up{color:var(--p)} .chg.down{color:var(--a)}
-@media (max-width:640px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}.board > div:nth-child(3){padding-left:0;border-left:0}.board > div:nth-child(n+3){padding-top:16px;margin-top:14px;border-top:1px solid var(--hair)}}
+@media (max-width:640px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}.board > div:nth-child(3){padding-left:0;border-left:0}.board > div:nth-child(n+3){padding-top:16px;border-top:1px solid var(--line)}}
 .stampline{font-size:.85rem;color:var(--muted);margin:0}
 .duty{margin:0}
 .duty.late{border-color:var(--a);background:var(--a-bg);color:var(--a);font-weight:600}
@@ -38,16 +38,16 @@
 .form .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .money{position:relative}
 .money .input{padding-left:30px}
-.money::before{content:"₹";position:absolute;left:14px;bottom:13px;color:var(--faint);font-weight:500;letter-spacing:0}
-.msg{white-space:pre-line;background:var(--fill);border-radius:var(--r);padding:14px 16px;font-size:.92rem;line-height:1.55;color:var(--ink);margin:0}
+.money::before{content:"₹";position:absolute;left:13px;bottom:15px;color:var(--muted);font-weight:500;letter-spacing:0}
+.msg{white-space:pre-line;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:14px 16px;font-size:.92rem;line-height:1.55;color:var(--ink);margin:0}
 .btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
 .btn-wa:hover{background:#0B6358;border-color:#0B6358}
 
 /* history charts: one series each, 2px line, recessive grid, hover crosshair + tooltip */
 .charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 @media (max-width:860px){.charts{grid-template-columns:1fr}}
-.chart{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:18px 18px 12px;display:grid;gap:8px;min-width:0}
-.chart h3{font-size:1.25rem;font-weight:700;color:var(--ink)}
+.chart{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:18px 18px 12px;display:grid;gap:8px;min-width:0}
+.chart h3{font-size:1.25rem;color:var(--maroon)}
 .chart .sub{font-size:.82rem;color:var(--muted)}
 .plot{position:relative}
 .plot svg{display:block;width:100%;height:auto;overflow:visible}
@@ -57,16 +57,16 @@
 .plot .end{fill:var(--maroon);stroke:var(--card);stroke-width:2}
 .plot .cross{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
 .plot .dot{fill:var(--maroon);stroke:var(--card);stroke-width:2}
-.tip{position:absolute;pointer-events:none;background:rgba(29,29,31,.9);color:#fff;border-radius:10px;padding:6px 9px;font-size:.78rem;line-height:1.35;white-space:nowrap;transform:translate(-50%,-100%);margin-top:-10px}
+.tip{position:absolute;pointer-events:none;background:var(--cocoa);color:var(--on-dark);border-radius:4px;padding:6px 9px;font-size:.78rem;line-height:1.35;white-space:nowrap;transform:translate(-50%,-100%);margin-top:-10px}
 .tip b{font-weight:600;color:#FFF7EE}
 .range{display:inline-flex;gap:6px}
-.range button{border:0;background:var(--fill);border-radius:980px;padding:7px 14px;font-weight:500;font-size:.85rem;cursor:pointer}
-.range button[aria-pressed="true"]{background:var(--ink);color:#fff;font-weight:600}
-.histwrap{overflow-x:auto;background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow);margin-top:20px}
+.range button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-weight:500;font-size:.85rem;cursor:pointer}
+.range button[aria-pressed="true"]{background:var(--cocoa);border-color:var(--cocoa);color:#FFF7EE;font-weight:600}
+.histwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px;margin-top:20px}
 table.hist{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
 .hist th,.hist td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .hist th:first-child,.hist td:first-child,.hist td.l{text-align:left}
-.hist thead th{font:500 .8rem var(--body);letter-spacing:-.005em;color:var(--muted);background:#FAFAFC}
+.hist thead th{font:600 .66rem var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
 .hist td.note{white-space:normal;min-width:160px;color:var(--muted)}
 </style>
 </head>
@@ -74,7 +74,7 @@ table.hist{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-num
 
 <header class="top">
   <div class="wrap">
-    <span class="brand"><img src="../img/logo-maroon.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
     <div class="title">
       <h1>Gold &amp; Silver Rate</h1>
     </div>
@@ -149,7 +149,7 @@ table.hist{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-num
 
 <footer>
   <div class="wrap">
-    <img src="../img/logo-grey.png" alt="Natraj Jewels">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
     <span>Gold &amp; silver rate · 24, Eswaran Kovil St, Tiruppur 641604</span>
     <span>© <span id="year">2026</span> Natraj Jewels</span>
   </div>

@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#FBFBFD">
+<meta name="theme-color" content="#3B2420">
 <link rel="icon" href="../favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <title>Dashboard · Natraj Jewels</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../shared/natraj.css">
 <style>
 .owner-only-msg{display:none}
@@ -20,8 +20,8 @@
 .dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
 .dash .wide{grid-column:1/-1}
 @media (max-width:860px){.dash{grid-template-columns:1fr}}
-.card{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:clamp(18px,3vw,26px);display:grid;gap:14px;min-width:0}
-.card h3{font-size:1.45rem;font-weight:700;color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:clamp(18px,3vw,26px);display:grid;gap:14px;min-width:0}
+.card h3{font-size:1.45rem;color:var(--maroon)}
 .card .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .card .head a{font:600 .8rem/1 var(--body);color:var(--gold);text-decoration:none}
 .list{display:grid}
@@ -40,7 +40,7 @@
 .soon{display:flex;flex-wrap:wrap;gap:8px}
 .rates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .rates div{display:grid;gap:4px}
-.rates span{font:500 .8rem/1.2 var(--body);letter-spacing:-.005em;color:var(--muted)}
+.rates span{font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
 .rates b{font:500 1.6rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums}
 .rates em{font-style:normal;font-size:.78rem;font-weight:600;color:var(--muted)}
 .rates em.up{color:var(--p)} .rates em.down{color:var(--a)}
@@ -52,7 +52,7 @@
 
 <header class="top">
   <div class="wrap">
-    <span class="brand"><img src="../img/logo-maroon.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
     <div class="title">
       <h1>Dashboard</h1>
     </div>
@@ -121,7 +121,7 @@
 
 <footer>
   <div class="wrap">
-    <img src="../img/logo-grey.png" alt="Natraj Jewels">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
     <span>Owner dashboard · 24, Eswaran Kovil St, Tiruppur 641604</span>
     <span>© <span id="year">2026</span> Natraj Jewels</span>
   </div>

@@ -338,7 +338,7 @@ function showNotes(){
   d.innerHTML = '<div class="notes-in"><div class="notes-head"><h2 id="nj-notes-title">Notifications</h2>' +
       (unread ? '<button type="button" class="linkish" data-all>Mark all as read</button>' : '') + '</div>' +
     (notes.length ? '<div class="notes-list">' + notes.map(n =>
-      '<button type="button" class="nj-note' + (n.read_at ? '' : ' new') + '" data-nj-go="' + esc(n.id) + '"><b>' + esc(n.title) + '</b>' +
+      '<button type="button" class="note' + (n.read_at ? '' : ' new') + '" data-nj-go="' + esc(n.id) + '"><b>' + esc(n.title) + '</b>' +
       (n.body ? '<span>' + esc(n.body) + '</span>' : '') + '<small>' + esc(ago(n.created_at)) + '</small></button>').join('') + '</div>'
       : '<p class="notes-empty">Nothing yet. You will see finished tasks here.</p>') +
     '<div class="actions"><button type="button" class="btn" data-close>Close</button></div></div>';

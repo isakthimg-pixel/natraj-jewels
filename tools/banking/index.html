@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#FBFBFD">
+<meta name="theme-color" content="#3B2420">
 <link rel="icon" href="../favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <title>Banking · Natraj Jewels</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../shared/natraj.css">
 <style>
 .signed-out main{display:none!important}
@@ -34,7 +34,7 @@
 }
 
 .money{position:relative}
-.money::before{content:"₹";position:absolute;left:14px;bottom:11px;color:var(--faint);font-weight:500;letter-spacing:0;font-size:1.2rem}
+.money::before{content:"₹";position:absolute;left:13px;bottom:13px;color:var(--muted);font-weight:500;letter-spacing:0;font-size:1.2rem}
 .money .input{padding-left:34px;font:500 1.5rem var(--display);font-variant-numeric:lining-nums tabular-nums}
 .form .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:420px){.form .two{grid-template-columns:1fr}}
@@ -54,15 +54,15 @@
 .axisnote{font-size:.78rem;color:var(--muted);margin:0}
 
 /* statement table */
-.stwrap{overflow-x:auto;background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow)}
+.stwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px}
 table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:lining-nums tabular-nums}
 .st th,.st td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
 .st th:nth-child(-n+2),.st td:nth-child(-n+2){text-align:left}
 .st td.d{white-space:normal;min-width:180px}
 .st td.d small{display:block;color:var(--muted);font-size:.8rem}
-.st thead th{font:500 .8rem var(--body);letter-spacing:-.005em;color:var(--muted);background:#FAFAFC}
+.st thead th{font:600 .66rem var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
 .st .in{color:var(--p)} .st .out{color:var(--a)}
-.st tr.edge td{background:#FAFAFC;font-weight:600}
+.st tr.edge td{background:var(--paper);font-weight:600}
 .st tbody tr[data-id]{cursor:pointer}
 .st tbody tr[data-id]:hover td{background:color-mix(in srgb,var(--gold) 6%,var(--card))}
 
@@ -80,7 +80,7 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
 
 <header class="top">
   <div class="wrap">
-    <span class="brand"><img src="../img/logo-maroon.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
     <div class="title">
       <h1>Banking</h1>
     </div>
@@ -176,7 +176,7 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
 
 <footer>
   <div class="wrap">
-    <img src="../img/logo-grey.png" alt="Natraj Jewels">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
     <span>Banking · 24, Eswaran Kovil St, Tiruppur 641604</span>
     <span>© <span id="year">2026</span> Natraj Jewels</span>
   </div>
