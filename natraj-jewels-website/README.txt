@@ -36,6 +36,11 @@ Upload BOTH (keep the img folder next to index.html).
    - Daily tab: for each person tap Present, Home, Thottam or Half day.
      The Leave button opens a list: Absent, Leave applied or Week off.
      Days worked = Present + Home + Thottam, plus half for a Half day.
+   - Leave tab: staff apply for leave themselves (no PIN needed):
+     name, dates or half day, and a reason. Someone with a PIN taps
+     Approve, and those days are marked "Leave applied" (or Half day)
+     in attendance. Weekly holidays are skipped. "Cancel this leave"
+     clears them again.
    - Monthly register: full month grid with totals per person.
      "Download Excel (CSV)" opens in Excel or Google Sheets for salary.
    - PIN lock: the first time the app opens, set the owner PIN and

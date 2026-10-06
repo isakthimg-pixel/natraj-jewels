@@ -84,6 +84,7 @@ h3{font-weight:600}
 .input:disabled{background:var(--paper);color:var(--muted)}
 .by{display:block;margin-top:6px;font-size:.75rem;color:var(--muted)}
 .err{color:var(--err);font-size:.85rem;min-height:1.2em;margin:0}
+.err:empty{display:none}
 .code{font:600 1.6rem/1 var(--display);letter-spacing:.12em;color:var(--ink);font-variant-numeric:lining-nums;user-select:all;padding:14px 0;text-align:center;border-block:1px solid var(--line)}
 .linkish{background:none;border:0;padding:0;color:var(--gold);font-weight:600;font-size:.85rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px;justify-self:start}
 .full{grid-column:1/-1}
@@ -198,12 +199,29 @@ table.reg{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:1
 .form{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:clamp(20px,3vw,30px);display:grid;gap:14px}
 .form h3,.panel h3{font-size:1.6rem;color:var(--maroon)}
 .form label,.field{display:grid;gap:6px;font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
-.form .input{width:100%;padding:12px 14px}
+.form .input,.field .input{width:100%;padding:12px 14px;font-weight:400;letter-spacing:0}
 .form .actions{display:flex;gap:10px;margin-top:4px}
 .srow{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:16px 18px}
 .srow .who{flex:1 1 200px}
 .srow.inactive .who{opacity:.55}
-.tag{font:600 .66rem/1 var(--body);letter-spacing:.16em;text-transform:uppercase;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tag{font:600 .66rem/1 var(--body);letter-spacing:.16em;text-transform:uppercase;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+
+/* leave requests */
+.count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--gold-soft);color:var(--cocoa);font:700 .7rem/1 var(--body);vertical-align:1px}
+.tag.pending{border-color:var(--gold);color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--card))}
+.tag.approved{border-color:var(--p);color:var(--p);background:var(--p-bg)}
+.tag.rejected{border-color:var(--a);color:var(--a);background:var(--a-bg)}
+textarea.input{min-height:90px;resize:vertical;line-height:1.5}
+.check{display:flex!important;align-items:center;gap:10px;font-size:.92rem!important;letter-spacing:0!important;color:var(--ink)!important;font-weight:500!important}
+.check input{width:20px;height:20px;accent-color:var(--maroon)}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;padding:16px 18px;align-items:start}
+.lrow .who b{font-size:1.1rem}
+.lrow .when{font-weight:600;color:var(--ink);font-size:.95rem}
+.lrow .why{margin:4px 0 0;color:var(--muted);font-size:.92rem}
+.lrow .meta{font-size:.75rem;color:var(--muted);margin-top:6px}
+.lrow .acts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
+.lhead{font:600 .7rem/1 var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);padding:14px 18px;background:var(--paper)}
+.pendingnote{color:var(--gold);font-weight:600}
 .panel{display:grid;gap:12px;align-content:start}
 .panel p{margin:0;color:var(--muted);font-size:.94rem;max-width:62ch}
 .empty{padding:44px 20px;text-align:center;color:var(--muted)}
@@ -237,6 +255,7 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
     <div class="access" id="access"></div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="today" aria-selected="true">Daily</button>
+      <button role="tab" data-tab="leave" aria-selected="false">Leave<span class="count" id="leaveCount" hidden></span></button>
       <button role="tab" data-tab="register" aria-selected="false">Monthly register</button>
       <button role="tab" data-tab="staff" aria-selected="false">Staff</button>
       <button role="tab" data-tab="backup" aria-selected="false" class="owner-only">Settings</button>
@@ -271,6 +290,27 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
     <div class="wrap content">
       <p id="dOffNote" class="notice" hidden></p>
       <div id="dayList"></div>
+    </div>
+  </section>
+
+  <!-- LEAVE -->
+  <section id="tab-leave" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Leave</span><h2>Apply for leave</h2></div>
+    </div></div>
+    <div class="wrap content grid2">
+      <form class="form" id="leaveForm" autocomplete="off" novalidate>
+        <h3>New request</h3>
+        <label>Your name<select class="input" id="lvStaff" required></select></label>
+        <label>From<input class="input" id="lvFrom" type="date" required></label>
+        <label>To<input class="input" id="lvTo" type="date" required></label>
+        <label class="check"><input type="checkbox" id="lvHalf"> Half day only (one day)</label>
+        <label>Reason<textarea class="input" id="lvReason" maxlength="200" placeholder="e.g. Family function"></textarea></label>
+        <p class="err" id="lvErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="submit">Send request</button></div>
+        <p class="panel" style="margin:0"><span style="color:var(--muted);font-size:.9rem">No PIN needed to apply. Someone with a PIN approves it, and approved days are marked “Leave applied” in attendance.</span></p>
+      </form>
+      <div class="ledger" id="leaveList"></div>
     </div>
   </section>
 
@@ -429,7 +469,7 @@ function firstRun(){
   d.staff = STARTING_STAFF.map(([id,name,role]) => ({id, name, role, phone:'', joined:'', active:true}));
   return d;
 }
-function blank(){ return {version:1, staff:[], att:{}, settings:{weeklyOff:0}, lastBackup:null, users:[], recovery:null}; }
+function blank(){ return {version:1, staff:[], att:{}, settings:{weeklyOff:0}, lastBackup:null, users:[], recovery:null, leaves:[]}; }
 function load(){
   try{
     const raw = localStorage.getItem(KEY);
@@ -442,7 +482,7 @@ function normalize(d){
   const b = blank();
   Object.values(d.att||{}).forEach(day => Object.values(day).forEach(r => { if(r && r.s==='L') r.s = 'LA'; }));
   return {version:1, staff:d.staff, att:d.att||{}, settings:Object.assign(b.settings, d.settings||{}), lastBackup:d.lastBackup||null,
-          users:Array.isArray(d.users) ? d.users : [], recovery:d.recovery||null};
+          users:Array.isArray(d.users) ? d.users : [], recovery:d.recovery||null, leaves:Array.isArray(d.leaves) ? d.leaves : []};
 }
 let db = load();
 let storageOk = true;
@@ -699,6 +739,7 @@ function setRec(date, sid, patch){
   if(!canEdit()) return;
   const day = db.att[date] || (db.att[date] = {});
   const r = Object.assign({}, day[sid], patch, me ? {by: me.name, at: new Date().toISOString()} : {});
+  if('s' in patch && !('leaveId' in patch)) delete r.leaveId;   // changed by hand: no longer tied to a leave request
   if(!r.s && !r.note){ delete day[sid]; if(!Object.keys(day).length) delete db.att[date]; }
   else day[sid] = r;
   save();
@@ -717,7 +758,7 @@ function sortStaff(list){ return list.slice().sort((a,b)=>a.name.localeCompare(b
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 function showTab(name){
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab===name));
-  ['today','register','staff','backup'].forEach(t => $('tab-'+t).hidden = t!==name);
+  ['today','leave','register','staff','backup'].forEach(t => $('tab-'+t).hidden = t!==name);
   try{ sessionStorage.setItem(KEY+'-tab', name); }catch(e){}
   render();
 }
@@ -765,9 +806,11 @@ function renderDay(){
   const dis = canEdit() ? '' : ' disabled';
   box.innerHTML = '<div class="ledger">' + list.map(s => {
     const r = rec(curDate, s.id) || {};
+    const req = pendingFor(s.id, curDate);
+    const pend = req ? '<small class="by pendingnote">Leave request waiting'+(r.s ? '' : ' for approval')+'</small>' : '';
     const by = r.by ? '<small class="by">Marked by '+esc(r.by)+(r.at ? ', '+esc(new Date(r.at).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})) : '')+'</small>' : '';
     return '<div class="row" data-id="'+esc(s.id)+'">'+
-      '<div class="who"><b>'+esc(s.name)+'</b><span>'+esc(s.role||'')+(s.active?'':' · inactive')+'</span>'+by+'</div>'+
+      '<div class="who"><b>'+esc(s.name)+'</b><span>'+esc(s.role||'')+(s.active?'':' · inactive')+'</span>'+by+pend+'</div>'+
       '<div class="seg" role="group" aria-label="Status for '+esc(s.name)+'">'+
         MAIN.map(k => '<button type="button" data-s="'+k+'" aria-pressed="'+(r.s===k)+'"'+dis+'>'+STATUS[k].label+'</button>').join('')+
         (STATUS[r.s] && STATUS[r.s].leave
@@ -797,6 +840,92 @@ $('dayList').addEventListener('change', e => {
   const f = e.target.dataset.f; if(!f || !canEdit()) return;
   const id = e.target.closest('.row').dataset.id;
   setRec(curDate, id, {[f]: e.target.value.trim() || undefined}); renderDay();
+});
+
+/* ---------- leave requests ---------- */
+const staffById = id => db.staff.find(s => s.id === id);
+function daysBetween(from, to){
+  const out = [], d = parse(from), end = parse(to);
+  while(d <= end){ out.push(iso(d)); d.setDate(d.getDate()+1); }
+  return out;
+}
+const leaveDays = l => l.half ? [l.from] : daysBetween(l.from, l.to).filter(d => !isWeekOff(d));
+const pendingFor = (sid, date) => db.leaves.find(l => l.status==='pending' && l.staffId===sid && l.from <= date && date <= l.to);
+const fmtD = d => parse(d).toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short'});
+const fmtStamp = t => new Date(t).toLocaleString('en-IN',{day:'numeric', month:'short', hour:'numeric', minute:'2-digit'});
+function describeDates(l){
+  if(l.half) return fmtD(l.from)+' · half day';
+  const n = leaveDays(l).length;
+  return (l.from===l.to ? fmtD(l.from) : fmtD(l.from)+' to '+fmtD(l.to)) + ' · ' + n + (n===1 ? ' day' : ' days');
+}
+function renderLeave(){
+  const sel = $('lvStaff'), keep = sel.value;
+  sel.innerHTML = '<option value="">Choose your name</option>' + sortStaff(db.staff.filter(s => s.active)).map(s => '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join('');
+  sel.value = keep;
+  if(!$('lvFrom').value){ $('lvFrom').value = todayIso(); }
+  const edit = canEdit();
+  const row = l => {
+    const s = staffById(l.staffId); if(!s) return '';
+    const tag = {pending:'Waiting', approved:'Approved', rejected:'Not approved', cancelled:'Cancelled'}[l.status];
+    const decided = l.decidedBy ? (l.status==='approved' ? 'Approved' : l.status==='rejected' ? 'Not approved' : 'Cancelled')+' by '+esc(l.decidedBy)+', '+fmtStamp(l.decidedAt) : '';
+    let acts = '';
+    if(edit && l.status==='pending') acts = '<button class="btn btn-maroon mini" style="color:#FFF7EE" data-lact="approve">Approve</button><button class="btn mini btn-danger" data-lact="reject">Don’t approve</button>';
+    if(edit && l.status==='approved') acts = '<button class="btn mini" data-lact="cancel">Cancel this leave</button>';
+    return '<div class="lrow" data-lid="'+esc(l.id)+'">'+
+      '<div class="who"><b>'+esc(s.name)+'</b><div class="when">'+describeDates(l)+'</div>'+
+        (l.reason ? '<p class="why">'+esc(l.reason)+'</p>' : '')+
+        '<div class="meta">Requested '+fmtStamp(l.createdAt)+(decided ? ' · '+decided : '')+'</div></div>'+
+      '<span class="tag '+l.status+'">'+tag+'</span>'+
+      (acts ? '<div class="acts">'+acts+'</div>' : '')+'</div>';
+  };
+  const pending = db.leaves.filter(l => l.status==='pending').sort((a,b) => a.from.localeCompare(b.from));
+  const since = iso(new Date(Date.now() - 90*864e5));
+  const done = db.leaves.filter(l => l.status!=='pending' && l.to >= since).sort((a,b) => b.from.localeCompare(a.from));
+  $('leaveList').innerHTML =
+    '<div class="lhead">Waiting for approval</div>' +
+    (pending.map(row).join('') || '<div class="empty" style="padding:24px">No requests waiting.</div>') +
+    '<div class="lhead">Decided in the last 3 months</div>' +
+    (done.map(row).join('') || '<div class="empty" style="padding:24px">Nothing yet.</div>') +
+    (!edit && pending.length ? '<div class="lrow"><span class="by">Sign in with a PIN to approve requests.</span></div>' : '');
+}
+$('lvHalf').addEventListener('change', () => { if($('lvHalf').checked) $('lvTo').value = $('lvFrom').value; });
+$('lvFrom').addEventListener('change', () => { if($('lvHalf').checked || !$('lvTo').value || $('lvTo').value < $('lvFrom').value) $('lvTo').value = $('lvFrom').value; });
+$('leaveForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const sid = $('lvStaff').value, from = $('lvFrom').value, half = $('lvHalf').checked;
+  const to = half ? from : ($('lvTo').value || from);
+  const err = !sid ? 'Choose your name.' : !from ? 'Choose the first day of leave.' : to < from ? 'The last day is before the first day.'
+    : daysBetween(from, to).length > 60 ? 'A request can be up to 60 days.' : '';
+  $('lvErr').textContent = err; if(err) return;
+  const l = {id:uid(), staffId:sid, from, to, half, reason:$('lvReason').value.trim(), status:'pending', createdAt:new Date().toISOString()};
+  if(!half && !leaveDays(l).length){ $('lvErr').textContent = 'Those dates are all weekly holidays.'; return; }
+  db.leaves.push(l); save();
+  $('leaveForm').reset(); $('lvFrom').value = ''; $('lvTo').value = '';
+  toast('Leave request sent for approval'); render();
+});
+$('leaveList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-lact]'); if(!b || !canEdit()) return;
+  const l = db.leaves.find(x => x.id === b.closest('[data-lid]').dataset.lid);
+  const s = staffById(l.staffId), act = b.dataset.lact;
+  const decide = status => Object.assign(l, {status, decidedBy: me ? me.name : 'Owner', decidedAt: new Date().toISOString()});
+  if(act === 'approve'){
+    let skipped = 0;
+    leaveDays(l).forEach(d => {
+      const cur = (rec(d, s.id)||{}).s;
+      if(cur && !STATUS[cur].leave && !(rec(d, s.id)||{}).leaveId){ skipped++; return; }   // already marked as working: keep it
+      setRec(d, s.id, {s: l.half ? 'H' : 'LA', leaveId: l.id, note: l.reason ? 'Leave: '+l.reason.slice(0,70) : 'Leave approved'});
+    });
+    decide('approved'); save();
+    toast('Approved for '+s.name+(skipped ? '. '+skipped+(skipped===1?' day was':' days were')+' already marked and kept' : ''));
+  } else if(act === 'reject'){
+    if(!await ask('Don’t approve this request?', s.name+' · '+describeDates(l), 'Don’t approve', true)) return;
+    decide('rejected'); save(); toast('Request not approved');
+  } else if(act === 'cancel'){
+    if(!await ask('Cancel this leave?', s.name+' · '+describeDates(l)+'\n\nDays marked by this leave will be cleared in attendance.', 'Cancel leave', true)) return;
+    leaveDays(l).forEach(d => { if((rec(d, s.id)||{}).leaveId === l.id) setRec(d, s.id, {s:undefined, note:undefined, leaveId:undefined}); });
+    decide('cancelled'); save(); toast('Leave cancelled');
+  }
+  render();
 });
 
 /* ---------- register ---------- */
@@ -966,6 +1095,9 @@ function render(){
   if(!$('tab-register').hidden) renderReg();
   if(!$('tab-staff').hidden) renderStaff();
   if(!$('tab-backup').hidden) renderBackup();
+  if(!$('tab-leave').hidden) renderLeave();
+  const n = db.leaves.filter(l => l.status==='pending' && staffById(l.staffId)).length;
+  $('leaveCount').hidden = !n; $('leaveCount').textContent = n;
 }
 // keep other open tabs/windows in sync
 window.addEventListener('storage', e => { if(e.key===KEY){ db = load(); if(me) me = (db.users||[]).find(u => u.id===me.id) || null; applyAccess(); } });
