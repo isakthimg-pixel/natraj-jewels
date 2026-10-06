@@ -15,32 +15,14 @@
 <link rel="stylesheet" href="../shared/natraj.css">
 <style>
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-/* access grid: one row per person, one column per app */
-.accwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px}
-table.acc{border-collapse:collapse;width:100%}
-.acc th,.acc td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
-.acc tbody tr:last-child td,.acc tbody tr:last-child th{border-bottom:0}
-.acc thead th{font:600 .66rem/1.3 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
-.acc th.p{text-align:left;font:600 1.05rem/1.25 var(--heading);color:var(--ink);min-width:190px}
-.acc thead th.p{font:600 .66rem/1.3 var(--body);color:var(--gold)}
-.acc th.p small{display:block;font:600 .64rem/1.3 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:3px}
-.acc .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.acc .acts .btn{font-family:var(--body)}
-.acc input[type=checkbox]{width:22px;height:22px;accent-color:var(--maroon);cursor:pointer}
-.acc input[type=checkbox]:disabled{cursor:default;opacity:.6}
-.acc .ownerall{color:var(--p);font-weight:600;font-size:.85rem}
-.acc th.p{position:sticky;left:0;z-index:1;background:var(--card)}
-.acc thead th.p{background:var(--paper)}
-@media (max-width:640px){
-  .acc th,.acc td{padding:10px 8px}
-  .acc th.p{min-width:0;width:44%}
-  .acc thead th{letter-spacing:.08em}
-  .acc .acts{gap:4px}
-  .acc .acts .btn{padding:6px 9px;font-size:.72rem}
-}
 .owner-only-msg{display:none}
 .not-owner .owner-only-msg{display:block}
 .not-owner main section{display:none!important}
+/* people with their app bubbles */
+.prow{display:grid;grid-template-columns:minmax(160px,240px) minmax(0,1fr) auto;gap:12px 20px;align-items:center;padding:16px 18px}
+.prow .who b{font-size:1.1rem}
+.prow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:760px){.prow{grid-template-columns:1fr}.prow .acts{justify-content:flex-start}}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -68,11 +50,11 @@ table.acc{border-collapse:collapse;width:100%}
   <section id="tab-people">
     <div class="band"><div class="wrap">
       <div class="heading"><span class="eyebrow">Owner only</span><h2>Who can sign in</h2></div>
-      <p style="margin:0;color:var(--muted);max-width:68ch">Tick the apps each person can use. Changes save straight away. Owners can use everything. Everyone who signs in can see the gold &amp; silver rate, and anyone can send a leave request.</p>
+      <p style="margin:0;color:var(--muted);max-width:68ch">Tap an app to switch it on or off for that person. Changes save straight away. Owners can use everything. Everyone who signs in can see the gold &amp; silver rate, and anyone can send a leave request.</p>
       <div class="bar"><button class="btn btn-maroon" id="pAdd">Add a person</button></div>
     </div></div>
     <div class="wrap content">
-      <div class="accwrap" id="peopleList"><div class="loading">Loading…</div></div>
+      <div class="ledger" id="peopleList"><div class="loading">Loading…</div></div>
     </div>
   </section>
 
@@ -178,38 +160,38 @@ function render(){
 
 /* ---------- people who can sign in ---------- */
 const appLabel = a => a.short || a.name;
-const appOptions = (sel) => Object.entries(APPS).map(([k, a]) => ({id: 'app_' + k, label: a.access ? a.access : 'Can use ' + a.name, type: 'checkbox', value: (sel || []).includes(k)}));
+const appField = (sel) => ({id: 'apps', label: 'Apps they can use', type: 'chips', value: sel || [], options: Object.entries(APPS).map(([k, a]) => [k, a.short || a.name])});
 const staffOptions = () => [['', 'Not linked'], ...staff.filter(s => s.active).map(s => [s.id, s.name])];
-const pickedApps = v => Object.keys(APPS).filter(k => v['app_' + k]);
+const pickedApps = v => (v.apps || []).filter(k => APPS[k]);
 let shop = {};
 
 function renderPeople(){
   const box = $('peopleList');
   if(!profiles.length){ box.innerHTML = '<div class="empty">No one yet.</div>'; return; }
   const list = profiles.slice().sort((a, b) => (b.is_owner - a.is_owner) || a.name.localeCompare(b.name));
-  const apps = Object.entries(APPS);
-  box.innerHTML = '<table class="acc"><thead><tr><th class="p">Person</th>' + apps.map(([k, a]) => '<th>' + esc(appLabel(a)) + '</th>').join('') + '</tr></thead><tbody>' +
-    list.map(u => {
-      const st = staff.find(s => s.id === u.staff_id);
-      const cells = u.is_owner
-        ? '<td colspan="' + apps.length + '"><span class="ownerall">Owner · everything</span></td>'
-        : apps.map(([k, a]) => '<td><input type="checkbox" data-app="' + k + '"' + (u.apps.includes(k) ? ' checked' : '') + ' aria-label="' + esc(appLabel(a) + ' for ' + u.name) + '"></td>').join('');
-      return '<tr data-uid="' + esc(u.user_id) + '"><th class="p">' + esc(u.name) + (NJ.me && NJ.me.user_id === u.user_id ? ' (you)' : '') +
-        (st ? '<small>Staff: ' + esc(st.name) + '</small>' : '') +
-        '<span class="acts"><button class="btn mini" data-uact="edit">Edit</button><button class="btn mini" data-uact="pin">PIN</button><button class="btn mini btn-danger" data-uact="del">Remove</button></span></th>' + cells + '</tr>';
-    }).join('') + '</tbody></table>';
+  box.innerHTML = list.map(u => {
+    const st = staff.find(s => s.id === u.staff_id);
+    const bubbles = u.is_owner
+      ? '<span class="bubble fixed">Owner · everything</span>'
+      : Object.entries(APPS).map(([k, a]) => '<button type="button" class="bubble" data-app="' + k + '" aria-pressed="' + u.apps.includes(k) + '">' + esc(appLabel(a)) + '</button>').join('');
+    return '<div class="prow" data-uid="' + esc(u.user_id) + '"><div class="who"><b>' + esc(u.name) + (NJ.me && NJ.me.user_id === u.user_id ? ' (you)' : '') + '</b>' +
+      (st ? '<span>Staff: ' + esc(st.name) + '</span>' : '') + '</div>' +
+      '<div class="bubbles" role="group" aria-label="Apps for ' + esc(u.name) + '">' + bubbles + '</div>' +
+      '<div class="acts"><button class="btn mini" data-uact="edit">Edit</button><button class="btn mini" data-uact="pin">Change PIN</button><button class="btn mini btn-danger" data-uact="del">Remove</button></div></div>';
+  }).join('');
 }
-/* tick or untick an app: saves straight away */
-$('peopleList').addEventListener('change', async e => {
-  const c = e.target.closest('input[data-app]'); if(!c) return;
-  const u = profiles.find(x => x.user_id === c.closest('tr').dataset.uid);
-  const apps = c.checked ? [...new Set([...u.apps, c.dataset.app])] : u.apps.filter(k => k !== c.dataset.app);
-  c.disabled = true;
+/* tap an app bubble: switches it for that person and saves straight away */
+$('peopleList').addEventListener('click', async e => {
+  const c = e.target.closest('.bubble[data-app]'); if(!c) return;
+  const u = profiles.find(x => x.user_id === c.closest('[data-uid]').dataset.uid);
+  const on = c.getAttribute('aria-pressed') !== 'true';
+  const apps = on ? [...new Set([...u.apps, c.dataset.app])] : u.apps.filter(k => k !== c.dataset.app);
+  c.setAttribute('aria-pressed', on); c.disabled = true;
   try{
     await people('update', {user_id: u.user_id, apps});
     u.apps = apps;
-    toast(u.name + ': ' + appLabel(APPS[c.dataset.app]) + (c.checked ? ' on' : ' off'));
-  }catch(x){ c.checked = !c.checked; toast(x.message); }
+    toast(u.name + ': ' + appLabel(APPS[c.dataset.app]) + (on ? ' on' : ' off'));
+  }catch(x){ c.setAttribute('aria-pressed', !on); toast(x.message); }
   c.disabled = false;
 });
 $('pAdd').onclick = async () => {
@@ -221,7 +203,7 @@ $('pAdd').onclick = async () => {
       {id: 'pin', label: 'PIN (6 digits)', type: 'pin'},
       {id: 'pin2', label: 'Type the PIN again', type: 'pin'},
       {id: 'owner', label: 'Owner: full access, dashboard and this page', type: 'checkbox'},
-      ...appOptions(['attendance'])
+      appField(['attendance'])
     ],
     validate: async v => {
       if(!v.name) return 'Type their name.';
@@ -247,7 +229,7 @@ $('peopleList').addEventListener('click', async e => {
         {id: 'name', label: 'Name', type: 'text', value: u.name},
         {id: 'staff', label: 'Which staff member is this? (optional)', type: 'select', options: staffOptions(), value: u.staff_id || ''},
         {id: 'owner', label: 'Owner: full access, dashboard and this page', type: 'checkbox', value: u.is_owner},
-        ...appOptions(u.apps)
+        appField(u.apps)
       ],
       validate: async v => {
         if(!v.name) return 'Type their name.';

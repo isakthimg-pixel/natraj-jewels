@@ -60,6 +60,11 @@ function dialog(o){
   let h = '<h2 id="nj-dlg-title">' + esc(o.title) + '</h2>' + (o.msg ? '<p>' + esc(o.msg) + '</p>' : '') + (o.html || '');
   (o.fields || []).forEach(x => {
     const id = 'nj-f-' + x.id, ph = x.placeholder ? ' placeholder="' + esc(x.placeholder) + '"' : '';
+    if(x.type === 'chips'){         // several bubbles that switch on and off
+      h += '<div class="field"><span>' + esc(x.label) + '</span><div class="bubbles" id="' + id + '" role="group" aria-label="' + esc(x.label) + '">' +
+        x.options.map(([v, l]) => '<button type="button" class="bubble" data-v="' + esc(v) + '" aria-pressed="' + (x.value || []).includes(v) + '">' + esc(l) + '</button>').join('') + '</div></div>';
+      return;
+    }
     if(x.type === 'checkbox'){
       h += '<label class="field check"><input type="checkbox" id="' + id + '"' + (x.value ? ' checked' : '') + '> ' + esc(x.label) + '</label>';
       return;
@@ -77,10 +82,16 @@ function dialog(o){
     (o.cancel === null ? '' : '<button type="button" class="btn" data-cancel>' + esc(o.cancel || 'Cancel') + '</button>') +
     '<button type="submit" class="btn ' + (o.danger ? 'btn-red' : 'btn-maroon') + '" data-ok>' + esc(o.ok || 'OK') + '</button></div>';
   f.innerHTML = h; d.appendChild(f); document.body.appendChild(d);
+  f.addEventListener('click', e => { const b = e.target.closest('.bubble[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
   const err = f.querySelector('.err'), ok = f.querySelector('[data-ok]');
   const values = () => {
     const v = {};
-    (o.fields || []).forEach(x => { const el = $('nj-f-' + x.id); v[x.id] = x.type === 'checkbox' ? el.checked : el.value.trim(); });
+    (o.fields || []).forEach(x => {
+      const el = $('nj-f-' + x.id);
+      v[x.id] = x.type === 'checkbox' ? el.checked
+        : x.type === 'chips' ? [...el.querySelectorAll('[aria-pressed="true"]')].map(b => b.dataset.v)
+        : el.value.trim();
+    });
     return v;
   };
   return new Promise(res => {
