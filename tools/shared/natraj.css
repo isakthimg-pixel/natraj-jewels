@@ -263,3 +263,33 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
 .bubble.fixed::before{content:none}
 .offline{position:fixed;inset:auto 0 0 0;z-index:45;background:var(--err);color:#fff;text-align:center;font-weight:600;font-size:.88rem;padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px))}
 dialog .field{margin:0}
+
+/* notifications: bell with a count, a bar under the header, and the list */
+.bell{position:relative;padding:0;width:40px;height:40px;justify-content:center;display:inline-grid;place-items:center}
+.bell .count{position:absolute;top:-7px;right:-7px;margin:0;border:2px solid var(--cocoa)}
+.notebar{background:color-mix(in srgb,var(--gold) 16%,var(--cream));border-bottom:1px solid color-mix(in srgb,var(--gold) 35%,var(--line));font-size:.9rem}
+.notebar .wrap{display:flex;align-items:center;gap:10px;padding-block:9px}
+.nb-dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--maroon)}
+.nb-text{flex:1;min-width:0;text-align:left;background:none;border:0;padding:4px 0;font:inherit;color:var(--ink);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nb-text b{font-weight:600}
+.nb-text:hover b{text-decoration:underline}
+.nb-when{color:var(--muted);font-size:.8rem;white-space:nowrap}
+.nb-more{flex:none;background:none;border:0;font:600 .82rem var(--body);color:var(--gold);cursor:pointer;white-space:nowrap;padding:4px}
+.nb-x{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid transparent;background:none;font-size:1.25rem;line-height:1;color:var(--muted);cursor:pointer}
+.nb-x:hover{border-color:var(--line);color:var(--ink)}
+@media (max-width:640px){.nb-text{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
+dialog.notes{width:min(460px,calc(100vw - 32px))}
+.notes-in{padding:clamp(20px,4vw,26px);display:grid;gap:12px}
+.notes-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.notes-list{display:grid;max-height:min(60vh,520px);overflow:auto;border:1px solid var(--line);border-radius:4px}
+.note{display:grid;gap:2px;text-align:left;background:var(--card);border:0;border-top:1px solid var(--line);padding:12px 14px 12px 28px;font:inherit;color:var(--ink);cursor:pointer;position:relative}
+.note:first-child{border-top:0}
+.note:hover{background:var(--paper)}
+.note b{font-weight:600;font-size:.94rem}
+.note span{font-size:.88rem;color:var(--muted)}
+.note small{font-size:.75rem;color:var(--muted)}
+.note.new{background:color-mix(in srgb,var(--gold) 8%,var(--card))}
+.note.new::before{content:"";position:absolute;left:11px;top:18px;width:8px;height:8px;border-radius:50%;background:var(--maroon)}
+.notes-empty{margin:0;color:var(--muted)}
+dialog.notes .actions{display:flex;justify-content:flex-end}
+@media print{.notebar{display:none}}

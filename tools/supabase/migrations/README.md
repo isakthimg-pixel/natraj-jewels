@@ -21,4 +21,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `009_tasks.sql` — to-do list: tasks, who can see and change them. Applied.
 - `010_expenses.sql` — expense tracker: expenses, category list in settings, who can see and change entries. Applied.
 - `011_expense_periods.sql` — the days an expense covers (for the daily running cost), and `add_expense_category`. Applied.
+- `012_notifications.sql` — notifications (bell and bar at the top of every page); a task ticked done notifies managers and the person who gave it, and the owner when someone's last open task is done. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

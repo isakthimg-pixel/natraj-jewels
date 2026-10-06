@@ -251,7 +251,8 @@ function renderAccess(opts){
   const a = $('access'); if(!a) return;
   const home = opts.home ? '' : '<a class="btn btn-on-dark" href="' + ROOT + '">All apps</a>';
   a.innerHTML = me
-    ? '<span>Signed in as <b>' + esc(me.name) + '</b></span>' + home + '<button class="btn btn-on-dark" type="button" data-nj-out>Sign out</button>'
+    ? '<button class="btn btn-on-dark bell" id="nj-bell" type="button" data-nj-notes aria-label="Notifications">' + BELL + '<span class="count" hidden></span></button>' +
+      '<span>Signed in as <b>' + esc(me.name) + '</b></span>' + home + '<button class="btn btn-on-dark" type="button" data-nj-out>Sign out</button>'
     : home + '<button class="btn btn-gold" type="button" data-nj-in>Sign in</button>';
   document.body.classList.toggle('signed-in', !!me);
   document.body.classList.toggle('signed-out', !me);
@@ -260,7 +261,83 @@ function renderAccess(opts){
 document.addEventListener('click', e => {
   if(e.target.closest('[data-nj-in]')) signInFlow();
   if(e.target.closest('[data-nj-out]')) signOut();
+  if(e.target.closest('[data-nj-notes]')) showNotes();
+  const r = e.target.closest('[data-nj-read]'); if(r) markRead([r.dataset.njRead]);
+  const g = e.target.closest('[data-nj-go]'); if(g) openNote(g.dataset.njGo);
 });
+
+/* ---------- notifications: a bell in the header and a bar under it with the newest unread one.
+   Rows are written by the database (e.g. when a task is ticked done); each person sees only their own. */
+const BELL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+let notes = [];
+const ago = t => {
+  const m = Math.round((Date.now() - new Date(t)) / 60000);
+  if(m < 1) return 'just now';
+  if(m < 60) return m + ' min ago';
+  if(m < 24 * 60) return Math.round(m / 60) + ' h ago';
+  return new Date(t).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'});
+};
+async function loadNotes(){
+  if(!me){ notes = []; renderNotes(); return; }
+  const r = await sb.from('notifications').select('*').order('created_at', {ascending: false}).limit(30);
+  if(r.error) return;
+  notes = r.data || []; renderNotes();
+}
+function renderNotes(){
+  const unread = notes.filter(n => !n.read_at);
+  const c = document.querySelector('#nj-bell .count');
+  if(c){ c.hidden = !unread.length; c.textContent = unread.length > 9 ? '9+' : unread.length; }
+  const bell = $('nj-bell'); if(bell) bell.setAttribute('aria-label', unread.length ? unread.length + ' new notifications' : 'Notifications');
+  let bar = $('nj-bar');
+  if(!bar){
+    const head = document.querySelector('header.top'); if(!head) return;
+    bar = document.createElement('div'); bar.id = 'nj-bar'; bar.className = 'notebar'; bar.setAttribute('role', 'status');
+    head.after(bar);
+  }
+  if(!me || !unread.length){ bar.hidden = true; return; }
+  const n = unread[0];
+  bar.hidden = false;
+  bar.innerHTML = '<div class="wrap"><span class="nb-dot" aria-hidden="true"></span>' +
+    '<button type="button" class="nb-text" data-nj-go="' + esc(n.id) + '"><b>' + esc(n.title) + '</b>' + (n.body ? ' · ' + esc(n.body) : '') + ' <span class="nb-when">' + esc(ago(n.created_at)) + '</span></button>' +
+    (unread.length > 1 ? '<button type="button" class="nb-more" data-nj-notes>+' + (unread.length - 1) + ' more</button>' : '') +
+    '<button type="button" class="nb-x" data-nj-read="' + esc(n.id) + '" aria-label="Mark as read">×</button></div>';
+}
+async function markRead(ids){
+  const now = new Date().toISOString();
+  notes.forEach(n => { if(ids.includes(n.id) && !n.read_at) n.read_at = now; });
+  renderNotes();
+  await sb.from('notifications').update({read_at: now}).in('id', ids).is('read_at', null);
+}
+async function openNote(id){
+  const n = notes.find(x => x.id === id); if(!n) return;
+  await markRead([id]);
+  const d = document.querySelector('dialog.notes[open]'); if(d) d.close();
+  if(n.link){
+    const url = new URL(ROOT + n.link, location.href);
+    if(url.pathname === location.pathname){ if(url.hash !== location.hash) location.hash = url.hash; location.reload(); }
+    else location.href = url.href;
+  }
+}
+function showNotes(){
+  const d = document.createElement('dialog'); d.className = 'notes'; d.setAttribute('aria-labelledby', 'nj-notes-title');
+  const unread = notes.filter(n => !n.read_at).length;
+  d.innerHTML = '<div class="notes-in"><div class="notes-head"><h2 id="nj-notes-title">Notifications</h2>' +
+      (unread ? '<button type="button" class="linkish" data-all>Mark all as read</button>' : '') + '</div>' +
+    (notes.length ? '<div class="notes-list">' + notes.map(n =>
+      '<button type="button" class="note' + (n.read_at ? '' : ' new') + '" data-nj-go="' + esc(n.id) + '"><b>' + esc(n.title) + '</b>' +
+      (n.body ? '<span>' + esc(n.body) + '</span>' : '') + '<small>' + esc(ago(n.created_at)) + '</small></button>').join('') + '</div>'
+      : '<p class="notes-empty">Nothing yet. You will see finished tasks here.</p>') +
+    '<div class="actions"><button type="button" class="btn" data-close>Close</button></div></div>';
+  document.body.appendChild(d);
+  d.addEventListener('close', () => d.remove());
+  d.addEventListener('click', e => {
+    if(e.target === d || e.target.closest('[data-close]')) d.close();
+    if(e.target.closest('[data-all]')){ markRead(notes.filter(n => !n.read_at).map(n => n.id)); d.close(); }
+  });
+  d.showModal();
+}
+setInterval(() => { if(me && document.visibilityState === 'visible') loadNotes(); }, 60000);
+document.addEventListener('visibilitychange', () => { if(me && document.visibilityState === 'visible') loadNotes(); });
 
 window.addEventListener('offline', () => { let b = $('nj-offline'); if(!b){ b = document.createElement('div'); b.id = 'nj-offline'; b.className = 'offline'; b.textContent = 'No internet connection. Changes will not be saved until it is back.'; document.body.appendChild(b); } b.hidden = false; });
 window.addEventListener('online', () => { const b = $('nj-offline'); if(b) b.hidden = true; });
@@ -272,7 +349,7 @@ async function start(opts){
   const y = $('year'); if(y) y.textContent = new Date().getFullYear();
   const {data} = await sb.auth.getSession();
   await loadMe(data.session);
-  renderAccess(opts); touch();
+  renderAccess(opts); touch(); loadNotes();
   await onChange(me);
   let lastUser = me && me.user_id;
   sb.auth.onAuthStateChange((event, session) => {
@@ -282,7 +359,7 @@ async function start(opts){
       const uid = me && me.user_id;
       if(uid === lastUser && event !== 'USER_UPDATED') return;
       lastUser = uid;
-      renderAccess(opts); touch();
+      renderAccess(opts); touch(); loadNotes();
       if(me && event === 'SIGNED_IN') toast('Signed in as ' + me.name);
       await onChange(me);
     }, 0);
@@ -320,5 +397,5 @@ async function exportAll(){
 }
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
-  pad, iso, parse, todayIso, canUse, APPS, ROOT, PIN_RE, showRecoveryCode, get me(){ return me; }};
+  pad, iso, parse, todayIso, canUse, APPS, ROOT, PIN_RE, loadNotes, showRecoveryCode, get me(){ return me; }};
 })();

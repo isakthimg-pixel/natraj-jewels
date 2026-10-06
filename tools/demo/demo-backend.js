@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v9';
+const KEY = 'natraj-demo-db-v10';
 const APPS = ['attendance', 'rates', 'todo', 'expenses'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -20,7 +20,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -89,6 +89,9 @@ function seed(){
     if(dd === 10) exp(d, 1500, 'Hallmarking', 'UPI', 'BIS centre', '', manager);
     if(dd === 15) exp(d, 2500, 'Advertising', 'UPI', 'Local paper', 'Weekend ad', owner);
   }
+  const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
+  note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
+  note(owner, 'tasks_all_done', 'Sample Staff 3 finished all their tasks', '3 done today. Last one: Arrange the silver anklets tray', 45);
   return db;
 }
 let db;
@@ -113,6 +116,7 @@ const isOff = day => db.settings[0].weekly_off === dow(day);
 function cmp(a, op, b){
   a = a === null || a === undefined ? (op === 'is' ? 'null' : '') : String(a);
   if(op === 'eq' || op === 'is') return a === b;
+  if(op === 'in') return b.replace(/^\(|\)$/g, '').split(',').map(x => x.replace(/^"|"$/g, '')).includes(a);
   if(op === 'gte') return a >= b;
   if(op === 'lte') return a <= b;
   return true;
@@ -247,6 +251,7 @@ function rest(method, table, params, body, headers, me){
     rates: {read: true, write: method === 'POST' ? canUse(me, 'rates') : me.is_owner},
     expenses: {read: canUse(me, 'expenses'), write: canUse(me, 'expenses')},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
+    notifications: {read: true, write: true},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
@@ -256,6 +261,7 @@ function rest(method, table, params, body, headers, me){
   const single = /vnd\.pgrst\.object/.test(headers.get('accept') || '');
   const wantRows = /return=representation/.test(headers.get('prefer') || '');
   if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
+  if(table === 'notifications') return notesRest(method, params, body, single, wantRows, me);
   if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
   let out;
   if(method === 'GET'){
@@ -330,6 +336,31 @@ function expensesRest(method, params, body, single, wantRows, me){
   return {status: 200, body: out};
 }
 
+
+/* same as notify_task_done() in migration 012 */
+function notifyTaskDone(t, me){
+  const nowIso = new Date().toISOString(), today = nowIso.slice(0, 10);
+  const push = (user_id, kind, title, body) => db.notifications.push({id: uid(), user_id, kind, title, body, link: 'todo/#all', created_at: nowIso, read_at: null});
+  const who = t.done_by_name || 'Someone';
+  db.profiles.filter(p => p.user_id !== me.user_id && !p.is_owner && (p.apps.includes('todo') || p.user_id === t.created_by))
+    .forEach(p => push(p.user_id, 'task_done', who + ' completed a task', t.title));
+  if(t.assigned_to && !db.tasks.some(x => x.assigned_to === t.assigned_to && x.status === 'open')){
+    const n = db.tasks.filter(x => x.assigned_to === t.assigned_to && x.status === 'done' && x.done_at && x.done_at.slice(0, 10) === today).length;
+    db.profiles.filter(p => p.is_owner && p.user_id !== me.user_id && p.user_id !== t.assigned_to)
+      .forEach(p => push(p.user_id, 'tasks_all_done', (t.assigned_name || who) + ' finished all their tasks', n + ' done today. Last one: ' + t.title));
+  }
+}
+function notesRest(method, params, body, single, wantRows, me){
+  let out = db.notifications.filter(n => n.user_id === me.user_id).filter(n => matches(n, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'PATCH') out.forEach(n => { if('read_at' in body) n.read_at = body.read_at; });
+  else if(method === 'DELETE') db.notifications = db.notifications.filter(n => !out.includes(n));
+  else return {status: 403, body: {code: '42501', message: 'permission denied'}};
+  const lim = Number(params.get('limit')); if(lim) out = out.slice(0, lim);
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  return {status: 200, body: single ? out[0] : out};
+}
+
 /* tasks: same rules as the stamp_task trigger and the row policies */
 function tasksRest(method, params, body, single, wantRows, me){
   const assigner = canUse(me, 'todo');
@@ -353,7 +384,7 @@ function tasksRest(method, params, body, single, wantRows, me){
     out = out.filter(t => assigner || t.assigned_to === me.user_id);
     if(!assigner && Object.keys(body).some(k => !['status', 'done_note'].includes(k)))
       return {status: 403, body: {code: '42501', message: 'Only the person who assigns tasks can change this.'}};
-    out.forEach(t => { const old = Object.assign({}, t); Object.assign(t, body); fix(t, old); });
+    out.forEach(t => { const old = Object.assign({}, t); Object.assign(t, body); fix(t, old); if(t.status === 'done' && old.status !== 'done') notifyTaskDone(t, me); });
   } else if(method === 'DELETE'){
     out = out.filter(t => me.is_owner || (assigner && t.created_by === me.user_id));
     db.tasks = db.tasks.filter(t => !out.includes(t));

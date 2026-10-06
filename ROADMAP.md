@@ -46,4 +46,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 - Attendance categories: Present, Home, Thottam, Half day (½), and under one
   Leave button: Absent, Leave applied, Week off. Days worked = Present + Home +
   Thottam + ½ × Half day.
+- Notifications: a bell and a bar at the top of every page. Database triggers write them
+  (`notifications` table); pages check every minute and when reopened. Tasks: managers hear about
+  every finished task; the owner hears when a person's last open task is done.
 - Staff are added by the owner in People & settings (no staff are pre-loaded).
