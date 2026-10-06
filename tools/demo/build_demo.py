@@ -41,7 +41,7 @@ open(js, 'w').write(s)
 
 open(os.path.join(OUT, 'demo.html'), 'w').write('''<title>Natraj Management System Demo</title>
 <style>
-:root{--bg:#3B2420}
+:root{--bg:#F5F5F7}
 html,body{height:100%}
 body{margin:0;background:var(--bg)}
 iframe{display:block;border:0;width:100%;height:100%;background:#fff}
