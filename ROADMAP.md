@@ -13,7 +13,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 - **Supabase project:** `natraj-tools`, ref `uottxgpjgakinqprexsp`. Database changes are in
   `tools/supabase/migrations/`, the sign-in server code in `tools/supabase/functions/people/`.
 - **Adding an app:** add its tables and access rules (use `can_use('<app>')`), add it to
-  `APPS` in `tools/shared/natraj.js` and in the `people` function, add its tables to
+  `APPS` (and an icon to `ICONS`) in `tools/shared/natraj.js` and in the `people` function, add its tables to
   `TABLES` (backup), and give it a section on the dashboard.
 - **Sign-in:** each person uses their name and PIN. The owner switches on which
   apps each person can use. Only the owner sees the dashboard.

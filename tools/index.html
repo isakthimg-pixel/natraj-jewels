@@ -54,8 +54,8 @@
 const {esc, APPS} = NJ;
 const box = document.getElementById('home');
 
-function tile(href, name, desc, cls){
-  return '<a class="tile' + (cls ? ' ' + cls : '') + '" href="' + href + '"><span class="eyebrow">' + (cls === 'owner' ? 'Owner' : 'App') + '</span><h3>' + esc(name) + '</h3><p>' + esc(desc) + '</p><span class="go">Open ›</span></a>';
+function tile(href, name, desc, cls, ic){
+  return '<a class="tile' + (cls ? ' ' + cls : '') + '" href="' + href + '"><span class="tile-top"><span class="tile-ic">' + NJ.icon(ic) + '</span><span class="eyebrow">' + (cls === 'owner' ? 'Owner' : 'App') + '</span></span><h3>' + esc(name) + '</h3><p>' + esc(desc) + '</p><span class="go">Open ›</span></a>';
 }
 
 async function render(me){
@@ -68,7 +68,7 @@ async function render(me){
       '<div class="form panel"><h3>' + (setup ? 'Set up the owner' : 'Sign in') + '</h3>' +
         '<p>' + (setup ? 'Choose the owner’s name and a 6-digit PIN. You will get a recovery code to write down.' : 'Choose your name and enter your 6-digit PIN.') + '</p>' +
         '<div class="bar"><button class="btn btn-maroon" id="go">' + (setup ? 'Set up the owner' : 'Sign in') + '</button></div></div>' +
-      tile('attendance/#leave', 'Apply for leave', 'No PIN needed. Send a leave request for approval.') +
+      tile('attendance/#leave', 'Apply for leave', 'No PIN needed. Send a leave request for approval.', '', 'leave') +
     '</div>';
     document.getElementById('go').onclick = () => setup ? NJ.setupFlow() : NJ.signInFlow();
     return;
@@ -78,12 +78,12 @@ async function render(me){
   const apps = Object.entries(APPS).filter(([k, a]) => NJ.canUse(k) || a.everyone);
   let h = '';
   if(me.is_owner){
-    h += tile('dashboard/', 'Dashboard', 'Today at a glance: attendance, leave waiting and this month’s totals.', 'owner');
-    h += tile('people/', 'People & settings', 'Who can sign in, which apps they use, the staff list and shop settings.', 'owner');
+    h += tile('dashboard/', 'Dashboard', 'Today at a glance: attendance, leave waiting and this month’s totals.', 'owner', 'dashboard');
+    h += tile('people/', 'People & settings', 'Who can sign in, which apps they use, the staff list and shop settings.', 'owner', 'people');
   }
-  h += apps.map(([k, a]) => tile(a.path, a.name, a.desc)).join('');
+  h += apps.map(([k, a]) => tile(a.path, a.name, a.desc, '', k)).join('');
   if(!apps.length && !me.is_owner) h += '<div class="form panel"><h3>No apps yet</h3><p>Ask the owner to give you access to the apps you need.</p></div>';
-  h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.');
+  h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.', '', 'leave');
   box.className = '';
   box.innerHTML = '<p class="notice" id="due" hidden></p><p class="notice" id="taskDue" hidden></p><div class="tiles">' + h + '</div>';
   rateReminder(me).catch(() => {});

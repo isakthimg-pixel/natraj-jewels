@@ -17,6 +17,18 @@ const APPS = {
   expenses: {name: 'Expenses', path: 'expenses/', desc: 'Money paid out of the shop: enter it as it happens, see the month by category.'}
 };
 
+/* Line icons for the app tiles (24×24, drawn with the current text colour). New apps add one here. */
+const ICONS = {
+  dashboard: '<rect x="3.5" y="3.5" width="7" height="9" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="15.5" width="7" height="5" rx="1.5"/>',
+  people: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6"/><path d="M18 14.8c2 .7 3.2 2.4 3.5 5.2"/>',
+  attendance: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="m8.8 14.6 2.2 2.2 4.4-4.4"/>',
+  rates: '<path d="M2.5 20.5h9l-1.6-5H4.1z"/><path d="M12.5 20.5h9l-1.6-5h-5.8z"/><path d="M7.5 14.5h9l-1.6-5H9.1z"/><path d="M12 3v2.4M8 4.4l1.2 1.6M16 4.4l-1.2 1.6"/>',
+  todo: '<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 3h6v3H9z"/><path d="m8.5 11.2 1.5 1.5 2.6-2.6M8.5 16.4l1.5 1.5 2.6-2.6M14.6 11.5H16M14.6 16.7H16"/>',
+  expenses: '<path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z"/><path d="M9.5 7.5h5M9.5 10h5M12.7 7.5c1.6 0 1.6 5-1.6 5l3.4 3.5"/>',
+  leave: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M9.5 15h5"/>'
+};
+const icon = k => ICONS[k] ? '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>' : '';
+
 const ROOT = (document.currentScript && document.currentScript.src || '').replace(/shared\/natraj\.js.*$/, '');
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {persistSession: true, autoRefreshToken: true, storageKey: 'natraj-tools-auth'}
@@ -397,5 +409,5 @@ async function exportAll(){
 }
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
-  pad, iso, parse, todayIso, canUse, APPS, ROOT, PIN_RE, loadNotes, showRecoveryCode, get me(){ return me; }};
+  pad, iso, parse, todayIso, canUse, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
 })();

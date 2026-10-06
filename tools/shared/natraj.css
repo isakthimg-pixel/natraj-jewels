@@ -252,6 +252,12 @@ dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
 .tile:hover{border-color:var(--gold);box-shadow:0 10px 24px rgba(42,30,27,.08)}
 .tile:active{transform:scale(.99)}
 .tile h3{font-size:1.45rem;color:var(--maroon)}
+.tile-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
+.tile-ic{display:grid;place-items:center;width:50px;height:50px;border-radius:50%;background:color-mix(in srgb,var(--maroon) 9%,var(--card));color:var(--maroon);transition:background .2s,color .2s}
+.tile-ic svg{width:27px;height:27px}
+.tile:hover .tile-ic{background:var(--maroon);color:#FFF7EE}
+.tile.owner .tile-ic{background:color-mix(in srgb,var(--gold) 16%,var(--card));color:var(--gold)}
+.tile.owner:hover .tile-ic{background:var(--gold);color:#FFF7EE}
 .tile p{margin:0;color:var(--muted);font-size:.92rem}
 .tile .go{margin-top:6px;font:600 .8rem/1 var(--body);color:var(--gold)}
 .tile.owner{background:color-mix(in srgb,var(--gold-soft) 22%,var(--card))}
