@@ -13,6 +13,9 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
   apps each person can use. Only the owner sees the dashboard.
 - **Shared lists:** `staff` (attendance, to-do, report card, leave) and
   `customers` (CRM, chit scheme, silver sales, stock orders).
+- **Photos (design library):** Supabase Storage; photos are shrunk on the
+  phone before upload (about 200 KB each), so the free 1 GB holds roughly
+  5,000 designs.
 - **Backups:** the free plan has no daily backups, so the dashboard gets an
   owner-only "Export everything" button.
 
@@ -26,10 +29,11 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 | 4 | Expense tracker | — | spend this month by category |
 | 5 | Banking entry log | — | deposits and withdrawals, balance per account |
 | 6 | CRM (customers, follow-ups) | customers | follow-ups due, birthdays and anniversaries |
-| 7 | Stock to be purchased | customers (customer orders), rates | items needed, ordered, received |
-| 8 | Chit scheme entries | customers | collected this month, dues, schemes ending soon |
-| 9 | Silver sales & purchase | customers, rates | grams sold and bought, value |
-| 10 | Staff report card | staff, attendance, to-do | score per person over time |
+| 7 | Design library, gold and silver (photos, design code, type, weight, purity, supplier or karigar, tags; search, filter, share on WhatsApp) | stock, customers (designs a customer liked) | designs added this month, most requested |
+| 8 | Stock to be purchased | customers (customer orders), designs, rates | items needed, ordered, received |
+| 9 | Chit scheme entries | customers | collected this month, dues, schemes ending soon |
+| 10 | Silver sales & purchase | customers, rates | grams sold and bought, value |
+| 11 | Staff report card | staff, attendance, to-do | score per person over time |
 
 ## Notes
 
