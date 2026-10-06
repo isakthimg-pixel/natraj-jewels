@@ -98,6 +98,10 @@
       <div id="bankBox"><small>Loading…</small></div>
     </div>
     <div class="card wide">
+      <div class="head"><h3>Customers</h3><a href="../crm/#follow">Follow-ups ›</a></div>
+      <div id="crmBox"><small>Loading…</small></div>
+    </div>
+    <div class="card wide">
       <div class="head"><h3>Open tasks</h3><a href="../todo/#all">All tasks ›</a></div>
       <div class="list" id="taskBox"><small>Loading…</small></div>
     </div>
@@ -109,7 +113,7 @@
     <div class="card wide">
       <div class="head"><h3>Coming next</h3></div>
       <p style="margin:0;color:var(--muted)">Each new app adds its figures here as it is built.</p>
-      <div class="soon"><span class="tag">Customers</span><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
+      <div class="soon"><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
     </div>
     <div class="card wide">
       <div class="head"><h3>Backup</h3></div>
@@ -145,6 +149,7 @@ async function load(){
   loadRates().catch(e => { $('rateBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   loadExpenses().catch(e => { $('expBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   loadBank().catch(e => { $('bankBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
+  loadCrm().catch(e => { $('crmBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   loadTasks().catch(e => { $('taskBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   const [s, a, l] = await Promise.all([
     sb.from('staff').select('id,name,active,joined').order('name'),
@@ -246,6 +251,33 @@ async function loadBank(){
       '<div><span>In this month</span><b style="color:var(--p)">' + inr(sum('in')) + '</b></div>' +
       '<div><span>Out this month</span><b style="color:var(--a)">' + inr(sum('out')) + '</b></div></div>' +
     '<div class="list">' + accs.map(x => '<div><span>' + esc(x.name + (x.last4 ? ' ··' + x.last4 : '')) + '</span><b style="font-variant-numeric:tabular-nums;' + (of(x.id) < 0 ? 'color:var(--a)' : '') + '">' + inr(of(x.id)) + '</b></div>').join('') + '</div>';
+}
+
+/* customers: follow-ups due, new this month, birthdays and anniversaries in the next 7 days */
+async function loadCrm(){
+  const today = todayIso(), first = today.slice(0, 8) + '01';
+  const [c, f] = await Promise.all([
+    sb.from('customers').select('id,name,birthday,anniversary,created_at'),
+    sb.from('customer_activity').select('due,customer_id').eq('kind', 'followup').eq('status', 'open').lte('due', today)
+  ]);
+  const cs = must(c) || [], fs = must(f) || [];
+  const t = parse(today), soon = [];
+  cs.forEach(x => [['birthday', 'birthday'], ['anniversary', 'anniversary']].forEach(([k, w]) => {
+    if(!x[k]) return;
+    let n = new Date(t.getFullYear(), Number(x[k].slice(5, 7)) - 1, Number(x[k].slice(8, 10)));
+    if(n < t) n.setFullYear(n.getFullYear() + 1);
+    const d = Math.round((n - t) / 864e5);
+    if(d <= 7) soon.push({name: x.name, w, d});
+  }));
+  soon.sort((a, b) => a.d - b.d);
+  const late = fs.filter(x => x.due < today).length, td = fs.length - late;
+  const fresh = cs.filter(x => x.created_at.slice(0, 10) >= first).length;
+  $('crmBox').innerHTML = '<div class="rates" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">' +
+      '<div><span>Follow-ups due</span><b' + (late ? ' style="color:var(--a)"' : '') + '>' + fs.length + '</b><em>' + (late ? late + ' overdue · ' : '') + td + ' today</em></div>' +
+      '<div><span>Customers</span><b>' + cs.length + '</b><em>' + fresh + ' new this month</em></div>' +
+      '<div><span>Occasions this week</span><b>' + soon.length + '</b></div></div>' +
+    (soon.length ? '<div class="list">' + soon.slice(0, 6).map(x => '<div><span>' + esc(x.name) + '</span><small>' + (x.d === 0 ? 'today' : x.d === 1 ? 'tomorrow' : 'in ' + x.d + ' days') + ' · ' + x.w + '</small></div>').join('') + '</div>'
+      : '<small>No birthdays or anniversaries in the next 7 days. <a href="../crm/#occ">See the next 30 days</a>.</small>');
 }
 
 /* open tasks per person: how many, how many overdue, the next one due */

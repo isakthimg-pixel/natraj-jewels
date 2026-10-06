@@ -23,4 +23,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `011_expense_periods.sql` — the days an expense covers (for the daily running cost), and `add_expense_category`. Applied.
 - `012_notifications.sql` — notifications (bell and bar at the top of every page); a task ticked done notifies managers and the person who gave it, and the owner when someone's last open task is done. Applied.
 - `013_banking.sql` — bank accounts, bank entries (transfers share a `transfer_id`), `bank_balances(date)`. Applied.
+- `014_crm.sql` — customers (shared list for later apps), customer notes and follow-ups, `crm_people()`. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

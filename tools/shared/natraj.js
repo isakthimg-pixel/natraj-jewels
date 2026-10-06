@@ -15,7 +15,8 @@ const APPS = {
   rates: {name: 'Gold & silver rate', path: 'rates/', desc: 'Today’s rate, WhatsApp message and history.', everyone: true, access: 'Updates the daily rate', short: 'Daily rate'},
   todo: {name: 'Tasks', path: 'todo/', desc: 'Your to-do list: tasks given to you, and tasks you give others.', everyone: true, access: 'Assigns tasks', short: 'Assigns tasks'},
   expenses: {name: 'Expenses', path: 'expenses/', desc: 'Money paid out of the shop: enter it as it happens, see the month by category.'},
-  banking: {name: 'Banking', path: 'banking/', desc: 'Deposits, withdrawals and transfers for each bank account, with statements and balances.'}
+  banking: {name: 'Banking', path: 'banking/', desc: 'Deposits, withdrawals and transfers for each bank account, with statements and balances.'},
+  crm: {name: 'Customers', path: 'crm/', desc: 'Customer details, follow-ups to call back, and birthdays and anniversaries coming up.'}
 };
 
 /* Line icons for the app tiles (24×24, drawn with the current text colour). New apps add one here. */
@@ -27,6 +28,7 @@ const ICONS = {
   todo: '<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 3h6v3H9z"/><path d="m8.5 11.2 1.5 1.5 2.6-2.6M8.5 16.4l1.5 1.5 2.6-2.6M14.6 11.5H16M14.6 16.7H16"/>',
   expenses: '<path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z"/><path d="M9.5 7.5h5M9.5 10h5M12.7 7.5c1.6 0 1.6 5-1.6 5l3.4 3.5"/>',
   banking: '<path d="M3 9.5 12 4l9 5.5"/><path d="M3.5 20.5h17M5.5 18v-6.5M10 18v-6.5M14 18v-6.5M18.5 18v-6.5M4 9.5h16"/>',
+  crm: '<rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10.5" r="2.5"/><path d="M5.5 16.5c.5-1.9 1.9-3 3.5-3s3 1.1 3.5 3M14.5 9.5h4M14.5 13h4"/>',
   leave: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M9.5 15h5"/>'
 };
 const icon = k => ICONS[k] ? '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>' : '';
@@ -410,7 +412,7 @@ function rateStatus(settings, last, updaters){
 }
 
 /* Owner backup: every table, as one JSON file. Add new apps' tables here. */
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
   for(const t of TABLES) out.tables[t] = must(await sb.from(t).select('*'));

@@ -85,9 +85,10 @@ async function render(me){
   if(!apps.length && !me.is_owner) h += '<div class="form panel"><h3>No apps yet</h3><p>Ask the owner to give you access to the apps you need.</p></div>';
   h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.', '', 'leave');
   box.className = '';
-  box.innerHTML = '<p class="notice" id="due" hidden></p><p class="notice" id="taskDue" hidden></p><div class="tiles">' + h + '</div>';
+  box.innerHTML = '<p class="notice" id="due" hidden></p><p class="notice" id="taskDue" hidden></p><p class="notice" id="fuDue" hidden></p><div class="tiles">' + h + '</div>';
   rateReminder(me).catch(() => {});
   taskReminder(me).catch(() => {});
+  followReminder(me).catch(() => {});
 }
 
 /* The person who updates the gold & silver rate sees a reminder until today's rate is in. */
@@ -119,6 +120,20 @@ async function taskReminder(me){
   box.innerHTML = 'You have ' + data.length + ' open task' + (data.length > 1 ? 's' : '') +
     (late ? ', ' + late + ' overdue' : '') + (td ? ', ' + td + ' due today' : '') + '.' +
     ' <a href="' + NJ.APPS.todo.path + '" style="color:inherit;font-weight:600">Open my tasks ›</a>';
+}
+
+/* People who use Customers see the follow-ups due for them (theirs, or ones they added for anyone). */
+async function followReminder(me){
+  if(!NJ.canUse('crm')) return;
+  const {data} = await NJ.sb.from('customer_activity').select('due,assigned_to,created_by').eq('kind', 'followup').eq('status', 'open').lte('due', NJ.todayIso());
+  const mine = (data || []).filter(f => f.assigned_to === me.user_id || (!f.assigned_to && f.created_by === me.user_id));
+  const box = document.getElementById('fuDue');
+  if(!box || !mine.length) return;
+  const late = mine.filter(f => f.due < NJ.todayIso()).length;
+  box.hidden = false;
+  if(late) box.style.cssText = 'border-color:var(--a);background:var(--a-bg);color:var(--a);font-weight:600';
+  box.innerHTML = mine.length + ' customer follow-up' + (mine.length > 1 ? 's' : '') + ' due' + (late ? ', ' + late + ' overdue' : ' today') + '.' +
+    ' <a href="' + NJ.APPS.crm.path + '#follow" style="color:inherit;font-weight:600">Open follow-ups ›</a>';
 }
 
 NJ.start({home: true, onReady: render});

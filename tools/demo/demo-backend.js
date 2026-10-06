@@ -4,12 +4,13 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v11';
-const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking'];
+const KEY = 'natraj-demo-db-v12';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
 const dow = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).getDay(); };
+const parse0 = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36));
 const now = () => new Date().toISOString();
 
@@ -17,10 +18,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -106,6 +107,28 @@ function seed(){
     if(dd === 20){ const t = uid(); be(hdfc, d, 'out', 200000, 'Transfer', sbi.name, '', owner, t); be(sbi, d, 'in', 200000, 'Transfer', hdfc.name, '', owner, t); }
     if(dd === 28) be(sbi, d, 'out', 590, 'Bank charges', 'SBI', '', owner);
   }
+  // customers: a dozen sample people, some birthdays and anniversaries coming up, notes and follow-ups
+  const md = (n, y) => { const d = parse0(addDays(today, n)); return y + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const cust = (name, phone, area, tags, source, extra) => { const c = Object.assign({id: uid(), name, phone, alt_phone: '', area, address: '', birthday: null, anniversary: null, tags, source, notes: '',
+    created_by: manager.user_id, created_by_name: manager.name, created_at: addDays(today, -Math.floor(rnd() * 50)) + 'T11:00:00Z', updated_by_name: '', updated_at: null}, extra || {}); db.customers.push(c); return c; };
+  const C = [
+    cust('Sample Customer Lakshmi', '98430 12345', 'Avinashi Road', ['Regular', 'Gold'], 'Old customer', {birthday: md(0, 1979), notes: 'Prefers antique finish. Ring size 14.'}),
+    cust('Sample Customer Karthik', '97890 22334', 'Kumaran Road', ['Bridal'], 'Wedding enquiry', {anniversary: md(3, 2015)}),
+    cust('Sample Customer Meena', '99440 55667', 'Palladam', ['Chit member', 'Silver'], 'Referral', {birthday: md(6, 1988)}),
+    cust('Sample Customer Ravi', '94430 77889', 'Dharapuram Road', ['VIP', 'Diamond'], 'Walk-in', {anniversary: md(12, 2002)}),
+    cust('Sample Customer Priya', '90030 11223', 'Kangeyam', ['Bridal', 'Gold'], 'Instagram / Facebook', {birthday: md(21, 1996)}),
+    cust('Sample Customer Selvam', '98940 99887', 'Uthukuli', ['Old gold exchange'], 'Walk-in'),
+    cust('Sample Customer Divya', '95660 44556', 'Perumanallur', ['Regular'], 'WhatsApp', {birthday: md(-3, 1990)}),
+    cust('Sample Customer Anbu', '', 'Tiruppur town', ['Wholesale'], 'Referral')
+  ];
+  const act = (c, kind, body, due, status, by, extra) => db.customer_activity.push(Object.assign({id: uid(), customer_id: c.id, kind, body, due, status, outcome: '', assigned_to: by.user_id, assigned_name: by.name,
+    done_at: status === 'done' ? addDays(today, -2) + 'T15:00:00Z' : null, done_by_name: status === 'done' ? by.name : '', created_by: by.user_id, created_by_name: by.name, created_at: addDays(today, -5) + 'T10:30:00Z'}, extra || {}));
+  act(C[1], 'note', 'Looking at the temple bridal set, budget about ₹6 lakh. Wedding in February.', null, 'done', manager, {assigned_to: null, assigned_name: ''});
+  act(C[1], 'followup', 'Call with the bridal set quote', addDays(today, -1), 'open', manager);
+  act(C[0], 'followup', 'Tell her the new antique bangles have arrived', today, 'open', manager);
+  act(C[3], 'followup', 'Diamond earrings: confirm the size and send photos', addDays(today, 2), 'open', owner);
+  act(C[4], 'followup', 'Bridal trial visit with family', addDays(today, 9), 'open', manager);
+  act(C[5], 'followup', 'Old gold exchange rate check', addDays(today, -6), 'done', manager, {outcome: 'Came in, exchanged 18 g.'});
   const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
   note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
   note(owner, 'tasks_all_done', 'Sample Staff 3 finished all their tasks', '3 done today. Last one: Arrange the silver anklets tray', 45);
@@ -220,6 +243,7 @@ function rpc(name, a, me){
       if(!l.some(c => c.toLowerCase() === v.toLowerCase())) l.push(v);
       return {status: 200, body: l};
     }
+    case 'crm_people': return {status: 200, body: canUse(me, 'crm') ? db.profiles.filter(p => p.is_owner || p.apps.includes('crm')).map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'bank_balances': return {status: 200, body: bankBalances(a.p_until, me)};
     case 'assignable_people': return {status: 200, body: canUse(me, 'todo') ? db.profiles.map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'leave_staff': return {status: 200, body: db.staff.filter(s => s.active).map(s => ({id: s.id, name: s.name})).sort((x, y) => x.name.localeCompare(y.name))};
@@ -269,7 +293,7 @@ function rest(method, table, params, body, headers, me){
     rates: {read: true, write: method === 'POST' ? canUse(me, 'rates') : me.is_owner},
     expenses: {read: canUse(me, 'expenses'), write: canUse(me, 'expenses')},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
-    notifications: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
+    notifications: {read: true, write: true}, customers: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
@@ -279,6 +303,7 @@ function rest(method, table, params, body, headers, me){
   const single = /vnd\.pgrst\.object/.test(headers.get('accept') || '');
   const wantRows = /return=representation/.test(headers.get('prefer') || '');
   if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
+  if(table === 'customers' || table === 'customer_activity') return crmRest(table, method, params, body, single, wantRows, me);
   if(table === 'bank_accounts') return bankAccountsRest(method, params, body, single, wantRows, me);
   if(table === 'bank_entries') return bankEntriesRest(method, params, body, single, wantRows, me);
   if(table === 'notifications') return notesRest(method, params, body, single, wantRows, me);
@@ -422,6 +447,41 @@ function bankBalances(until, me){
   db.bank_entries.filter(r => (me.is_owner || (canUse(me, 'banking') && r.created_by === me.user_id)) && r.day <= until)
     .forEach(r => by[r.account_id] = (by[r.account_id] || 0) + (r.direction === 'in' ? 1 : -1) * Number(r.amount));
   return Object.entries(by).map(([account_id, balance]) => ({account_id, balance}));
+}
+
+
+/* customers and their activity, same rules as migration 014 */
+function crmRest(table, method, params, body, single, wantRows, me){
+  const may = canUse(me, 'crm'), nowIso = new Date().toISOString();
+  const denied = {status: 403, body: {code: '42501', message: 'permission denied'}};
+  if(!may) return method === 'GET' ? {status: 200, body: single ? null : []} : denied;
+  const nameOf = id => (db.profiles.find(p => p.user_id === id) || {}).name || '';
+  const fix = (r, old) => {
+    if(table !== 'customer_activity') return r;
+    r.assigned_name = nameOf(r.assigned_to);
+    if(r.kind === 'note'){ r.status = 'done'; r.due = null; }
+    else if(r.status === 'done' && (!old || old.status !== 'done')){ r.done_at = nowIso; r.done_by_name = me.name; }
+    else if(r.status === 'open'){ r.done_at = null; r.done_by_name = ''; r.outcome = ''; }
+    return r;
+  };
+  let out = db[table].filter(r => matches(r, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'POST'){
+    const base = table === 'customers'
+      ? {phone: '', alt_phone: '', area: '', address: '', birthday: null, anniversary: null, tags: [], source: '', notes: '', updated_by_name: '', updated_at: null}
+      : {due: null, status: 'open', outcome: '', assigned_to: null, assigned_name: '', done_at: null, done_by_name: ''};
+    out = (Array.isArray(body) ? body : [body]).map(b => fix(Object.assign({id: uid()}, base, b, {created_by: me.user_id, created_by_name: me.name, created_at: nowIso})));
+    db[table].push(...out);
+  } else if(method === 'PATCH'){
+    out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body); if(table === 'customers'){ r.updated_by_name = me.name; r.updated_at = nowIso; } fix(r, old); });
+  } else if(method === 'DELETE'){
+    out = out.filter(r => me.is_owner || (table === 'customer_activity' && r.created_by === me.user_id));
+    db[table] = db[table].filter(r => !out.includes(r));
+    if(table === 'customers') db.customer_activity = db.customer_activity.filter(a => !out.some(c => c.id === a.customer_id));
+  }
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return method === 'GET' && /maybe/.test('') ? {status: 200, body: null} : {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
 }
 
 /* tasks: same rules as the stamp_task trigger and the row policies */

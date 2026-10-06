@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Customers · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.no-access main{display:none!important}
+.no-access-msg{display:none}
+.no-access .no-access-msg{display:block}
+
+.tally4{grid-template-columns:repeat(4,1fr)}
+.tally .od b{color:var(--a)} .tally .td b{color:var(--h)}
+@media (max-width:640px){.tally4{grid-template-columns:repeat(2,1fr)}.tally4 div:nth-child(3){padding-left:0;border-left:0}.tally4 div:nth-child(n+3){padding-top:14px}}
+
+.search{flex:1 1 260px;max-width:460px;height:44px;padding:0 14px}
+.crow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:14px 18px;align-items:center;cursor:pointer}
+.crow:hover{background:color-mix(in srgb,var(--gold) 5%,var(--card))}
+.crow .nm{font:600 1.08rem/1.3 var(--heading);color:var(--ink)}
+.crow .sub{font-size:.85rem;color:var(--muted);margin-top:2px}
+.crow .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.crow .tags:empty{display:none}
+.ph{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
+.btn-wa:hover{background:#0B6358;border-color:#0B6358}
+.tag.late{border-color:var(--a);color:var(--a);background:var(--a-bg)}
+.tag.today{border-color:var(--h);color:var(--h);background:var(--h-bg)}
+.tag.soon{border-color:var(--hm);color:var(--hm);background:var(--hm-bg)}
+.more{padding:14px 18px;color:var(--muted);font-size:.88rem}
+
+/* customer page */
+.back{display:inline-flex;align-items:center;gap:6px}
+.info{display:grid;gap:0}
+.info div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:.94rem}
+.info div:first-child{border-top:0}
+.info dt{color:var(--muted);font-size:.82rem;font-weight:600;letter-spacing:.02em;padding-top:2px}
+.info dd{margin:0;overflow-wrap:anywhere;white-space:pre-line}
+.arow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;padding:14px 18px;align-items:start}
+.arow .ttl{font-weight:600;color:var(--ink)}
+.arow .sub{font-size:.84rem;color:var(--muted);margin-top:2px}
+.arow .out{font-size:.88rem;color:var(--p);margin-top:4px}
+.arow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;margin-top:1px;background:var(--paper);color:var(--muted);border:1px solid var(--line)}
+.tick{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);background:var(--card);cursor:pointer;display:grid;place-items:center;color:transparent;font-weight:700;margin-top:1px;transition:background .2s,border-color .2s}
+.tick:hover{border-color:var(--p);color:var(--p)}
+.tick[aria-pressed="true"]{background:var(--p);border-color:var(--p);color:#fff}
+.done .ttl{color:var(--muted)}
+@media (max-width:640px){.arow{grid-template-columns:auto minmax(0,1fr)}.arow .acts{grid-column:2;justify-content:flex-start}}
+.quick{display:grid;gap:10px}
+.quick textarea{min-height:70px}
+.axisnote{font-size:.78rem;color:var(--muted);margin:0}
+.cust-link{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.cust-link:hover{text-decoration:underline;text-underline-offset:3px}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <h1>Customers</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="list" aria-selected="true">Customers</button>
+      <button role="tab" data-tab="follow" aria-selected="false">Follow-ups<span class="count" id="fuCount" hidden></span></button>
+      <button role="tab" data-tab="occ" aria-selected="false">Birthdays &amp; anniversaries</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to see customers.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+<div class="wrap content no-access-msg"><div class="form panel"><h3>No access</h3><p>Ask the owner to switch on Customers for you in People &amp; settings.</p></div></div>
+
+<main>
+  <!-- CUSTOMER LIST -->
+  <section id="tab-list">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Customers</span><h2 id="lTitle">All customers</h2></div>
+      <div class="bar">
+        <input class="input search" id="q" type="search" placeholder="Search name, phone or area" aria-label="Search customers" autocomplete="off">
+        <button class="btn btn-maroon" id="addCust">Add customer</button>
+      </div>
+      <div class="bubbles" id="tagFilter" role="group" aria-label="Filter by tag"></div>
+    </div></div>
+    <div class="wrap content">
+      <div class="ledger" id="custList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- ONE CUSTOMER -->
+  <section id="tab-cust" hidden>
+    <div class="band"><div class="wrap">
+      <div class="bar"><button class="btn back" id="backBtn">‹ All customers</button></div>
+      <div class="heading"><span class="eyebrow" id="cEyebrow">Customer</span><h2 id="cName"></h2></div>
+      <div class="bar" id="cActions"></div>
+    </div></div>
+    <div class="wrap content grid2">
+      <div class="form panel"><h3>Details</h3><dl class="info" id="cInfo"></dl>
+        <div class="bar"><button class="btn" id="editCust">Edit details</button><button class="btn btn-danger owner-only" id="delCust">Delete customer</button></div></div>
+      <div>
+        <div class="form quick" style="margin-bottom:16px">
+          <h3 style="font-size:1.3rem">Add to the history</h3>
+          <label>Note<textarea class="input" id="noteText" maxlength="500" placeholder="e.g. Liked the antique temple necklace, budget about ₹2 lakh"></textarea></label>
+          <p class="err" id="noteErr" role="alert"></p>
+          <div class="bar"><button class="btn btn-maroon" id="addNote">Save note</button><button class="btn" id="addFollow">Add follow-up</button></div>
+        </div>
+        <div class="ledger" id="cActivity"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOLLOW-UPS -->
+  <section id="tab-follow" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Follow-ups</span><h2>Who to call back</h2></div>
+      <div class="bubbles" id="fuWho" role="group" aria-label="Whose follow-ups">
+        <button type="button" class="bubble" data-who="all" aria-pressed="true">Everyone’s</button>
+        <button type="button" class="bubble" data-who="mine" aria-pressed="false">Mine</button>
+      </div>
+      <div class="tally tally4">
+        <div class="od"><b id="nLate">–</b><span>Overdue</span></div>
+        <div class="td"><b id="nToday">–</b><span>Due today</span></div>
+        <div><b id="nWeek">–</b><span>Next 7 days</span></div>
+        <div><b id="nLater">–</b><span>Later</span></div>
+      </div>
+    </div></div>
+    <div class="wrap content">
+      <div class="ledger" id="fuList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- OCCASIONS -->
+  <section id="tab-occ" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Next 30 days</span><h2>Birthdays &amp; anniversaries</h2></div>
+      <p class="axisnote" style="font-size:.88rem">Send a greeting on WhatsApp on the day. Customers without a phone number show without the button.</p>
+    </div></div>
+    <div class="wrap content">
+      <div class="ledger" id="occList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Customers · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, dialog, iso, parse, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const TAGS = ['Regular', 'VIP', 'Bridal', 'Gold', 'Silver', 'Diamond', 'Chit member', 'Old gold exchange', 'Wholesale'];
+const SOURCES = ['Walk-in', 'Referral', 'Old customer', 'Instagram / Facebook', 'WhatsApp', 'Wedding enquiry', 'Other'];
+const SHOW = 200;     // rows shown before asking to search
+let customers = [], follows = [], people = [], curTab = 'list', tagF = '', fuWho = 'all', cur = null, activity = [];
+
+const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
+const fmtD = d => parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
+const fmtDM = d => parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'long'});
+const fmtStamp = t => new Date(t).toLocaleString('en-IN', {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'});
+const digits = s => String(s || '').replace(/\D/g, '');
+const cleanPhone = s => String(s || '').trim().replace(/[^\d+ ]/g, '').replace(/\s+/g, ' ');
+// WhatsApp wants the country code; 10-digit numbers are Indian mobiles
+const waNum = p => { const d = digits(p); return d.length === 10 ? '91' + d : d.length === 11 && d[0] === '0' ? '91' + d.slice(1) : d; };
+const waLink = (p, text) => 'https://wa.me/' + waNum(p) + (text ? '?text=' + encodeURIComponent(text) : '');
+const custById = id => customers.find(c => c.id === id);
+// show 10-digit mobiles as 98430 12345
+const fmtPhone = p => { const d = digits(p); return d.length === 10 ? d.slice(0, 5) + ' ' + d.slice(5) : p; };
+function badge(){ const due = follows.filter(x => x.due <= todayIso()).length; $('fuCount').hidden = !due; $('fuCount').textContent = due; }
+function dueTag(d){
+  const t = todayIso();
+  if(d < t) return '<span class="tag late">Overdue · ' + esc(fmtD(d)) + '</span>';
+  if(d === t) return '<span class="tag today">Today</span>';
+  if(d === addDays(t, 1)) return '<span class="tag soon">Tomorrow</span>';
+  return '<span class="tag">' + esc(fmtD(d)) + '</span>';
+}
+// next occurrence of a yearly date (birthday, anniversary) from today, and days until it
+function nextOccur(d){
+  if(!d) return null;
+  const t = parse(todayIso()), m = Number(d.slice(5, 7)) - 1, day = Number(d.slice(8, 10));
+  let n = new Date(t.getFullYear(), m, day);
+  if(n.getMonth() !== m) n = new Date(t.getFullYear(), m + 1, 0);       // 29 Feb in a normal year
+  if(n < t){ n = new Date(t.getFullYear() + 1, m, day); if(n.getMonth() !== m) n = new Date(t.getFullYear() + 1, m + 1, 0); }
+  return {date: iso(n), days: Math.round((n - t) / 864e5)};
+}
+
+/* ---------- tabs and the customer page (#c=<id>) ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.tab === 'list' ? '' : b.dataset.tab; route(); }));
+function show(name){
+  curTab = name; badge();
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name || (name === 'cust' && b.dataset.tab === 'list')));
+  ['list', 'cust', 'follow', 'occ'].forEach(t => $('tab-' + t).hidden = t !== name);
+}
+async function route(){
+  const h = location.hash.slice(1);
+  if(h.startsWith('c=')){ await openCustomer(decodeURIComponent(h.slice(2))); return; }
+  show(['follow', 'occ'].includes(h) ? h : 'list');
+  if(curTab === 'list') renderList();
+  if(curTab === 'follow') renderFollows();
+  if(curTab === 'occ') renderOccasions();
+}
+window.addEventListener('hashchange', () => route().catch(e => toast(e.message)));
+let backTo = 'list';    // the tab a customer page was opened from
+$('backBtn').onclick = () => { location.hash = backTo === 'list' ? '' : backTo; };
+
+/* ---------- loading ---------- */
+async function loadAll(){
+  const [c, f] = await Promise.all([
+    sb.from('customers').select('*').order('name'),
+    sb.from('customer_activity').select('*').eq('kind', 'followup').eq('status', 'open').order('due')
+  ]);
+  customers = must(c) || []; follows = must(f) || [];
+  if(!people.length) people = must(await sb.rpc('crm_people')) || [];
+  badge();
+}
+
+/* ---------- list ---------- */
+function renderList(){
+  const used = TAGS.filter(t => customers.some(c => (c.tags || []).includes(t)));
+  $('tagFilter').innerHTML = used.length ? ['', ...used].map(t => '<button type="button" class="bubble" data-tag="' + esc(t) + '" aria-pressed="' + (tagF === t) + '">' + esc(t || 'All') + '</button>').join('') : '';
+  const q = $('q').value.trim().toLowerCase(), qd = digits(q);
+  const list = customers.filter(c => (!tagF || (c.tags || []).includes(tagF)) && (!q ||
+    c.name.toLowerCase().includes(q) || (c.area || '').toLowerCase().includes(q) || (qd.length >= 3 && (digits(c.phone).includes(qd) || digits(c.alt_phone).includes(qd)))));
+  $('lTitle').textContent = customers.length ? customers.length.toLocaleString('en-IN') + ' customer' + (customers.length === 1 ? '' : 's') : 'All customers';
+  const nextFu = id => follows.filter(f => f.customer_id === id)[0];
+  $('custList').innerHTML = list.length ? list.slice(0, SHOW).map(c => {
+    const f = nextFu(c.id);
+    return '<div class="crow" data-id="' + esc(c.id) + '"><div><div class="nm">' + esc(c.name) + '</div>' +
+      '<div class="sub">' + esc([fmtPhone(c.phone), c.area].filter(Boolean).join(' · ') || 'No phone number') + '</div>' +
+      '<div class="tags">' + (f ? dueTag(f.due) : '') + (c.tags || []).map(t => '<span class="tag">' + esc(t) + '</span>').join('') + '</div></div>' +
+      '<div class="ph">' + (c.phone ? '<a class="btn mini" href="tel:' + esc(digits(c.phone)) + '">Call</a><a class="btn mini btn-wa" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') + '</div></div>';
+  }).join('') + (list.length > SHOW ? '<div class="more">Showing ' + SHOW + ' of ' + list.length + '. Search to find the rest.</div>' : '')
+    : '<div class="empty"><h3>' + (customers.length ? 'No match' : 'No customers yet') + '</h3><p>' + (customers.length ? 'Try part of the name or the last digits of the phone number.' : 'Add your first customer with the button above.') + '</p></div>';
+}
+$('q').addEventListener('input', renderList);
+$('tagFilter').addEventListener('click', e => { const b = e.target.closest('[data-tag]'); if(!b) return; tagF = b.dataset.tag; renderList(); });
+$('custList').addEventListener('click', e => {
+  if(e.target.closest('a')) return;
+  const r = e.target.closest('.crow'); if(r) location.hash = 'c=' + encodeURIComponent(r.dataset.id);
+});
+
+/* ---------- add or edit a customer ---------- */
+async function customerDialog(c){
+  let dupWarned = '';
+  const v = await dialog({
+    title: c ? 'Edit ' + c.name : 'Add customer', ok: c ? 'Save' : 'Add customer',
+    fields: [
+      {id: 'name', label: 'Name', type: 'text', value: c ? c.name : '', maxlength: 80},
+      {id: 'phone', label: 'Mobile number', type: 'tel', value: c ? c.phone : '', maxlength: 20, placeholder: 'e.g. 98765 43210'},
+      {id: 'alt', label: 'Other number (optional)', type: 'tel', value: c ? c.alt_phone : '', maxlength: 20},
+      {id: 'area', label: 'Area or town (optional)', type: 'text', value: c ? c.area : '', maxlength: 60, placeholder: 'e.g. Avinashi Road'},
+      {id: 'address', label: 'Address (optional)', type: 'textarea', value: c ? c.address : '', maxlength: 300},
+      {id: 'birthday', label: 'Birthday (optional)', type: 'date', value: c ? c.birthday : ''},
+      {id: 'anniversary', label: 'Wedding anniversary (optional)', type: 'date', value: c ? c.anniversary : ''},
+      {id: 'source', label: 'How they came to us', type: 'select', value: c ? c.source : '', options: [['', 'Not known'], ...SOURCES.map(s => [s, s]), ...(c && c.source && !SOURCES.includes(c.source) ? [[c.source, c.source]] : [])]},
+      {id: 'tags', label: 'Tags', type: 'chips', value: c ? c.tags : [], options: TAGS.map(t => [t, t])},
+      {id: 'notes', label: 'Notes (optional)', type: 'textarea', value: c ? c.notes : '', maxlength: 1000, placeholder: 'e.g. Ring size 14, prefers antique finish'}
+    ],
+    validate: async v => {
+      if(!v.name) return 'Type the customer’s name.';
+      const ph = cleanPhone(v.phone), alt = cleanPhone(v.alt);
+      for(const p of [ph, alt]) if(p && (digits(p).length < 10 || digits(p).length > 13)) return 'Check the phone number: ' + p + '.';
+      if(ph){
+        const same = customers.find(x => x.id !== (c && c.id) && digits(x.phone) === digits(ph));
+        if(same && dupWarned !== ph){ dupWarned = ph; return 'This number is already saved for ' + same.name + '. Press ' + (c ? 'Save' : 'Add customer') + ' again to save it anyway.'; }
+      }
+      const data = {name: v.name.replace(/\s+/g, ' '), phone: ph, alt_phone: alt, area: v.area, address: v.address, birthday: v.birthday || null, anniversary: v.anniversary || null, source: v.source, tags: v.tags, notes: v.notes};
+      const row = must(c ? await sb.from('customers').update(data).eq('id', c.id).select().single() : await sb.from('customers').insert(data).select().single());
+      if(c) Object.assign(c, row); else { customers.push(row); customers.sort((a, b) => a.name.localeCompare(b.name)); }
+      v.row = row;
+      return '';
+    }
+  });
+  return v && v.row;
+}
+$('addCust').onclick = async () => { const r = await customerDialog(null); if(r){ toast('Customer added'); location.hash = 'c=' + r.id; } };
+
+/* ---------- one customer ---------- */
+async function openCustomer(id){
+  if(curTab !== 'cust') backTo = curTab;
+  $('backBtn').textContent = '‹ ' + ({list: 'All customers', follow: 'Follow-ups', occ: 'Birthdays & anniversaries'}[backTo]);
+  show('cust');
+  cur = custById(id);
+  if(!cur){ cur = must(await sb.from('customers').select('*').eq('id', id).maybeSingle()); if(cur) customers.push(cur); }
+  if(!cur){ $('cName').textContent = 'Customer not found'; $('cInfo').innerHTML = ''; $('cActivity').innerHTML = ''; $('cActions').innerHTML = ''; return; }
+  renderCustomer();
+  activity = must(await sb.from('customer_activity').select('*').eq('customer_id', id).order('created_at', {ascending: false})) || [];
+  renderActivity();
+}
+function renderCustomer(){
+  const c = cur;
+  $('cName').textContent = c.name;
+  $('cEyebrow').textContent = (c.tags || []).join(' · ') || 'Customer';
+  $('cActions').innerHTML = c.phone ? '<a class="btn" href="tel:' + esc(digits(c.phone)) + '">Call ' + esc(fmtPhone(c.phone)) + '</a><a class="btn btn-wa" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '';
+  const occ = (d, w) => { if(!d) return ''; const n = nextOccur(d); return fmtDM(d) + (n.days === 0 ? ' · today!' : n.days <= 30 ? ' · in ' + n.days + ' day' + (n.days === 1 ? '' : 's') : ''); };
+  const rows = [['Mobile', c.phone && fmtPhone(c.phone)], ['Other number', c.alt_phone && fmtPhone(c.alt_phone)], ['Area', c.area], ['Address', c.address], ['Birthday', occ(c.birthday)], ['Anniversary', occ(c.anniversary)],
+    ['Came to us', c.source], ['Notes', c.notes], ['Added', (c.created_by_name ? c.created_by_name + ', ' : '') + fmtStamp(c.created_at)]].filter(r => r[1]);
+  $('cInfo').innerHTML = rows.map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div>').join('');
+}
+function renderActivity(){
+  const open = activity.filter(a => a.kind === 'followup' && a.status === 'open').sort((a, b) => a.due.localeCompare(b.due));
+  const past = activity.filter(a => !(a.kind === 'followup' && a.status === 'open'));
+  const row = a => {
+    const fu = a.kind === 'followup', done = fu && a.status === 'done';
+    const canDel = NJ.me.is_owner || a.created_by === NJ.me.user_id;
+    return '<div class="arow' + (done ? ' done' : '') + '" data-id="' + esc(a.id) + '">' +
+      (fu ? '<button type="button" class="tick" data-tick aria-pressed="' + done + '" aria-label="' + (done ? 'Mark not done' : 'Mark done') + '">✓</button>' : '<span class="dot" aria-hidden="true">✎</span>') +
+      '<div><div class="ttl">' + esc(a.body) + '</div>' +
+      '<div class="sub">' + esc(fu ? (done ? 'Follow-up done by ' + (a.done_by_name || 'someone') + ', ' + fmtStamp(a.done_at) : 'Follow-up' + (a.assigned_name ? ' for ' + a.assigned_name : '') + ' · by ' + (a.created_by_name || 'someone'))
+        : 'Note by ' + (a.created_by_name || 'someone') + ', ' + fmtStamp(a.created_at)) + '</div>' +
+      (fu && !done ? '<div style="margin-top:6px">' + dueTag(a.due) + '</div>' : '') +
+      (a.outcome ? '<div class="out">' + esc(a.outcome) + '</div>' : '') + '</div>' +
+      '<div class="acts">' + (fu && !done ? '<button class="btn mini" data-aact="edit">Change</button>' : '') + (canDel ? '<button class="btn mini btn-danger" data-aact="del">Delete</button>' : '') + '</div></div>';
+  };
+  $('cActivity').innerHTML = (open.length ? '<div class="lhead">Follow-ups to do</div>' + open.map(row).join('') : '') +
+    (past.length ? '<div class="lhead">History</div>' + past.map(row).join('') : '') +
+    (!open.length && !past.length ? '<div class="empty" style="padding:28px 20px">No notes or follow-ups yet.</div>' : '');
+}
+$('editCust').onclick = async () => { if(cur && await customerDialog(cur)){ toast('Saved'); renderCustomer(); } };
+$('delCust').onclick = async () => {
+  if(!cur || !await ask('Delete ' + cur.name + '?', 'Their details, notes and follow-ups are removed for good.', 'Delete', true)) return;
+  try{ must(await sb.from('customers').delete().eq('id', cur.id)); customers = customers.filter(c => c !== cur); follows = follows.filter(f => f.customer_id !== cur.id); toast('Customer deleted'); location.hash = ''; }
+  catch(x){ toast(x.message); }
+};
+$('addNote').onclick = async () => {
+  const t = $('noteText').value.trim(); $('noteErr').textContent = '';
+  if(!t) return $('noteErr').textContent = 'Type the note first.';
+  try{
+    const r = must(await sb.from('customer_activity').insert({customer_id: cur.id, kind: 'note', body: t}).select().single());
+    activity.unshift(r); $('noteText').value = ''; renderActivity(); toast('Note saved');
+  }catch(x){ $('noteErr').textContent = x.message; }
+};
+async function followDialog(c, f, preset){
+  const v = await dialog({
+    title: f ? 'Change follow-up' : 'Follow-up for ' + c.name, ok: f ? 'Save' : 'Add follow-up',
+    fields: [
+      {id: 'body', label: 'What to do', type: 'text', value: f ? f.body : (preset || ''), maxlength: 500, placeholder: 'e.g. Call about the bridal set quote'},
+      {id: 'due', label: 'When', type: 'date', value: f ? f.due : addDays(todayIso(), 1)},
+      {id: 'who', label: 'Who will do it', type: 'select', value: f ? (f.assigned_to || '') : NJ.me.user_id, options: [['', 'Anyone'], ...people.map(p => [p.user_id, p.name])]}
+    ],
+    validate: async v => {
+      if(!v.body) return 'Say what to do.';
+      if(!v.due) return 'Choose the day.';
+      const data = {body: v.body, due: v.due, assigned_to: v.who || null};
+      v.row = must(f ? await sb.from('customer_activity').update(data).eq('id', f.id).select().single()
+        : await sb.from('customer_activity').insert(Object.assign({customer_id: c.id, kind: 'followup'}, data)).select().single());
+      return '';
+    }
+  });
+  return v && v.row;
+}
+$('addFollow').onclick = async () => {
+  const r = await followDialog(cur, null, $('noteText').value.trim());
+  if(r){ activity.unshift(r); follows.push(r); follows.sort((a, b) => a.due.localeCompare(b.due)); $('noteText').value = ''; renderActivity(); badge(); toast('Follow-up added for ' + fmtD(r.due)); }
+};
+/* tick a follow-up done: ask what happened, and optionally set the next one */
+async function completeFollow(f){
+  const c = custById(f.customer_id);
+  const v = await dialog({
+    title: 'Done: ' + f.body, msg: c ? c.name : '', ok: 'Mark done',
+    fields: [
+      {id: 'outcome', label: 'What happened (optional)', type: 'textarea', maxlength: 300, placeholder: 'e.g. Will visit on Sunday with family'},
+      {id: 'next', label: 'Next follow-up (optional)', type: 'date', value: ''}
+    ],
+    validate: async v => {
+      const row = must(await sb.from('customer_activity').update({status: 'done', outcome: v.outcome}).eq('id', f.id).select().single());
+      Object.assign(f, row);
+      if(v.next) v.nextRow = must(await sb.from('customer_activity').insert({customer_id: f.customer_id, kind: 'followup', body: f.body, due: v.next, assigned_to: f.assigned_to}).select().single());
+      return '';
+    }
+  });
+  if(!v) return false;
+  follows = follows.filter(x => x.id !== f.id);
+  if(v.nextRow){ follows.push(v.nextRow); follows.sort((a, b) => a.due.localeCompare(b.due)); if(cur && cur.id === f.customer_id) activity.unshift(v.nextRow); }
+  toast(v.nextRow ? 'Done. Next follow-up on ' + fmtD(v.nextRow.due) : 'Follow-up done');
+  return true;
+}
+$('cActivity').addEventListener('click', async e => {
+  const r = e.target.closest('.arow'); if(!r) return;
+  const a = activity.find(x => x.id === r.dataset.id); if(!a) return;
+  if(e.target.closest('[data-tick]')){
+    if(a.status === 'open'){ if(await completeFollow(a)){ renderActivity(); badge(); } }
+    else {
+      try{ Object.assign(a, must(await sb.from('customer_activity').update({status: 'open'}).eq('id', a.id).select().single())); follows.push(a); follows.sort((x, y) => x.due.localeCompare(y.due)); renderActivity(); toast('Moved back to follow-ups'); }
+      catch(x){ toast(x.message); }
+    }
+    return;
+  }
+  const act = e.target.closest('[data-aact]'); if(!act) return;
+  if(act.dataset.aact === 'edit'){ const row = await followDialog(cur, a); if(row){ Object.assign(a, row); const f = follows.find(x => x.id === a.id); if(f) Object.assign(f, row); renderActivity(); toast('Saved'); } }
+  if(act.dataset.aact === 'del'){
+    if(!await ask('Delete this ' + (a.kind === 'note' ? 'note' : 'follow-up') + '?', a.body, 'Delete', true)) return;
+    try{ must(await sb.from('customer_activity').delete().eq('id', a.id)); activity = activity.filter(x => x !== a); follows = follows.filter(x => x.id !== a.id); renderActivity(); toast('Deleted'); }
+    catch(x){ toast(x.message); }
+  }
+});
+
+/* ---------- follow-ups ---------- */
+function renderFollows(){
+  const t = todayIso(), wk = addDays(t, 7);
+  const list = follows.filter(f => fuWho === 'all' || f.assigned_to === NJ.me.user_id || (!f.assigned_to && f.created_by === NJ.me.user_id));
+  const groups = [['Overdue', list.filter(f => f.due < t)], ['Today', list.filter(f => f.due === t)], ['Next 7 days', list.filter(f => f.due > t && f.due <= wk)], ['Later', list.filter(f => f.due > wk)]];
+  ['nLate', 'nToday', 'nWeek', 'nLater'].forEach((id, i) => $(id).textContent = groups[i][1].length);
+  const row = f => {
+    const c = custById(f.customer_id) || {name: 'Customer'};
+    return '<div class="arow" data-id="' + esc(f.id) + '"><button type="button" class="tick" data-tick aria-pressed="false" aria-label="Mark done">✓</button>' +
+      '<div><button type="button" class="cust-link ttl" data-cust="' + esc(f.customer_id) + '">' + esc(c.name) + '</button>' +
+      '<div class="sub" style="color:var(--ink);font-size:.92rem">' + esc(f.body) + '</div>' +
+      '<div class="sub">' + esc([c.phone && fmtPhone(c.phone), f.assigned_name ? 'for ' + f.assigned_name : 'anyone', 'by ' + (f.created_by_name || 'someone')].filter(Boolean).join(' · ')) + '</div>' +
+      '<div style="margin-top:6px">' + dueTag(f.due) + '</div></div>' +
+      '<div class="acts">' + (c.phone ? '<a class="btn mini" href="tel:' + esc(digits(c.phone)) + '">Call</a><a class="btn mini btn-wa" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') + '</div></div>';
+  };
+  $('fuList').innerHTML = list.length ? groups.filter(g => g[1].length).map(([h, rs]) => '<div class="lhead">' + h + '</div>' + rs.map(row).join('')).join('')
+    : '<div class="empty"><h3>Nothing to follow up</h3><p>Add follow-ups from a customer’s page.</p></div>';
+}
+$('fuWho').addEventListener('click', e => { const b = e.target.closest('[data-who]'); if(!b) return; fuWho = b.dataset.who; $('fuWho').querySelectorAll('[data-who]').forEach(x => x.setAttribute('aria-pressed', x === b)); renderFollows(); });
+$('fuList').addEventListener('click', async e => {
+  const c = e.target.closest('[data-cust]'); if(c){ location.hash = 'c=' + encodeURIComponent(c.dataset.cust); return; }
+  const r = e.target.closest('.arow'); if(!r || !e.target.closest('[data-tick]')) return;
+  const f = follows.find(x => x.id === r.dataset.id); if(f && await completeFollow(f)){ renderFollows(); badge(); }
+});
+
+/* ---------- birthdays and anniversaries ---------- */
+function renderOccasions(){
+  const items = [];
+  customers.forEach(c => [['birthday', 'Birthday'], ['anniversary', 'Wedding anniversary']].forEach(([k, label]) => {
+    const n = nextOccur(c[k]); if(n && n.days <= 30) items.push({c, k, label, n});
+  }));
+  items.sort((a, b) => a.n.days - b.n.days || a.c.name.localeCompare(b.c.name));
+  const when = d => d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : 'In ' + d + ' days';
+  const greet = (it) => 'Dear ' + it.c.name + ', ' + (it.k === 'birthday' ? 'wishing you a very happy birthday!' : 'wishing you both a very happy wedding anniversary!') +
+    ' May the year ahead bring you joy and good health. Warm wishes from all of us at Natraj Jewels, Tiruppur.';
+  $('occList').innerHTML = items.length ? items.map(it =>
+    '<div class="arow"><span class="dot" aria-hidden="true">' + (it.k === 'birthday' ? '🎂' : '💍') + '</span>' +
+    '<div><button type="button" class="cust-link ttl" data-cust="' + esc(it.c.id) + '">' + esc(it.c.name) + '</button>' +
+    '<div class="sub">' + esc(it.label + ' · ' + fmtD(it.n.date)) + '</div><div style="margin-top:6px"><span class="tag' + (it.n.days === 0 ? ' today' : it.n.days <= 7 ? ' soon' : '') + '">' + when(it.n.days) + '</span></div></div>' +
+    '<div class="acts">' + (it.c.phone ? '<a class="btn mini btn-wa" href="' + esc(waLink(it.c.phone, greet(it))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') + '</div></div>').join('')
+    : '<div class="empty"><h3>None in the next 30 days</h3><p>Add birthdays and anniversaries on each customer’s details.</p></div>';
+}
+$('occList').addEventListener('click', e => { const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust); });
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('crm') && !document.querySelector('dialog[open]'))
+    loadAll().then(route).catch(e => toast(e.message));
+});
+
+NJ.start({onReady: async me => {
+  const ok = !!me && NJ.canUse('crm');
+  document.body.classList.toggle('no-access', !!me && !ok);
+  if(!ok) return;
+  people = [];
+  try{ await loadAll(); await route(); }catch(e){ toast(e.message); }
+}});
+})();
+</script>
+</body>
+</html>
