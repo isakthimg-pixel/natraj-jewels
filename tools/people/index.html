@@ -96,6 +96,15 @@
           </select>
         </label>
         <p>Shaded in the attendance register and skipped when leave is approved.</p>
+        <h3 style="margin-top:12px">Daily rate update</h3>
+        <p>One person enters the gold &amp; silver rate every day. Only they and owners can change it. Until it is in, it shows as due on their home page and on your dashboard.</p>
+        <label class="field">Who updates the rate
+          <select class="input" id="rateWho"></select>
+        </label>
+        <label class="field">Due by
+          <input class="input" id="rateDue" type="time">
+        </label>
+        <div class="bar"><button class="btn btn-maroon" type="button" id="rateSave">Save</button></div>
       </div>
       <div class="form panel">
         <h3>Recovery code</h3>
@@ -139,10 +148,14 @@ async function load(){
   const [s, p, st] = await Promise.all([
     sb.from('staff').select('*').order('name'),
     sb.from('profiles').select('*').order('name'),
-    sb.from('settings').select('weekly_off').eq('id', 1).maybeSingle()
+    sb.from('settings').select('*').eq('id', 1).maybeSingle()
   ]);
   staff = must(s) || []; profiles = must(p) || [];
-  $('setOff').value = String((must(st) || {weekly_off: 0}).weekly_off);
+  const set = must(st) || {weekly_off: 0};
+  $('setOff').value = String(set.weekly_off);
+  $('rateWho').innerHTML = '<option value="">No one assigned</option>' + profiles.map(u => '<option value="' + esc(u.user_id) + '">' + esc(u.name) + (u.is_owner ? ' (owner)' : '') + '</option>').join('');
+  $('rateWho').value = set.rate_assignee || '';
+  $('rateDue').value = String(set.rate_due || '10:30').slice(0, 5);
 }
 function render(){
   if(curTab === 'people') renderPeople();
@@ -150,7 +163,7 @@ function render(){
 }
 
 /* ---------- people who can sign in ---------- */
-const appOptions = (sel) => Object.entries(APPS).map(([k, a]) => ({id: 'app_' + k, label: (a.everyone ? 'Can update ' : 'Can use ') + a.name, type: 'checkbox', value: (sel || []).includes(k)}));
+const appOptions = (sel) => Object.entries(APPS).filter(([k, a]) => !a.assigned).map(([k, a]) => ({id: 'app_' + k, label: (a.everyone ? 'Can update ' : 'Can use ') + a.name, type: 'checkbox', value: (sel || []).includes(k)}));
 const staffOptions = () => [['', 'Not linked'], ...staff.filter(s => s.active).map(s => [s.id, s.name])];
 const pickedApps = v => Object.keys(APPS).filter(k => v['app_' + k]);
 
@@ -208,6 +221,7 @@ $('peopleList').addEventListener('click', async e => {
       validate: async v => {
         if(!v.name) return 'Type their name.';
         await people('update', {user_id: u.user_id, name: v.name, staff_id: v.staff || null, is_owner: v.owner, apps: pickedApps(v)});
+        if($('rateWho').value === u.user_id && v.name !== u.name) must(await sb.from('settings').update({rate_assignee_name: v.name}).eq('id', 1));
         return '';
       }
     });
@@ -298,6 +312,13 @@ $('setOff').addEventListener('change', async e => {
   try{ must(await sb.from('settings').update({weekly_off: Number(e.target.value)}).eq('id', 1)); toast('Saved'); }
   catch(x){ toast(x.message); }
 });
+$('rateSave').onclick = async () => {
+  const id = $('rateWho').value, u = profiles.find(x => x.user_id === id);
+  try{
+    must(await sb.from('settings').update({rate_assignee: id || null, rate_assignee_name: u ? u.name : '', rate_due: $('rateDue').value || '10:30'}).eq('id', 1));
+    toast(u ? u.name + ' updates the rate daily by ' + $('rateDue').value : 'No one is assigned to the rate');
+  }catch(x){ toast(x.message); }
+};
 $('newCode').onclick = async () => {
   if(!await ask('Make a new recovery code?', 'The old recovery code will stop working.', 'Make new code')) return;
   try{ const r = await people('new_recovery'); NJ.showRecoveryCode(r.recovery); }catch(x){ toast(x.message); }

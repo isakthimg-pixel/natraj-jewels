@@ -171,18 +171,25 @@ async function load(){
 }
 
 async function loadRates(){
-  const rows = must(await sb.from('rates').select('*').order('set_at', {ascending: false}).limit(2)) || [];
+  const [res, st] = await Promise.all([
+    sb.from('rates').select('*').order('set_at', {ascending: false}).limit(2),
+    sb.from('settings').select('rate_assignee,rate_assignee_name,rate_due').eq('id', 1).maybeSingle()
+  ]);
+  const rows = must(res) || [];
   const [cur, prev] = rows;
-  if(!cur){ $('rateBox').innerHTML = '<small>No rate set yet. <a href="../rates/">Set today’s rate</a>.</small>'; return; }
+  const s = NJ.rateStatus(must(st), cur);
+  const duty = !s.assignee ? ' · <a href="../people/">assign someone to update it daily</a>'
+    : s.done ? ' · ' + esc(s.name) + ' updates it daily by ' + esc(s.dueLabel)
+    : ' · <b style="color:var(--a)">' + (s.late ? 'late: ' : 'due: ') + esc(s.name) + ' updates it by ' + esc(s.dueLabel) + '</b>';
+  if(!cur){ $('rateBox').innerHTML = '<small>No rate set yet' + duty + '. <a href="../rates/">Set today’s rate</a>.</small>'; return; }
   const inr = v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits: 2});
   const kinds = [['gold_22k', 'Gold 22K'], ['gold_24k', 'Gold 24K'], ['gold_18k', 'Gold 18K'], ['silver', 'Silver']];
-  const stale = Date.now() - new Date(cur.set_at) > 20 * 3600e3;
   $('rateBox').innerHTML = kinds.map(([k, l]) => {
     const d = prev && cur[k] != null && prev[k] != null ? Number(cur[k]) - Number(prev[k]) : null;
     return '<div><span>' + l + '</span><b>' + (cur[k] == null ? '–' : esc(inr(cur[k]))) + '</b><em class="' + (d > 0 ? 'up' : d < 0 ? 'down' : '') + '">' +
       (d == null ? '' : d === 0 ? 'No change' : (d > 0 ? '▲ ' : '▼ ') + esc(inr(Math.abs(d)))) + '</em></div>';
   }).join('') + '<p class="stamp">Set by ' + esc(cur.set_by_name || 'someone') + ', ' + esc(new Date(cur.set_at).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'})) +
-    (stale ? ' · <b style="color:var(--a)">not updated today</b>' : '') + '</p>';
+    duty + '</p>';
 }
 
 $('exportAll').onclick = async () => { try{ await NJ.exportAll(); }catch(x){ toast(x.message); } };
