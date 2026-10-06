@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v8';
+const KEY = 'natraj-demo-db-v9';
 const APPS = ['attendance', 'rates', 'todo', 'expenses'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -20,7 +20,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -69,8 +69,14 @@ function seed(){
     task('Clean the hallmark machine', worker, manager, addDays(today, -1), false, '', 'Done before closing')
   );
   // expenses: last month and this month, a fixed pattern
-  const exp = (day, amount, category, mode, paid_to, note, by) => db.expenses.push({id: uid(), day, amount, category, mode, paid_to: paid_to || '', note: note || '',
+  const monthLast = d => { const [y, m] = d.split('-').map(Number); return iso(new Date(y, m, 0)); };
+  const exp = (day, amount, category, mode, paid_to, note, by, from, to) => db.expenses.push({id: uid(), day, amount, category, mode, paid_to: paid_to || '', note: note || '',
+    period_from: from || day, period_to: to || day,
     created_by: by.user_id, created_by_name: by.name, created_at: day + 'T12:00:00Z', updated_by_name: '', updated_at: null});
+  // bills paid just before the sample months, so their costs are spread into them
+  const s0 = addDays(start, -1), s0from = iso(new Date(Number(s0.slice(0, 4)), Number(s0.slice(5, 7)) - 2, 1));
+  exp(addDays(start, -20), 13900, 'Electricity', 'UPI', 'TNEB', '2-month bill', owner, s0from, s0);
+  exp(addDays(start, -40), 24000, 'Insurance', 'Bank transfer', 'United India', 'Shop and stock, 1 year', owner, addDays(start, -40), addDays(start, 324));
   for(let d = start; d <= today; d = addDays(d, 1)){
     if(dow(d) === 0) continue;
     exp(d, 60 + Math.round(rnd() * 8) * 10, 'Tea & snacks', 'Cash', 'Murugan tea stall', '', manager);
@@ -78,9 +84,8 @@ function seed(){
     if(rnd() < 0.12) exp(d, 400 + Math.round(rnd() * 30) * 50, 'Packing & boxes', 'UPI', 'Sri Vinayaga Packaging', '', manager);
     if(rnd() < 0.06) exp(d, 300 + Math.round(rnd() * 10) * 50, 'Repairs & maintenance', 'Cash', '', 'AC service', manager);
     const dd = Number(d.slice(8));
-    if(dd === 1) exp(d, 45000, 'Rent', 'Bank transfer', 'Building owner', '', owner);
-    if(dd === 5) exp(d, 6820, 'Electricity', 'UPI', 'TNEB', '', owner);
-    if(dd === 7) exp(d, 180000, 'Salary & wages', 'Bank transfer', '', 'Monthly salary', owner);
+    if(dd === 1) exp(d, 45000, 'Rent', 'Bank transfer', 'Building owner', '', owner, d, monthLast(d));
+    if(dd === 7) exp(d, 180000, 'Salary & wages', 'Bank transfer', '', 'Monthly salary', owner, iso(new Date(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 2, 1)), monthLast(iso(new Date(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 2, 1))));
     if(dd === 10) exp(d, 1500, 'Hallmarking', 'UPI', 'BIS centre', '', manager);
     if(dd === 15) exp(d, 2500, 'Advertising', 'UPI', 'Local paper', 'Weekend ad', owner);
   }
@@ -186,6 +191,14 @@ function rpc(name, a, me){
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'rate_updaters': return {status: 200, body: db.profiles.filter(p => !p.is_owner && p.apps.includes('rates')).map(p => ({name: p.name})).sort((x, y) => x.name.localeCompare(y.name))};
+    case 'add_expense_category': {
+      if(!canUse(me, 'expenses')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Expenses.'}};
+      const v = String(a.p_name || '').trim().replace(/\s+/g, ' ');
+      if(!v || v.length > 40) return pg('A category name is 1 to 40 letters.');
+      const l = db.settings[0].expense_categories;
+      if(!l.some(c => c.toLowerCase() === v.toLowerCase())) l.push(v);
+      return {status: 200, body: l};
+    }
     case 'assignable_people': return {status: 200, body: canUse(me, 'todo') ? db.profiles.map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'leave_staff': return {status: 200, body: db.staff.filter(s => s.active).map(s => ({id: s.id, name: s.name})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'request_leave': {
@@ -300,7 +313,8 @@ function expensesRest(method, params, body, single, wantRows, me){
   if(method === 'GET') out = sortBy(out.slice(), params.get('order'));
   else if(method === 'POST'){
     const r = Object.assign({id: uid(), mode: 'Cash', paid_to: '', note: ''}, body, {created_by: me.user_id, created_by_name: me.name, created_at: now(), updated_by_name: '', updated_at: null});
-    db.expenses.push(r); out = [r];
+    if(!r.period_from || !r.period_to){ r.period_from = r.day; r.period_to = r.day; }
+      db.expenses.push(r); out = [r];
   } else if(method === 'PATCH'){
     out = out.filter(r => owner || (may && ownToday(r)));
     out.forEach(r => Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}));

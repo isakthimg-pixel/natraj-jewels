@@ -64,6 +64,31 @@
 .modes div:first-child{border-top:0}
 .modes b{font-variant-numeric:lining-nums tabular-nums;font-weight:600}
 .axisnote{font-size:.78rem;color:var(--muted);margin:0}
+.covernote{font-size:.85rem;color:var(--gold);font-weight:600;margin:-4px 0 0;letter-spacing:0}
+.covernote:empty{display:none}
+
+/* running cost: range buttons, column chart with an average line, category table */
+.range{display:inline-flex;flex-wrap:wrap;gap:6px}
+.range button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-weight:500;font-size:.85rem;cursor:pointer;color:var(--ink)}
+.range button[aria-pressed="true"]{background:var(--cocoa);border-color:var(--cocoa);color:#FFF7EE;font-weight:600}
+.plot{position:relative}
+.plot svg{display:block;width:100%;height:auto;overflow:visible}
+.plot .grid line{stroke:var(--line);stroke-width:1}
+.plot .axis text{fill:var(--muted);font:500 11px var(--body);font-variant-numeric:tabular-nums}
+.plot .col{fill:var(--maroon)}
+.plot .col:hover,.plot .col.on{fill:var(--maroon-deep)}
+.plot .avg{stroke:var(--gold);stroke-width:1.5;stroke-dasharray:5 4}
+.plot .avgl{fill:var(--gold);font:600 11px var(--body);paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
+.tip{position:absolute;pointer-events:none;background:var(--cocoa);color:var(--on-dark);border-radius:4px;padding:6px 9px;font-size:.78rem;line-height:1.35;white-space:nowrap;transform:translate(-50%,-100%);margin-top:-8px}
+.tip b{font-weight:600;color:#FFF7EE}
+table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numeric:lining-nums tabular-nums}
+.rc th,.rc td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.rc th:first-child,.rc td:first-child{text-align:left;padding-left:0;white-space:normal}
+.rc td:last-child,.rc th:last-child{padding-right:0}
+.rc thead th{font:600 .66rem var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.rc tfoot td{font-weight:600;border-bottom:0}
+.rc .share{display:inline-block;height:8px;background:var(--maroon);border-radius:0 3px 3px 0;vertical-align:middle;margin-right:8px;min-width:2px}
+@media (max-width:640px){.rc .hide-sm{display:none}}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -78,6 +103,7 @@
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="add" aria-selected="true">Add</button>
       <button role="tab" data-tab="month" aria-selected="false">Month</button>
+      <button role="tab" data-tab="running" aria-selected="false" class="owner-only">Running cost</button>
     </nav>
   </div>
 </header>
@@ -101,11 +127,27 @@
         <h3>New expense</h3>
         <label class="money amt-big">Amount<input class="input" id="fAmt" inputmode="decimal" placeholder="0"></label>
         <label>Category<select class="input" id="fCat"></select></label>
+        <label id="fNewWrap" hidden>New category<input class="input" id="fNewCat" maxlength="40" placeholder="e.g. Gold polish"></label>
         <div class="field"><span>Paid by</span><div class="bubbles" id="fMode" role="group" aria-label="Paid by"></div></div>
         <div class="two">
           <label>Date<input class="input" type="date" id="fDay"></label>
           <label>Paid to<input class="input" id="fTo" maxlength="80" placeholder="optional"></label>
         </div>
+        <label>Covers<select class="input" id="fCover">
+          <option value="day">Just this day</option>
+          <option value="w1">1 week</option>
+          <option value="m1">1 month</option>
+          <option value="m2">2 months</option>
+          <option value="m3">3 months</option>
+          <option value="m6">6 months</option>
+          <option value="y1">1 year</option>
+          <option value="custom">Other dates…</option>
+        </select></label>
+        <div class="two" id="fRange" hidden>
+          <label>From<input class="input" type="date" id="fFrom"></label>
+          <label>To<input class="input" type="date" id="fUntil"></label>
+        </div>
+        <p class="covernote" id="fCoverNote"></p>
         <label>Note<input class="input" id="fNote" maxlength="300" placeholder="optional, e.g. 2 dozen boxes"></label>
         <p class="err" id="fErr" role="alert"></p>
         <div class="actions"><button class="btn btn-maroon" type="submit" id="fSave">Save expense</button></div>
@@ -132,7 +174,7 @@
       <div class="tally tally3">
         <div><b class="money-fig" id="mTotal">–</b><span>Total spent</span></div>
         <div><b id="mCount">–</b><span>Entries</span></div>
-        <div><b class="money-fig" id="mAvg">–</b><span>Per day, on average</span></div>
+        <div><b class="money-fig" id="mAvg">–</b><span>Paid out per day</span></div>
       </div>
     </div></div>
     <div class="wrap content">
@@ -141,6 +183,30 @@
         <div class="card"><h3>Paid by</h3><div class="modes" id="mModes"></div></div>
       </div>
       <div class="ledger" id="mList"></div>
+    </div>
+  </section>
+
+  <!-- RUNNING COST (owner) -->
+  <section id="tab-running" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="rEyebrow">Daily running cost</span><h2 id="rTitle">–</h2></div>
+      <div class="bar"><div class="range" id="rRange" role="group" aria-label="Period">
+        <button type="button" data-r="month" aria-pressed="true">This month</button>
+        <button type="button" data-r="lastmonth" aria-pressed="false">Last month</button>
+        <button type="button" data-r="d30" aria-pressed="false">30 days</button>
+        <button type="button" data-r="d90" aria-pressed="false">90 days</button>
+        <button type="button" data-r="y1" aria-pressed="false">12 months</button>
+      </div></div>
+      <div class="tally tally3">
+        <div><b class="money-fig" id="rDay">–</b><span>Per day</span></div>
+        <div><b class="money-fig" id="rMonth">–</b><span>Per month (30 days)</span></div>
+        <div><b class="money-fig" id="rTotal">–</b><span id="rTotalL">For these days</span></div>
+      </div>
+    </div></div>
+    <div class="wrap content">
+      <div class="card" style="margin-bottom:20px"><h3 id="rChartT">Each day</h3><div class="plot" id="rPlot"></div>
+        <p class="axisnote">Bills that cover a period are spread evenly over the days they cover, so a 2-month electricity bill counts a little on each of those days. The dashed line is the average.</p></div>
+      <div class="card"><h3>By category</h3><table class="rc" id="rTable"></table></div>
     </div>
   </section>
 </main>
@@ -173,14 +239,30 @@ const amount = s => { const v = String(s).replace(/[,\s₹]/g, ''); return /^\d+
 // the owner can change any entry; others only their own, on the day they entered it
 const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && iso(new Date(r.created_at)) === todayIso()));
 const catOptions = cur => [['', 'Choose a category'], ...cats.map(c => [c, c]), ...(cur && !cats.includes(cur) ? [[cur, cur]] : [])];
+const NEW = '__new';
+const fmtShort = d => parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: d.slice(0, 4) === todayIso().slice(0, 4) ? undefined : 'numeric'});
+const span = (a, b) => Math.round((parse(b) - parse(a)) / 864e5) + 1;   // days from a to b, both counted
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+// "Covers" choices: the period starts on the payment date
+function coverEnd(from, c){
+  const d = parse(from);
+  if(c === 'w1') d.setDate(d.getDate() + 6);
+  else { const m = {m1: 1, m2: 2, m3: 3, m6: 6, y1: 12}[c]; if(!m) return from; d.setMonth(d.getMonth() + m); d.setDate(d.getDate() - 1); }
+  return iso(d);
+}
+const covers = r => r.period_from && r.period_to && r.period_from !== r.period_to
+  ? 'covers ' + fmtShort(r.period_from) + ' to ' + fmtShort(r.period_to) + ' (' + plural(span(r.period_from, r.period_to), 'day') + ')' : '';
 
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 function showTab(name){
+  if(name === 'running' && !NJ.me.is_owner) name = 'add';
   curTab = name;
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
   $('tab-add').hidden = name !== 'add'; $('tab-month').hidden = name !== 'month';
+  $('tab-running').hidden = name !== 'running';
   if(name === 'month') loadMonth().catch(e => toast(e.message));
+  if(name === 'running') loadRunning().catch(e => toast(e.message));
 }
 
 /* ---------- loading ---------- */
@@ -188,7 +270,7 @@ async function loadSettings(){
   const s = must(await sb.from('settings').select('expense_categories').eq('id', 1).maybeSingle());
   cats = (s && s.expense_categories) || [];
   const cur = $('fCat').value;
-  $('fCat').innerHTML = catOptions('').map(([v, l]) => '<option value="' + esc(v) + '">' + esc(l) + '</option>').join('');
+  $('fCat').innerHTML = [...catOptions(''), [NEW, '+ New category…']].map(([v, l]) => '<option value="' + esc(v) + '">' + esc(l) + '</option>').join('');
   if(cats.includes(cur)) $('fCat').value = cur;
 }
 async function loadRecent(){
@@ -199,7 +281,7 @@ async function loadRecent(){
 
 /* ---------- add tab ---------- */
 function row(r, showDay){
-  const sub = [showDay ? fmtDay(r.day) : '', r.mode, r.paid_to && ('to ' + r.paid_to), r.note].filter(Boolean).join(' · ');
+  const sub = [showDay ? fmtDay(r.day) : '', r.mode, r.paid_to && ('to ' + r.paid_to), covers(r), r.note].filter(Boolean).join(' · ');
   const by = NJ.me.is_owner ? 'Entered by ' + (r.created_by_name || 'someone') + (r.updated_by_name ? ' · changed by ' + r.updated_by_name : '') : '';
   return '<div class="erow" data-id="' + esc(r.id) + '"><div><div class="cat">' + esc(r.category) + '</div>' +
     (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
@@ -231,22 +313,62 @@ $('fMode').addEventListener('click', e => {
 });
 $('fDay').value = todayIso(); $('fDay').max = todayIso();
 
+$('fCat').addEventListener('change', () => { $('fNewWrap').hidden = $('fCat').value !== NEW; if($('fCat').value === NEW) $('fNewCat').focus(); });
+function syncCover(){
+  const c = $('fCover').value, day = $('fDay').value || todayIso();
+  $('fRange').hidden = c === 'day';
+  if(c !== 'day' && c !== 'custom'){ $('fFrom').value = day; $('fUntil').value = coverEnd(day, c); }
+  if(c === 'custom' && !$('fFrom').value){ $('fFrom').value = day; $('fUntil').value = day; }
+  coverNote();
+}
+function coverNote(){
+  const a = amount($('fAmt').value), f = $('fFrom').value, t = $('fUntil').value;
+  if($('fCover').value === 'day' || !f || !t || t < f){ $('fCoverNote').textContent = ''; return; }
+  const n = span(f, t);
+  $('fCoverNote').textContent = plural(n, 'day') + (a > 0 ? ' · ' + inr(Math.round(a / n * 100) / 100) + ' a day in the running cost' : '');
+}
+$('fCover').addEventListener('change', syncCover);
+$('fDay').addEventListener('change', () => { if($('fCover').value !== 'custom') syncCover(); });
+['fFrom', 'fUntil', 'fAmt'].forEach(id => $(id).addEventListener('input', coverNote));
+['fFrom', 'fUntil'].forEach(id => $(id).addEventListener('change', () => { $('fCover').value = 'custom'; coverNote(); }));
+
+/* a typed-in category joins the shared list, so it can be chosen next time */
+async function ensureCategory(name){
+  const v = name.trim().replace(/\s+/g, ' ');
+  const have = cats.find(c => c.toLowerCase() === v.toLowerCase());
+  if(have) return have;
+  cats = must(await sb.rpc('add_expense_category', {p_name: v})) || cats;
+  const cur = $('fCat').value; await loadSettings(); $('fCat').value = cur;
+  return cats.find(c => c.toLowerCase() === v.toLowerCase()) || v;
+}
+
 $('eForm').addEventListener('submit', async e => {
   e.preventDefault(); $('fErr').textContent = '';
-  const a = amount($('fAmt').value), cat = $('fCat').value, day = $('fDay').value;
+  const a = amount($('fAmt').value), day = $('fDay').value;
+  let cat = $('fCat').value;
+  const newCat = $('fNewCat').value.trim();
   if(!(a > 0)) return $('fErr').textContent = 'Type the amount in rupees, e.g. 450 or 450.50.';
   if(a >= 1e7) return $('fErr').textContent = 'That amount is too large.';
   if(!cat) return $('fErr').textContent = 'Choose a category.';
+  if(cat === NEW && !newCat) return $('fErr').textContent = 'Type the new category’s name.';
+  if(cat === NEW && newCat.length > 40) return $('fErr').textContent = 'A category name is 40 letters at most.';
   if(!day) return $('fErr').textContent = 'Choose the date.';
   if(day > todayIso()) return $('fErr').textContent = 'The date can’t be in the future.';
+  const ranged = $('fCover').value !== 'day';
+  const from = ranged ? $('fFrom').value : day, until = ranged ? $('fUntil').value : day;
+  if(!from || !until) return $('fErr').textContent = 'Choose the first and last day the bill covers.';
+  if(until < from) return $('fErr').textContent = 'The last day is before the first day.';
+  if(span(from, until) > 1100) return $('fErr').textContent = 'A bill can cover 3 years at most.';
   if(a > BIG && !await ask('Save ' + inr(a) + '?', 'This is a large amount. Check there is no extra zero.', 'Save')) return;
   $('fSave').setAttribute('aria-busy', 'true');
   try{
-    const r = must(await sb.from('expenses').insert({day, amount: a, category: cat, mode, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim()}).select().single());
+    if(cat === NEW) cat = await ensureCategory(newCat);
+    const r = must(await sb.from('expenses').insert({day, amount: a, category: cat, mode, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim(), period_from: from, period_to: until}).select().single());
     recent.unshift(r); recent.sort((x, y) => y.day.localeCompare(x.day) || y.created_at.localeCompare(x.created_at));
     renderRecent();
     toast('Saved ' + inr(a) + ' for ' + cat);
-    $('fAmt').value = ''; $('fTo').value = ''; $('fNote').value = ''; $('fCat').value = '';
+    $('fAmt').value = ''; $('fTo').value = ''; $('fNote').value = ''; $('fCat').value = ''; $('fNewCat').value = ''; $('fNewWrap').hidden = true;
+    $('fCover').value = 'day'; $('fFrom').value = ''; $('fUntil').value = ''; syncCover();
     $('fAmt').focus();
   }catch(x){ $('fErr').textContent = x.message; }
   $('fSave').removeAttribute('aria-busy');
@@ -274,6 +396,8 @@ async function onListClick(e){
       {id: 'category', label: 'Category', type: 'select', value: r.category, options: catOptions(r.category)},
       {id: 'mode', label: 'Paid by', type: 'select', value: r.mode, options: MODES.map(m => [m, m])},
       {id: 'day', label: 'Date', type: 'date', value: r.day},
+      {id: 'from', label: 'Covers from', type: 'date', value: r.period_from || r.day},
+      {id: 'to', label: 'Covers to (same as “from” for a one-day expense)', type: 'date', value: r.period_to || r.day},
       {id: 'paid_to', label: 'Paid to (optional)', type: 'text', value: r.paid_to, maxlength: 80},
       {id: 'note', label: 'Note (optional)', type: 'text', value: r.note, maxlength: 300}
     ],
@@ -282,12 +406,17 @@ async function onListClick(e){
       if(!(a > 0) || a >= 1e7) return 'Type the amount in rupees, e.g. 450 or 450.50.';
       if(!v.category) return 'Choose a category.';
       if(!v.day || v.day > todayIso()) return 'Choose a date that is not in the future.';
-      const row = must(await sb.from('expenses').update({amount: a, category: v.category, mode: v.mode, day: v.day, paid_to: v.paid_to, note: v.note}).eq('id', r.id).select().single());
+      // a one-day expense whose date moved keeps covering just its own day
+      if(r.period_from === r.period_to && v.from === r.period_from && v.to === r.period_to){ v.from = v.day; v.to = v.day; }
+      if(!v.from || !v.to) return 'Choose the days the expense covers.';
+      if(v.to < v.from) return 'The last day it covers is before the first day.';
+      if(span(v.from, v.to) > 1100) return 'An expense can cover 3 years at most.';
+      const row = must(await sb.from('expenses').update({amount: a, category: v.category, mode: v.mode, day: v.day, period_from: v.from, period_to: v.to, paid_to: v.paid_to, note: v.note}).eq('id', r.id).select().single());
       [recent, monthRows].forEach(list => { const x = list.find(y => y.id === r.id); if(x) Object.assign(x, row); });
       return '';
     }
   });
-  if(v){ toast('Saved'); await loadRecent(); if(curTab === 'month') renderMonth(); }
+  if(v){ toast('Saved'); await loadRecent(); if(curTab === 'month') renderMonth(); if(curTab === 'running') loadRunning().catch(x => toast(x.message)); }
 }
 $('recent').addEventListener('click', onListClick);
 $('mList').addEventListener('click', onListClick);
@@ -332,8 +461,8 @@ $('mMonth').onchange = () => { if($('mMonth').value){ curMonth = $('mMonth').val
 
 $('mCsv').onclick = () => {
   const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [['Date', 'Category', 'Amount', 'Paid by', 'Paid to', 'Note', 'Entered by']]
-    .concat(monthRows.slice().reverse().map(r => [r.day, r.category, Number(r.amount), r.mode, r.paid_to, r.note, r.created_by_name]));
+  const rows = [['Date', 'Category', 'Amount', 'Paid by', 'Paid to', 'Covers from', 'Covers to', 'Note', 'Entered by']]
+    .concat(monthRows.slice().reverse().map(r => [r.day, r.category, Number(r.amount), r.mode, r.paid_to, r.period_from, r.period_to, r.note, r.created_by_name]));
   NJ.download('natraj-expenses-' + curMonth + '.csv', '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 };
 
@@ -353,6 +482,106 @@ $('mCats').onclick = async () => {
   if(v){ await loadSettings(); toast('Categories saved'); }
 };
 
+/* ---------- running cost (owner) ----------
+   Each expense is spread evenly over the days it covers; a day's running cost is the sum of
+   every expense's share for that day. Only days up to today count. */
+let range = 'month';
+function rangeDates(r){
+  const t = todayIso(), m = t.slice(0, 7);
+  if(r === 'month') return [m + '-01', t];
+  if(r === 'lastmonth'){ const d = parse(m + '-01'); d.setMonth(d.getMonth() - 1); const f = iso(d); return [f, monthEnd(f.slice(0, 7))]; }
+  if(r === 'd30') return [addDays(t, -29), t];
+  if(r === 'd90') return [addDays(t, -89), t];
+  const d = parse(m + '-01'); d.setMonth(d.getMonth() - 11); return [iso(d), t];
+}
+function spread(rows, from, to){
+  const byDay = {}, byCat = {};
+  for(const r of rows){
+    const pf = r.period_from || r.day, pt = r.period_to || r.day;
+    const per = Number(r.amount) / span(pf, pt);
+    const a = pf > from ? pf : from, b = pt < to ? pt : to;
+    if(a > b) continue;
+    const n = span(a, b);
+    byCat[r.category] = (byCat[r.category] || 0) + per * n;
+    for(let d = a; d <= b; d = addDays(d, 1)) byDay[d] = (byDay[d] || 0) + per;
+  }
+  return {byDay, byCat};
+}
+async function loadRunning(){
+  let [from, to] = rangeDates(range);
+  // before the first day any entry covers there is no data, so those days don't count
+  const first = (must(await sb.from('expenses').select('period_from').order('period_from').limit(1)) || [])[0];
+  const late = first && first.period_from > from && first.period_from <= to;
+  if(late) from = first.period_from;
+  const rows = must(await sb.from('expenses').select('amount,category,day,period_from,period_to').lte('period_from', to).gte('period_to', from)) || [];
+  const {byDay, byCat} = spread(rows, from, to);
+  const days = span(from, to), total = Object.values(byCat).reduce((s, v) => s + v, 0), perDay = total / days;
+  const r0 = n => inr(Math.round(n));
+  $('rTitle').textContent = r0(perDay) + ' a day';
+  $('rEyebrow').textContent = 'Daily running cost · ' + (late ? 'since entries begin, ' : '') + fmtShort(from) + ' to ' + fmtShort(to) + ' · ' + plural(days, 'day');
+  $('rDay').textContent = r0(perDay); $('rMonth').textContent = r0(perDay * 30); $('rTotal').textContent = r0(total);
+  $('rTotalL').textContent = 'For these ' + days + ' days';
+  // chart: one column per day, or per month for 12 months (average per day in that month)
+  let pts;
+  if(range === 'y1'){
+    pts = [];
+    for(let m = from.slice(0, 7); m <= to.slice(0, 7); m = iso(new Date(parse(m + '-01').setMonth(parse(m + '-01').getMonth() + 1))).slice(0, 7)){
+      const a = m + '-01', b = monthEnd(m) < to ? monthEnd(m) : to;
+      let s = 0; for(let d = a; d <= b; d = addDays(d, 1)) s += byDay[d] || 0;
+      pts.push({k: m, v: s / span(a, b), label: parse(a).toLocaleDateString('en-IN', {month: 'short'}), tip: parse(a).toLocaleDateString('en-IN', {month: 'long', year: 'numeric'}) + ' · average a day'});
+    }
+    $('rChartT').textContent = 'Each month, per day';
+  } else {
+    pts = [];
+    for(let d = from; d <= to; d = addDays(d, 1)) pts.push({k: d, v: byDay[d] || 0, label: String(Number(d.slice(8))), tip: parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'})});
+    $('rChartT').textContent = 'Each day';
+  }
+  drawColumns($('rPlot'), pts, perDay);
+  // table: categories by share
+  const cs = Object.entries(byCat).filter(x => x[1] > 0.004).sort((a, b) => b[1] - a[1]);
+  const max = cs.length ? cs[0][1] : 1;
+  $('rTable').innerHTML = cs.length ? '<thead><tr><th>Category</th><th>Per day</th><th class="hide-sm">Per month</th><th>Share</th></tr></thead><tbody>' +
+    cs.map(([c, v]) => '<tr><td>' + esc(c) + '</td><td>' + esc(inr(Math.round(v / days))) + '</td><td class="hide-sm">' + esc(r0(v / days * 30)) + '</td>' +
+      '<td><span class="share" style="width:' + Math.max(2, v / max * 60).toFixed(0) + 'px"></span>' + Math.round(v / total * 100) + '%</td></tr>').join('') +
+    '</tbody><tfoot><tr><td>All</td><td>' + esc(r0(perDay)) + '</td><td class="hide-sm">' + esc(r0(perDay * 30)) + '</td><td>100%</td></tr></tfoot>'
+    : '<tbody><tr><td style="color:var(--muted)">No expenses cover these days.</td></tr></tbody>';
+}
+function drawColumns(box, pts, avg){
+  const W = 760, H = 230, L = 52, R = 10, T = 12, B = 26;
+  const max = Math.max(avg, ...pts.map(p => p.v), 1);
+  const step = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000].find(s => max / s <= 5) || 200000;
+  const top = Math.ceil(max / step) * step;
+  const y = v => T + (H - T - B) * (1 - v / top), bw = (W - L - R) / pts.length;
+  let g = '<g class="grid axis">';
+  for(let v = 0; v <= top; v += step) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + (v >= 1000 ? (v / 1000) + 'k' : v) + '</text>';
+  g += '</g><g class="axis">';
+  const every = Math.ceil(pts.length / 12);
+  pts.forEach((p, i) => { if(i % every === 0) g += '<text x="' + (L + bw * i + bw / 2) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(p.label) + '</text>'; });
+  g += '</g>';
+  const gap = bw > 6 ? Math.min(bw * 0.25, 6) : 0.5;
+  const cols = pts.map((p, i) => '<rect class="col" data-i="' + i + '" x="' + (L + bw * i + gap / 2).toFixed(1) + '" y="' + y(p.v).toFixed(1) + '" width="' + Math.max(bw - gap, 1).toFixed(1) + '" height="' + Math.max(y(0) - y(p.v), p.v > 0 ? 1 : 0).toFixed(1) + '" rx="1.5"/>').join('');
+  const al = '<line class="avg" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(avg) + '" y2="' + y(avg) + '"/><text class="avgl" x="' + (L + 6) + '" y="' + (y(avg) - 6) + '">Average ' + esc(inr(Math.round(avg))) + '</text>';
+  box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Running cost chart">' + g + cols + al + '</svg><div class="tip" hidden></div>';
+  const tip = box.querySelector('.tip'), svg = box.querySelector('svg');
+  const show = i => {
+    box.querySelectorAll('.col.on').forEach(c => c.classList.remove('on'));
+    if(i == null){ tip.hidden = true; return; }
+    const c = box.querySelector('.col[data-i="' + i + '"]'); c.classList.add('on');
+    const k = svg.getBoundingClientRect().width / W;
+    tip.innerHTML = esc(pts[i].tip) + '<br><b>' + esc(inr(Math.round(pts[i].v))) + '</b>';
+    tip.style.left = Math.min(Math.max((L + bw * i + bw / 2) * k, 60), svg.getBoundingClientRect().width - 60) + 'px';
+    tip.style.top = (y(pts[i].v) * k) + 'px'; tip.hidden = false;
+  };
+  svg.addEventListener('pointermove', e => { const k = svg.getBoundingClientRect().width / W, x = (e.clientX - svg.getBoundingClientRect().left) / k; const i = Math.floor((x - L) / bw); show(i >= 0 && i < pts.length ? i : null); });
+  svg.addEventListener('pointerleave', () => show(null));
+}
+$('rRange').addEventListener('click', e => {
+  const b = e.target.closest('[data-r]'); if(!b) return;
+  range = b.dataset.r;
+  $('rRange').querySelectorAll('[data-r]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  loadRunning().catch(x => toast(x.message));
+});
+
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('expenses') && !document.querySelector('dialog[open]'))
     loadRecent().then(() => curTab === 'month' && loadMonth()).catch(e => toast(e.message));
@@ -363,7 +592,7 @@ NJ.start({onReady: async me => {
   document.body.classList.toggle('no-access', !!me && !ok);
   if(!ok) return;
   try{ await Promise.all([loadSettings(), loadRecent()]); }catch(e){ toast(e.message); }
-  showTab(location.hash === '#month' ? 'month' : curTab);
+  showTab(location.hash === '#month' ? 'month' : location.hash === '#running' ? 'running' : curTab);
 }});
 })();
 </script>

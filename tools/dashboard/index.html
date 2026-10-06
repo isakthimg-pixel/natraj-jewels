@@ -184,7 +184,21 @@ async function loadExpenses(){
   const today = todayIso(), month = today.slice(0, 7);
   const lm = parse(month + '-01'); lm.setMonth(lm.getMonth() - 1);
   const lastFirst = iso(lm), lastSameDay = lastFirst.slice(0, 8) + today.slice(8);
-  const rows = must(await sb.from('expenses').select('day,amount,category').gte('day', lastFirst).lte('day', today)) || [];
+  let d30 = iso(new Date(parse(today).getTime() - 29 * 864e5));
+  const [res, cov, first] = await Promise.all([
+    sb.from('expenses').select('day,amount,category').gte('day', lastFirst).lte('day', today),
+    sb.from('expenses').select('amount,period_from,period_to').lte('period_from', today).gte('period_to', d30),
+    sb.from('expenses').select('period_from').order('period_from').limit(1)
+  ]);
+  const f0 = ((must(first) || [])[0] || {}).period_from;
+  if(f0 && f0 > d30 && f0 <= today) d30 = f0;     // entries began recently: count from their first day
+  const rows = must(res) || [];
+  // running cost: every expense spread evenly over the days it covers, last 30 days up to today
+  const days = (a, b) => Math.round((parse(b) - parse(a)) / 864e5) + 1;
+  const running = (must(cov) || []).reduce((s, r) => {
+    const a = r.period_from > d30 ? r.period_from : d30, b = r.period_to < today ? r.period_to : today;
+    return a > b ? s : s + Number(r.amount) / days(r.period_from, r.period_to) * days(a, b);
+  }, 0) / days(d30, today);
   const inr = v => '₹' + Math.round(v).toLocaleString('en-IN');
   const sum = rs => rs.reduce((s, r) => s + Number(r.amount), 0);
   const cur = rows.filter(r => r.day.slice(0, 7) === month);
@@ -202,7 +216,7 @@ async function loadExpenses(){
       '<div><span>So far</span><b>' + inr(total) + '</b><em class="' + (diff > 0 ? 'down' : diff < 0 ? 'up' : '') + '">' +
         (diff == null ? '' : diff === 0 ? 'Same as last month' : (diff > 0 ? '▲ ' : '▼ ') + Math.abs(diff) + '% vs same days last month') + '</em></div>' +
       '<div><span>Today</span><b>' + inr(todays) + '</b></div>' +
-      '<div><span>Entries</span><b>' + cur.length + '</b></div></div>' +
+      '<div><span>Running cost a day</span><b>' + inr(running) + '</b><em>' + (days(d30, today) < 30 ? 'since ' + esc(parse(d30).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) : 'last 30 days') + ' · <a href="../expenses/#running" style="color:inherit">details</a></em></div></div>' +
     '<div class="bars">' + shown.map(([c, v]) =>
       '<div class="bar-row" title="' + esc(c + ': ' + inr(v)) + '"><span class="nm">' + esc(c) + '</span><span class="track"><i style="width:' + (v / max * 100).toFixed(1) + '%"></i></span><b style="min-width:5em">' + esc(inr(v)) + '</b></div>').join('') + '</div>';
 }
