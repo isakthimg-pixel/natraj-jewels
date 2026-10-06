@@ -361,6 +361,13 @@ window.addEventListener('online', () => { const b = $('nj-offline'); if(b) b.hid
 async function start(opts){
   onChange = opts.onReady || (() => {});
   const y = $('year'); if(y) y.textContent = new Date().getFullYear();
+  // the logo in the header goes back to the home page (all apps)
+  const br = document.querySelector('header .brand');
+  if(br && br.tagName !== 'A'){
+    const link = document.createElement('a');
+    link.className = br.className; link.href = ROOT || './'; link.title = 'All apps'; link.innerHTML = br.innerHTML;
+    br.replaceWith(link);
+  }
   const {data} = await sb.auth.getSession();
   await loadMe(data.session);
   renderAccess(opts); touch(); loadNotes();

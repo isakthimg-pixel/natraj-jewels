@@ -34,6 +34,8 @@ for root, _, files in os.walk(APP):
 js = os.path.join(APP, 'shared', 'natraj.js')
 s = open(js).read()
 s = s.replace("href=\"' + ROOT + '\">All apps", "href=\"' + ROOT + 'index.html\">All apps")
+s = s.replace("link.href = ROOT || './';", "link.href = ROOT + 'index.html';")
+s = s.replace("new URL(ROOT + n.link, location.href)", "new URL(ROOT + n.link.replace(/\\/(#|$)/, '/index.html$1'), location.href)")
 s = re.sub(r"path: '(" + NAMES + r")/'", lambda m: "path: '" + m.group(1) + "/index.html'", s)
 open(js, 'w').write(s)
 
