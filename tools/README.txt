@@ -1,4 +1,4 @@
-NATRAJ JEWELS SYSTEM
+NATRAJ JEWELS MANAGEMENT SYSTEM
 ========================
 
 One website with all the shop's small apps, sharing one online database
