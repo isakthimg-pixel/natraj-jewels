@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v26';
-const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver'];
+const KEY = 'natraj-demo-db-v27';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
@@ -18,10 +18,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -228,6 +228,20 @@ function seed(){
     score: 85.6, grade: 'A', shared: true, shared_at: lastM.slice(0, 8) + '28T18:00:00Z', updated_by_name: 'Owner', updated_at: lastM.slice(0, 8) + '28T18:00:00Z'});
   db.report_cards.push({id: uid(), staff_id: staff[0].id, month: month0, ratings: {punctual: 5, service: 4, team: 5, knowledge: 5, discipline: 4}, remarks: 'Runs the floor well.', target: '',
     metrics: {}, score: null, grade: '', shared: false, shared_at: null, updated_by_name: 'Owner', updated_at: now()});
+  // campaigns: Navaratri finished with results, Diwali running and half sent
+  const camp = (name, occasion, starts, ends, channels, offer, budget) => { const c = {id: uid(), name, occasion, starts, ends, channels, offer, message: '', budget, notes: '', created_by: owner.user_id, created_by_name: owner.name, created_at: starts + 'T09:00:00Z', updated_by_name: '', updated_at: null}; db.campaigns.push(c); return c; };
+  const contact = (c, cu, extra) => db.campaign_contacts.push(Object.assign({id: uid(), campaign_id: c.id, customer_id: cu ? cu.id : null, name: cu ? cu.name : '', phone: cu ? cu.phone : '', walk_in: false, sent_at: null, sent_by_name: '', came: false, came_on: null, bought: null, note: '',
+    created_by: manager.user_id, created_at: c.starts + 'T10:00:00Z', updated_by_name: '', updated_at: null}, extra || {}));
+  const cost = (c, day, channel, what, amount) => db.campaign_costs.push({id: uid(), campaign_id: c.id, day, channel, what, amount, created_by: manager.user_id, created_by_name: manager.name, created_at: day + 'T12:00:00Z'});
+  const nav = camp('Navaratri silver gifts', 'Navaratri', addDays(today, -40), addDays(today, -28), ['WhatsApp', 'Pamphlet'], 'Free silver kumkum box on purchases above ₹25,000', 15000);
+  [C[0], C[1], C[2], C[4]].forEach((cu, i) => contact(nav, cu, {sent_at: addDays(today, -39) + 'T11:00:00Z', sent_by_name: manager.name,
+    came: i < 3, came_on: i < 3 ? addDays(today, -36 + i) : null, bought: i === 0 ? 68000 : i === 2 ? 24500 : null, note: i === 0 ? 'Antique bangles' : i === 2 ? 'Silver pooja set' : ''}));
+  contact(nav, null, {name: 'Walk-in Saranya', phone: '9876501234', walk_in: true, came: true, came_on: addDays(today, -33), bought: 31000, note: 'Heard via Pamphlet'});
+  cost(nav, addDays(today, -41), 'Pamphlet', '3,000 pamphlets with the newspaper', 4500);
+  const dip = camp('Diwali gold coin offer', 'Diwali', addDays(today, -3), addDays(today, 18), ['WhatsApp', 'Instagram', 'Radio'], 'No wastage on gold coins, 50% off making on necklaces', 40000);
+  [C[0], C[1], C[2], C[4]].forEach((cu, i) => contact(dip, cu, i < 2 ? {sent_at: addDays(today, -2) + 'T11:00:00Z', sent_by_name: manager.name} : {}));
+  cost(dip, addDays(today, -3), 'Radio', '20 radio spots, Hello FM', 18000);
+  cost(dip, addDays(today, -2), 'Instagram', 'Boosted post, 7 days', 3500);
   // who is online: Sample Staff 2 is always on the tasks page on a phone; the manager was here 40 minutes ago
   const ago = m => new Date(Date.now() - m * 60000).toISOString();
   db.presence.push({user_id: worker.user_id, page: 'Tasks', device: 'Phone', signed_in_at: ago(25), last_seen: ago(0), signed_out_at: null, demo_live: true},
@@ -463,7 +477,8 @@ function rest(method, table, params, body, headers, me){
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
     notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     chit_plans: {read: canUse(me, 'chits'), write: me.is_owner}, chit_members: {read: canUse(me, 'chits'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'chits')},
-    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
+    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, campaigns: {read: canUse(me, 'campaigns'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'campaigns')},
+    campaign_contacts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_costs: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
@@ -499,6 +514,7 @@ function rest(method, table, params, body, headers, me){
     if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
     return {status: 200, body: out.map(r => JSON.parse(JSON.stringify(r)))};
   }
+  if(table.startsWith('campaign')) return campaignsRest(table, method, params, body, single, wantRows, me);
   if(table === 'silver_entries') return silverRest(method, params, body, single, wantRows, me);
   if(table.startsWith('chit_')) return chitsRest(table, method, params, body, single, wantRows, me);
   let out;
@@ -726,6 +742,33 @@ function designsRest(method, params, body, single, wantRows, me){
   } else if(method === 'PATCH'){
     for(const r of out){ const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}); if(!stage(r, old)){ Object.assign(r, old); return bad; } }
   } else if(method === 'DELETE') db.designs = db.designs.filter(r => !out.includes(r));
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
+}
+/* campaigns (migration 025): sent times and who sent are stamped here; costs fixed on the day or by the owner */
+function campaignsRest(table, method, params, body, single, wantRows, me){
+  const nowIso = now(), ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
+  let out = db[table].filter(r => matches(r, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'POST'){
+    const base = table === 'campaigns' ? {occasion: '', channels: [], offer: '', message: '', budget: null, notes: '', updated_by_name: '', updated_at: null, created_by_name: me.name}
+      : table === 'campaign_contacts' ? {customer_id: null, phone: '', walk_in: false, sent_at: null, sent_by_name: '', came: false, came_on: null, bought: null, note: '', updated_by_name: '', updated_at: null}
+      : {channel: '', what: '', day: iso(new Date()), created_by_name: me.name};
+    out = (Array.isArray(body) ? body : [body]).map(b => { const r = Object.assign({id: uid()}, base, b, {created_by: me.user_id, created_at: nowIso});
+      if(table === 'campaign_contacts'){ if(r.sent_at){ r.sent_at = nowIso; r.sent_by_name = me.name; } if(!r.came) r.came_on = null; } return r; });
+    if(table === 'campaign_contacts' && out.some(r => r.customer_id && db.campaign_contacts.some(x => x.campaign_id === r.campaign_id && x.customer_id === r.customer_id))) return {status: 409, body: {code: '23505', message: 'Already on the list'}};
+    db[table].push(...out);
+  } else if(method === 'PATCH'){
+    if(table === 'campaign_costs') out = out.filter(r => me.is_owner || ownToday(r));
+    out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body);
+      if(table === 'campaign_contacts'){ if(r.sent_at && !old.sent_at){ r.sent_at = nowIso; r.sent_by_name = me.name; } else if(!r.sent_at) r.sent_by_name = ''; else { r.sent_at = old.sent_at; r.sent_by_name = old.sent_by_name; } if(!r.came) r.came_on = null; }
+      if(table !== 'campaign_costs'){ r.updated_by_name = me.name; r.updated_at = nowIso; } });
+  } else if(method === 'DELETE'){
+    out = out.filter(r => table === 'campaign_costs' ? (me.is_owner || ownToday(r)) : true);
+    db[table] = db[table].filter(r => !out.includes(r));
+    if(table === 'campaigns'){ db.campaign_contacts = db.campaign_contacts.filter(k => !out.some(c => c.id === k.campaign_id)); db.campaign_costs = db.campaign_costs.filter(k => !out.some(c => c.id === k.campaign_id)); }
+  }
   if(method !== 'GET' && !wantRows) return {status: 204, body: null};
   if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
   return {status: 200, body: out};

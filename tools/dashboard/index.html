@@ -161,6 +161,10 @@
         <div class="head"><h3>Silver</h3><a href="../silver/#month">This month ›</a></div>
         <div class="body" id="silverBox"><small>Loading…</small></div>
       </section>
+      <section class="card mod" data-mod="campaigns">
+        <div class="head"><h3>Campaigns</h3><a href="../campaigns/">All campaigns ›</a></div>
+        <div class="body" id="campBox"><small>Loading…</small></div>
+      </section>
       <section class="card mod" data-mod="worked">
         <div class="head"><h3 id="mTitle">Days worked this month</h3><a href="../attendance/">Monthly register ›</a></div>
         <div class="body" style="display:grid;gap:12px"><div class="bars" id="bars"><small>Loading…</small></div><p class="axisnote" id="barNote" style="margin:0"></p></div>
@@ -201,6 +205,7 @@ const MODS = {
   designs:    {name: 'Design library', box: 'desBox', load: () => loadDesigns()},
   chits:      {name: 'Chit scheme', box: 'chitBox', load: () => loadChits()},
   silver:     {name: 'Silver', box: 'silverBox', load: () => loadSilver()},
+  campaigns:  {name: 'Campaigns', box: 'campBox', load: () => loadCampaigns()},
   worked:     {name: 'Days worked', box: 'bars', load: () => loadAttendance()}
 };
 // the starting layout: the essentials, with the longer lists hidden until wanted
@@ -208,7 +213,7 @@ const DEFAULT = [
   {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'}, {k: 'online', w: 'half'},
   {k: 'expenses', w: 'half'}, {k: 'bank', w: 'half'},
   {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
-  {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'}, {k: 'silver', w: 'half'},
+  {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'}, {k: 'silver', w: 'half'}, {k: 'campaigns', w: 'half'},
   {k: 'worked', w: 'full', hidden: true}
 ];
 const PREF_KEY = 'natraj-dashboard-layout';
@@ -556,6 +561,24 @@ async function loadSilver(){
     '<div><span>Bought this month</span><b>' + g(tot('purchase', 'weight_g')) + '</b><em>' + inr(tot('purchase', 'amount')) + ' · ' + g(tot('purchase', 'fine_g')) + ' fine</em></div>' +
     '<div><span>Sold today</span><b>' + g(tot('sale', 'weight_g', today)) + '</b><em>' + inr(tot('sale', 'amount', today)) + '</em></div>' +
     '<div><span>Bought today</span><b>' + g(tot('purchase', 'weight_g', today)) + '</b><em>' + inr(tot('purchase', 'amount', today)) + '</em></div></div>';
+}
+
+/* campaigns running now (or ended in the last week): messages sent, who came, sales against spend */
+async function loadCampaigns(){
+  const today = todayIso(), wk = iso(new Date(parse(today).getTime() - 7 * 864e5));
+  const cs = must(await sb.from('campaigns').select('id,name,starts,ends,budget').lte('starts', today).gte('ends', wk).order('ends')) || [];
+  if(!cs.length){ $('campBox').innerHTML = '<small>No campaign running. <a href="../campaigns/#new">Plan one</a>.</small>'; return; }
+  const ids = cs.map(c => c.id), first = cs.map(c => c.starts).sort()[0];
+  const [k, x, v] = await Promise.all([sb.from('campaign_contacts').select('campaign_id,customer_id,walk_in,sent_at,came,bought').in('campaign_id', ids), sb.from('campaign_costs').select('campaign_id,amount').in('campaign_id', ids),
+    sb.from('customer_activity').select('customer_id,visit_day').eq('kind', 'visit').gte('visit_day', first)]);
+  const ks = must(k) || [], xs = must(x) || [], vs = v.data || [], inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+  // came: marked by hand, or a visit form from the campaign's start to a week after it ended (as on the campaigns page)
+  const came = (c, r) => r.came || (r.customer_id && vs.some(w => w.customer_id === r.customer_id && w.visit_day >= c.starts && w.visit_day <= iso(new Date(parse(c.ends).getTime() + 7 * 864e5))));
+  $('campBox').innerHTML = '<div class="list">' + cs.map(c => { const m = ks.filter(r => r.campaign_id === c.id), list = m.filter(r => !r.walk_in), sent = list.filter(r => r.sent_at).length;
+    const sales = m.reduce((s, r) => s + Number(r.bought || 0), 0), spent = xs.filter(r => r.campaign_id === c.id).reduce((s, r) => s + Number(r.amount), 0);
+    return '<div style="display:grid;gap:6px"><span style="display:flex;justify-content:space-between;gap:10px"><a href="../campaigns/#c=' + esc(c.id) + '" style="color:var(--ink);font-weight:600;text-decoration:none">' + esc(c.name) + '</a><small>' + (c.ends < today ? 'ended' : 'till ' + parse(c.ends).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</small></span>' +
+      (list.length ? NJ.meterBar({done: sent, late: 0, total: list.length}) : '') +
+      '<small>' + sent + '/' + list.length + ' sent · ' + m.filter(r => came(c, r)).length + ' came · ' + inr(sales) + ' sales · ' + inr(spent) + ' spent</small></div>'; }).join('') + '</div>';
 }
 
 /* open tasks per person: how many, how many overdue, the next one due */

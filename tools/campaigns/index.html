@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Marketing Campaigns · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.no-access main{display:none!important}
+.no-access-msg{display:none}
+.no-access .no-access-msg{display:block}
+.not-owner .owner-only{display:none!important}
+.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* campaign cards */
+.group{display:grid;gap:12px}
+.group h3.gh{margin:0;font:600 .7rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.ccards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.ccard{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:18px;display:grid;gap:10px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:border-color .2s,box-shadow .2s}
+.ccard:hover{border-color:var(--gold);box-shadow:0 10px 24px rgba(42,30,27,.08)}
+.ccard .nm{font-weight:700;font-size:1.08rem}
+.ccard .sub{font-size:.82rem;color:var(--muted)}
+.ccard .facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;font-size:.76rem;color:var(--muted)}
+.ccard .facts b{display:block;font:700 1.05rem/1.2 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+.tag.run{border-color:var(--p);color:var(--p);background:var(--p-bg)}
+.tag.soon{border-color:var(--hm);color:var(--hm);background:var(--hm-bg)}
+.tag.over{border-color:var(--line);color:var(--muted);background:var(--card)}
+
+/* one campaign */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stats div{display:grid;gap:4px;min-width:0}
+.stats span{font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.stats b{font:700 1.4rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
+.stats em{font-style:normal;font-size:.78rem;font-weight:600;color:var(--muted)}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+.subtabs button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font:600 .88rem var(--body);cursor:pointer;color:var(--ink)}
+.subtabs button[aria-selected="true"]{background:var(--maroon);border-color:var(--maroon);color:#FFF7EE}
+.box{background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.box > h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:1.12rem;color:var(--maroon);display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.box > h3 small{font:600 .85rem var(--body);color:var(--muted)}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;padding:12px 18px;border-top:1px solid var(--line);align-items:center}
+.prow:first-of-type{border-top:0}
+.prow .nm{font-weight:700}
+.prow .sub{font-size:.82rem;color:var(--muted);margin-top:2px}
+.prow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.prow{grid-template-columns:1fr}.prow .acts{justify-content:flex-start}}
+.st{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px}
+.st.sent{background:var(--hm-bg);color:var(--hm)} .st.came{background:var(--p-bg);color:var(--p)} .st.bought{background:var(--p);color:#fff} .st.walk{background:var(--paper);color:var(--maroon);border:1px solid var(--line)}
+.empty-s{padding:24px 18px;color:var(--muted);font-size:.92rem}
+.msg{white-space:pre-line;background:#E7F6E9;border:1px solid #CBE6CF;border-radius:4px 14px 14px 14px;padding:12px 14px;font-size:.92rem;color:#1F2B21;max-width:560px}
+.sendbar{display:grid;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
+.btn-wa:hover{background:#0B6358;border-color:#0B6358}
+.btn-wa:disabled{opacity:.5}
+.filters{display:grid;gap:12px;padding:16px 18px}
+.filters .field > span{font-size:.8rem;font-weight:600;color:var(--muted)}
+.filters .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.filters .two{grid-template-columns:1fr}}
+.match{border-radius:4px;padding:12px 14px;font-weight:600;font-size:.94rem;background:color-mix(in srgb,var(--gold) 10%,var(--card));border:1px solid var(--gold)}
+
+/* forms */
+.cform{max-width:820px}
+.cform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.cform .two{grid-template-columns:1fr}}
+.cform .field > span{font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+.tablewrap{overflow-x:auto}
+.ctab{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+.ctab th{text-align:right;font:600 .66rem/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ctab td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.ctab th:first-child,.ctab td:first-child{text-align:left;white-space:normal;min-width:170px}
+.ctab tr[data-id]{cursor:pointer}
+.ctab tr[data-id]:hover td{background:color-mix(in srgb,var(--gold) 6%,var(--card))}
+.good{color:var(--p);font-weight:700} .bad{color:var(--a);font-weight:700}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <h1>Marketing Campaigns</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="list" aria-selected="true">Campaigns</button>
+      <button role="tab" data-tab="new" aria-selected="false">New campaign</button>
+      <button role="tab" data-tab="compare" aria-selected="false" class="owner-only">Compare</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to see the campaigns.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+<div class="wrap content no-access-msg"><div class="form panel"><h3>No access</h3><p>Ask the owner to switch on Campaigns for you in People &amp; settings.</p></div></div>
+
+<main>
+  <!-- LIST -->
+  <section id="tab-list">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Marketing</span><h2 id="lTitle">Campaigns</h2></div>
+      <div class="bar"><button class="btn btn-maroon" id="goNew">New campaign</button></div>
+    </div></div>
+    <div class="wrap content" id="groups" style="display:grid;gap:24px"><div class="loading">Loading…</div></div>
+  </section>
+
+  <!-- ONE CAMPAIGN -->
+  <section id="tab-one" hidden>
+    <div class="band"><div class="wrap">
+      <div class="bar"><button class="btn" id="backBtn">‹ All campaigns</button></div>
+      <div class="heading"><span class="eyebrow" id="oEyebrow"></span><h2 id="oName"></h2></div>
+      <p class="hint" id="oOffer" style="font-size:.95rem;margin-bottom:12px"></p>
+      <div class="stats" id="oStats"></div>
+      <div class="subtabs" role="tablist" id="oTabs">
+        <button data-s="send" aria-selected="true">Send on WhatsApp</button>
+        <button data-s="people" aria-selected="false">People &amp; results</button>
+        <button data-s="add" aria-selected="false">Choose customers</button>
+        <button data-s="costs" aria-selected="false">Costs</button>
+      </div>
+    </div></div>
+    <div class="wrap content">
+      <div id="s-send" class="box"></div>
+      <div id="s-people" class="box" hidden></div>
+      <div id="s-add" class="box" hidden></div>
+      <div id="s-costs" class="box" hidden></div>
+    </div>
+  </section>
+
+  <!-- NEW / EDIT -->
+  <section id="tab-new" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="fEyebrow">New</span><h2 id="fTitle">New campaign</h2></div>
+    </div></div>
+    <div class="wrap content">
+      <form class="form cform" id="cf" autocomplete="off" novalidate>
+        <div class="two">
+          <label>Campaign name<input class="input" id="fName" maxlength="80" placeholder="e.g. Diwali 2026 gold coin offer"></label>
+          <label>Occasion<input class="input" id="fOcc" maxlength="60" list="occList" placeholder="e.g. Diwali"><datalist id="occList"></datalist></label>
+        </div>
+        <div class="two">
+          <label>Starts<input class="input" type="date" id="fStart"></label>
+          <label>Ends<input class="input" type="date" id="fEnd"></label>
+        </div>
+        <div class="field"><span>Channels</span><div class="bubbles" id="fCh" role="group" aria-label="Channels"></div></div>
+        <label>The offer<textarea class="input" id="fOffer" maxlength="300" rows="2" placeholder="e.g. No wastage on gold coins and 50% off making on necklaces"></textarea></label>
+        <label>WhatsApp message<textarea class="input" id="fMsg" maxlength="1000" rows="5"></textarea></label>
+        <p class="hint">{name} becomes the customer’s name, {offer} the offer, {occasion} the occasion and {ends} the last day.</p>
+        <div class="two">
+          <label class="money">Budget (₹)<input class="input" id="fBudget" inputmode="decimal" placeholder="optional"></label>
+          <label>Notes<input class="input" id="fNotes" maxlength="500" placeholder="optional"></label>
+        </div>
+        <p class="err" id="fErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="submit" id="fSave">Save campaign</button><button class="btn" type="button" id="fCancel">Cancel</button><button class="btn btn-danger owner-only" type="button" id="fDel" hidden>Delete campaign</button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- COMPARE (owner) -->
+  <section id="tab-compare" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">For the owner</span><h2>Compare campaigns</h2></div>
+      <p class="hint" style="font-size:.9rem">Which campaigns brought people in, and what each one cost for every visitor and every rupee of sales.</p>
+    </div></div>
+    <div class="wrap content" style="display:grid;gap:20px">
+      <div class="box"><h3>Campaigns</h3><div class="tablewrap" id="cmpTable"></div></div>
+      <div class="box"><h3>Spending by channel</h3><div class="tablewrap" id="cmpCh"></div></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Marketing campaigns · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, dialog, iso, parse, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const CHANNELS = ['WhatsApp', 'Instagram', 'Facebook', 'Newspaper', 'Pamphlet', 'Radio', 'Wall painting', 'Hoarding', 'SMS', 'Other'];
+const OCCASIONS = ['Diwali', 'Akshaya Tritiya', 'Pongal', 'Navaratri', 'Wedding season', 'Aadi offer', 'Varalakshmi Vratham', 'Christmas & New Year', 'Shop anniversary', 'Monsoon offer'];
+const DEFAULT_MSG = 'Vanakkam {name}! 🙏\n{occasion} offer at Natraj Jewels, Tiruppur: {offer}.\nValid till {ends}. Visit us at 24, Eswaran Kovil St.\nReply STOP if you do not want offers.';
+const VISIT_AFTER = 7;    // a visit up to a week after the campaign still counts
+let camps = [], contacts = [], costs = [], visits = [], customers = [], cur = null, editing = null, sub = 'send', fCh = [];
+
+const inr = n => '₹' + Math.round(Number(n || 0)).toLocaleString('en-IN');
+const num = s => { const v = String(s || '').replace(/[,\s₹]/g, ''); return v === '' ? null : /^\d+(\.\d+)?$/.test(v) ? Number(v) : NaN; };
+const fmtD = d => d ? parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}) : '';
+const fmtDY = d => d ? parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}) : '';
+const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
+const digits = p => { const x = String(p || '').replace(/\D/g, ''); return x.length === 10 ? '91' + x : x; };
+const stateOf = c => { const t = todayIso(); return c.starts > t ? 'soon' : c.ends < t ? 'over' : 'run'; };
+const STATE = {run: 'Running', soon: 'Coming up', over: 'Finished'};
+const fill = (c, name) => (c.message || DEFAULT_MSG).replace(/\{name\}/g, (name || '').split(' ')[0] || 'friend').replace(/\{offer\}/g, c.offer || 'special prices')
+  .replace(/\{occasion\}/g, c.occasion || 'Special').replace(/\{ends\}/g, fmtD(c.ends));
+
+/* a contact came in if marked by hand, or if Customers has a visit form for them from the campaign's start to a week after it ended */
+function visitOf(c, k){
+  if(!k.customer_id) return null;
+  const from = k.sent_at ? iso(new Date(k.sent_at)) : c.starts, to = addDays(c.ends, VISIT_AFTER);
+  return visits.find(v => v.customer_id === k.customer_id && v.visit_day >= (from < c.starts ? from : c.starts) && v.visit_day <= to) || null;
+}
+function results(c){
+  const ks = contacts.filter(k => k.campaign_id === c.id), cs = costs.filter(x => x.campaign_id === c.id);
+  const list = ks.filter(k => !k.walk_in), sent = list.filter(k => k.sent_at);
+  const came = ks.filter(k => k.came || visitOf(c, k)), bought = ks.filter(k => Number(k.bought) > 0 || (!k.came && visitOf(c, k) && visitOf(c, k).bought));
+  const sales = ks.reduce((s, k) => s + Number(k.bought || 0), 0), spent = cs.reduce((s, x) => s + Number(x.amount), 0);
+  return {ks, list, sent, came, bought, sales, spent, walkIns: ks.filter(k => k.walk_in).length,
+    perVisit: came.length && spent ? spent / came.length : null, perRupee: spent ? sales / spent : null};
+}
+
+/* ---------- tabs and routes: #c=<id>, #new, #edit=<id>, #compare ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.tab === 'list' ? '' : b.dataset.tab; }));
+function show(name){
+  const tab = name === 'one' ? 'list' : name === 'new' && editing ? 'list' : name;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  ['list', 'one', 'new', 'compare'].forEach(t => $('tab-' + t).hidden = t !== name);
+  window.scrollTo(0, 0);
+}
+function route(){
+  const h = decodeURIComponent(location.hash.slice(1));
+  if(h.startsWith('c=')) return openCampaign(h.slice(2));
+  if(h === 'new') return openForm(null);
+  if(h.startsWith('edit=')) return openForm(camps.find(c => c.id === h.slice(5)) || null);
+  if(h === 'compare' && NJ.me.is_owner){ show('compare'); return renderCompare(); }
+  show('list'); renderList();
+}
+window.addEventListener('hashchange', route);
+
+async function loadAll(){
+  const [a, b, c] = await Promise.all([
+    sb.from('campaigns').select('*').order('starts', {ascending: false}),
+    sb.from('campaign_contacts').select('*').order('created_at'),
+    sb.from('campaign_costs').select('*').order('day')
+  ]);
+  camps = must(a) || []; contacts = must(b) || []; costs = must(c) || [];
+  if(NJ.canUse('crm')){
+    const since = camps.length ? camps.map(x => x.starts).sort()[0] : todayIso();
+    const [v, cu] = await Promise.all([
+      sb.from('customer_activity').select('customer_id,visit_day,bought').eq('kind', 'visit').gte('visit_day', since),
+      sb.from('customers').select('id,name,phone,area,tags,source,birthday,anniversary,function_month,whatsapp_ok,whatsapp_on_phone,created_at')
+    ]);
+    visits = v.data || []; customers = cu.data || [];
+  }
+}
+
+/* ---------- list ---------- */
+function renderList(){
+  const by = {run: [], soon: [], over: []}; camps.forEach(c => by[stateOf(c)].push(c));
+  by.soon.sort((a, b) => a.starts.localeCompare(b.starts));
+  $('lTitle').textContent = by.run.length ? by.run.length + ' running now' : 'Campaigns';
+  const card = c => { const r = results(c), s = stateOf(c);
+    return '<button type="button" class="ccard" data-id="' + esc(c.id) + '"><span style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><span><span class="nm">' + esc(c.name) + '</span>' +
+      '<span class="sub" style="display:block">' + esc([c.occasion, fmtD(c.starts) + ' – ' + fmtDY(c.ends)].filter(Boolean).join(' · ')) + '</span></span><span class="tag ' + s + '">' + STATE[s] + '</span></span>' +
+      (r.list.length ? NJ.meterBar({done: r.sent.length, late: 0, total: r.list.length}) + '<span class="sub">' + r.sent.length + ' of ' + r.list.length + ' messages sent</span>' : '<span class="sub">No customers chosen yet</span>') +
+      '<span class="facts"><span><b>' + r.came.length + '</b>came in</span><span><b>' + inr(r.sales) + '</b>sales</span><span><b>' + inr(r.spent) + '</b>spent' + (c.budget ? ' of ' + inr(c.budget) : '') + '</span></span>' +
+      (c.channels.length ? '<span class="chips">' + c.channels.map(x => '<span class="chip">' + esc(x) + '</span>').join('') + '</span>' : '') + '</button>'; };
+  $('groups').innerHTML = camps.length ? ['run', 'soon', 'over'].filter(k => by[k].length).map(k => '<div class="group"><h3 class="gh">' + STATE[k] + '</h3><div class="ccards">' + by[k].map(card).join('') + '</div></div>').join('')
+    : '<div class="empty"><h3>No campaigns yet</h3><p>Start one for the next festival: the offer, the dates, and the customers to send it to.</p></div>';
+}
+$('groups').addEventListener('click', e => { const c = e.target.closest('.ccard'); if(c) location.hash = 'c=' + c.dataset.id; });
+$('goNew').onclick = () => { location.hash = 'new'; };
+
+/* ---------- one campaign ---------- */
+function openCampaign(id){
+  cur = camps.find(c => c.id === id) || null;
+  show('one');
+  if(!cur){ $('oName').textContent = 'Campaign not found'; return; }
+  renderCampaign();
+}
+function renderCampaign(){
+  const c = cur, r = results(c), s = stateOf(c);
+  $('oName').textContent = c.name;
+  $('oEyebrow').textContent = STATE[s] + ' · ' + [c.occasion, fmtD(c.starts) + ' – ' + fmtDY(c.ends)].filter(Boolean).join(' · ');
+  $('oOffer').innerHTML = (c.offer ? '<b>Offer:</b> ' + esc(c.offer) : '') + (c.channels.length ? ' <span class="chips" style="display:inline-flex;margin-left:6px">' + c.channels.map(x => '<span class="chip">' + esc(x) + '</span>').join('') + '</span>' : '') +
+    ' <button class="linkish" id="oEdit">Edit campaign</button>';
+  $('oStats').innerHTML = '<div><span>Messages sent</span><b>' + r.sent.length + ' / ' + r.list.length + '</b><em>' + (r.list.length ? Math.round(r.sent.length * 100 / r.list.length) + '% done' : 'choose customers') + '</em></div>' +
+    '<div><span>Came in</span><b>' + r.came.length + '</b><em>' + (r.sent.length ? Math.round(r.came.filter(k => !k.walk_in).length * 100 / r.sent.length) + '% of those sent' : '') + (r.walkIns ? ' · ' + r.walkIns + ' walk-in' + (r.walkIns > 1 ? 's' : '') : '') + '</em></div>' +
+    '<div><span>Sales</span><b>' + inr(r.sales) + '</b><em>' + r.bought.length + ' bought' + (r.bought.some(k => !(Number(k.bought) > 0)) ? ' · ' + r.bought.filter(k => !(Number(k.bought) > 0)).length + ' bill not entered' : '') + '</em></div>' +
+    '<div><span>Spent</span><b>' + inr(r.spent) + '</b><em>' + (c.budget ? 'of ' + inr(c.budget) + ' budget' : 'no budget set') + (r.perVisit ? ' · ' + inr(r.perVisit) + ' a visitor' : '') + '</em></div>';
+  $('oTabs').querySelectorAll('[data-s]').forEach(b => b.setAttribute('aria-selected', b.dataset.s === sub));
+  ['send', 'people', 'add', 'costs'].forEach(k => $('s-' + k).hidden = k !== sub);
+  ({send: renderSend, people: renderPeople, add: renderAdd, costs: renderCosts})[sub]();
+}
+$('oTabs').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if(b){ sub = b.dataset.s; renderCampaign(); } });
+$('oOffer').addEventListener('click', e => { if(e.target.id === 'oEdit') location.hash = 'edit=' + cur.id; });
+$('backBtn').onclick = () => { location.hash = ''; };
+
+/* send: one tap opens WhatsApp with the message for that person, and marks them sent */
+function renderSend(){
+  const r = results(cur), left = r.list.filter(k => !k.sent_at && k.phone), noPhone = r.list.filter(k => !k.phone);
+  $('s-send').innerHTML = '<h3>Send on WhatsApp<small>' + r.sent.length + ' of ' + r.list.length + ' sent</small></h3>' +
+    '<div class="sendbar"><div class="msg">' + esc(fill(cur, left[0] ? left[0].name : 'Lakshmi')) + '</div>' +
+    (r.list.length ? NJ.meterBar({done: r.sent.length, late: 0, total: r.list.length}) : '') +
+    (left.length ? '<div class="bar"><button class="btn btn-wa" data-send="' + esc(left[0].id) + '">Send to ' + esc(left[0].name) + ' (next)</button></div><p class="hint">WhatsApp opens with the message ready; press send there, then come back for the next one. WhatsApp does not allow sending to many people at once from the shop’s number.</p>'
+      : r.list.length ? '<p class="good">✓ Everyone on the list has been sent the message.</p>' : '<p class="hint">No one on the list yet. Use “Choose customers”.</p>') + '</div>' +
+    (left.length ? left.slice(0, 200).map(k => '<div class="prow"><div><div class="nm">' + esc(k.name) + '</div><div class="sub">' + esc(k.phone) + '</div></div><div class="acts"><button class="btn btn-wa mini" data-send="' + esc(k.id) + '">Send</button><button class="btn mini" data-skip="' + esc(k.id) + '">Remove</button></div></div>').join('') : '') +
+    (noPhone.length ? '<div class="prow"><div><div class="nm">' + noPhone.length + ' without a phone number</div><div class="sub">' + esc(noPhone.map(k => k.name).join(', ')) + '</div></div></div>' : '');
+}
+$('s-send').addEventListener('click', async e => {
+  const b = e.target.closest('[data-send]'), x = e.target.closest('[data-skip]');
+  if(b){
+    const k = contacts.find(y => y.id === b.dataset.send); if(!k) return;
+    window.open('https://wa.me/' + digits(k.phone) + '?text=' + encodeURIComponent(fill(cur, k.name)), '_blank', 'noopener');   // open first, while the tap counts
+    try{ Object.assign(k, must(await sb.from('campaign_contacts').update({sent_at: new Date().toISOString()}).eq('id', k.id).select().single())); }catch(err){ toast(err.message); }
+    renderCampaign();
+  }
+  if(x){
+    const k = contacts.find(y => y.id === x.dataset.skip);
+    try{ must(await sb.from('campaign_contacts').delete().eq('id', k.id)); contacts = contacts.filter(y => y !== k); toast('Removed from the list'); renderCampaign(); }catch(err){ toast(err.message); }
+  }
+});
+
+/* people and results: who was sent, who came (by hand or from a visit form), who bought and for how much */
+function renderPeople(){
+  const r = results(cur), order = k => (Number(k.bought) > 0 ? 0 : k.came || visitOf(cur, k) ? 1 : k.sent_at ? 2 : 3);
+  const ks = r.ks.slice().sort((a, b) => order(a) - order(b) || a.name.localeCompare(b.name));
+  $('s-people').innerHTML = '<h3>People &amp; results<small>' + r.came.length + ' came · ' + inr(r.sales) + ' sales</small></h3>' +
+    '<div class="sendbar"><div class="bar"><button class="btn btn-maroon" id="addWalk">Add a walk-in who came for the offer</button></div>' +
+    '<p class="hint">Visit forms filled in Customers during the campaign (or up to a week after) count as “came” on their own. Mark others by hand, and add the bill amount when they buy.</p></div>' +
+    (ks.length ? ks.map(k => { const v = visitOf(cur, k), came = k.came || v;
+      return '<div class="prow"><div><div class="nm">' + esc(k.name) + (k.walk_in ? '<span class="st walk">walk-in</span>' : k.sent_at ? '<span class="st sent">sent</span>' : '') + (came ? '<span class="st came">came' + (!k.came && v ? ' · visit form' : '') + '</span>' : '') + (Number(k.bought) > 0 ? '<span class="st bought">bought ' + inr(k.bought) + '</span>' : '') + '</div>' +
+        '<div class="sub">' + esc([k.phone, k.sent_at ? 'sent ' + fmtD(iso(new Date(k.sent_at))) + (k.sent_by_name ? ' by ' + k.sent_by_name : '') : '', k.came_on ? 'came ' + fmtD(k.came_on) : v ? 'visited ' + fmtD(v.visit_day) : '', k.note].filter(Boolean).join(' · ')) + '</div></div>' +
+        '<div class="acts">' + (k.came ? '<button class="btn mini" data-uncame="' + esc(k.id) + '">Not came</button>' : '<button class="btn mini" data-came="' + esc(k.id) + '">Came in</button>') +
+        '<button class="btn mini" data-bought="' + esc(k.id) + '">' + (Number(k.bought) > 0 ? 'Change bill' : 'Bought') + '</button></div></div>'; }).join('')
+      : '<div class="empty-s">No one yet.</div>');
+}
+$('s-people').addEventListener('click', async e => {
+  if(e.target.closest('#addWalk')) return addWalkIn();
+  const b = e.target.closest('[data-came],[data-uncame],[data-bought]'); if(!b) return;
+  const k = contacts.find(y => y.id === (b.dataset.came || b.dataset.uncame || b.dataset.bought)); if(!k) return;
+  try{
+    if(b.dataset.came) Object.assign(k, must(await sb.from('campaign_contacts').update({came: true, came_on: todayIso()}).eq('id', k.id).select().single()));
+    if(b.dataset.uncame) Object.assign(k, must(await sb.from('campaign_contacts').update({came: false}).eq('id', k.id).select().single()));
+    if(b.dataset.bought){
+      const v = await dialog({title: k.name + ' bought', msg: 'The bill amount. Leave it empty if they did not buy.', ok: 'Save', fields: [
+        {id: 'amt', label: 'Bill amount (₹)', value: Number(k.bought) > 0 ? String(Number(k.bought)) : '', maxlength: 12, placeholder: 'e.g. 85000'},
+        {id: 'note', label: 'What they bought (optional)', value: k.note, maxlength: 200, placeholder: 'e.g. 8 g gold coin'}],
+        validate: async v => { const a = num(v.amt); return Number.isNaN(a) ? 'Type the amount in rupees.' : ''; }});
+      if(!v) return;
+      const a = num(v.amt);
+      Object.assign(k, must(await sb.from('campaign_contacts').update({bought: a, note: v.note, came: a > 0 ? true : k.came, came_on: a > 0 && !k.came ? todayIso() : k.came_on}).eq('id', k.id).select().single()));
+    }
+    renderCampaign();
+  }catch(err){ toast(err.message); }
+});
+async function addWalkIn(){
+  const v = await dialog({title: 'Walk-in for the offer', msg: 'Someone who came because of this campaign (saw the pamphlet, the post or the hoarding) but was not on the list.', ok: 'Add', fields: [
+    {id: 'name', label: 'Name', maxlength: 80}, {id: 'phone', label: 'Phone (optional)', type: 'tel', maxlength: 20},
+    {id: 'how', label: 'How they heard', type: 'select', value: cur.channels[0] || 'Other', options: [...new Set([...cur.channels, ...CHANNELS])].map(x => [x, x])},
+    {id: 'amt', label: 'Bill amount (₹, optional)', maxlength: 12}],
+    validate: async v => !v.name ? 'Type their name.' : v.phone && !/^[0-9+ ]{6,20}$/.test(v.phone) ? 'Type the phone with digits only.' : Number.isNaN(num(v.amt)) ? 'Type the amount in rupees.' : ''});
+  if(!v) return;
+  const c = customers.find(x => v.phone && x.phone && x.phone.replace(/\D/g, '').slice(-10) === v.phone.replace(/\D/g, '').slice(-10));
+  try{
+    const row = must(await sb.from('campaign_contacts').insert({campaign_id: cur.id, customer_id: c && !contacts.some(k => k.campaign_id === cur.id && k.customer_id === c.id) ? c.id : null, name: v.name, phone: v.phone, walk_in: true, came: true, came_on: todayIso(), bought: num(v.amt), note: 'Heard via ' + v.how}).select().single());
+    contacts.push(row); toast('Walk-in added'); renderCampaign();
+  }catch(err){ toast(err.message); }
+}
+
+/* choose customers from Customers: only those who agreed to offers on WhatsApp, with a phone */
+let flt = {tags: [], area: '', occasion: false, fn: false, quiet: '', source: ''};
+function audience(){
+  const inWin = (d, from, to) => { if(!d) return false; const md = d.slice(5); const a = from.slice(5), b = to.slice(5); return a <= b ? md >= a && md <= b : md >= a || md <= b; };
+  const lastVisit = {}; visits.forEach(v => { if(!lastVisit[v.customer_id] || v.visit_day > lastVisit[v.customer_id]) lastVisit[v.customer_id] = v.visit_day; });
+  const quietSince = flt.quiet ? addDays(todayIso(), -Number(flt.quiet)) : null;
+  return customers.filter(c => (!flt.tags.length || flt.tags.some(t => (c.tags || []).includes(t))) && (!flt.area || c.area === flt.area) && (!flt.source || c.source === flt.source) &&
+    (!flt.occasion || inWin(c.birthday, cur.starts, addDays(cur.ends, 0)) || (flt.occasion && inWin(c.anniversary, cur.starts, cur.ends))) &&
+    (!flt.fn || (c.function_month && c.function_month >= cur.starts.slice(0, 7) && c.function_month <= addDays(cur.ends, 92).slice(0, 7))) &&
+    (!quietSince || !lastVisit[c.id] || lastVisit[c.id] < quietSince));
+}
+function renderAdd(){
+  if(!NJ.canUse('crm')){ $('s-add').innerHTML = '<h3>Choose customers</h3><div class="empty-s">Choosing customers needs the Customers app. Ask the owner to switch it on for you.</div>'; return; }
+  const tags = [...new Set(customers.flatMap(c => c.tags || []))].sort(), areas = [...new Set(customers.map(c => c.area).filter(Boolean))].sort(), sources = [...new Set(customers.map(c => c.source).filter(Boolean))].sort();
+  const all = audience(), ok = all.filter(c => c.whatsapp_ok && c.phone), already = new Set(contacts.filter(k => k.campaign_id === cur.id).map(k => k.customer_id)), fresh = ok.filter(c => !already.has(c.id));
+  $('s-add').innerHTML = '<h3>Choose customers<small>' + customers.length + ' in Customers</small></h3><div class="filters">' +
+    '<div class="field"><span>Tags (any of)</span><div class="bubbles" id="aTags">' + (tags.map(t => '<button type="button" class="bubble" data-t="' + esc(t) + '" aria-pressed="' + flt.tags.includes(t) + '">' + esc(t) + '</button>').join('') || '<span class="hint">No tags yet</span>') + '</div></div>' +
+    '<div class="two"><label>Area<select class="input" id="aArea"><option value="">Any area</option>' + areas.map(a => '<option' + (flt.area === a ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select></label>' +
+    '<label>First heard from<select class="input" id="aSrc"><option value="">Any</option>' + sources.map(a => '<option' + (flt.source === a ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select></label></div>' +
+    '<div class="two"><label>Not visited for<select class="input" id="aQuiet"><option value="">Doesn’t matter</option><option value="90"' + (flt.quiet === '90' ? ' selected' : '') + '>3 months or more</option><option value="180"' + (flt.quiet === '180' ? ' selected' : '') + '>6 months or more</option><option value="365"' + (flt.quiet === '365' ? ' selected' : '') + '>a year or more</option></select></label>' +
+    '<div style="display:grid;gap:8px;align-content:end"><label class="field check"><input type="checkbox" id="aOcc"' + (flt.occasion ? ' checked' : '') + '> Birthday or anniversary during the campaign</label>' +
+    '<label class="field check"><input type="checkbox" id="aFn"' + (flt.fn ? ' checked' : '') + '> Family function coming up</label></div></div>' +
+    '<div class="match">' + all.length + ' customer' + (all.length === 1 ? '' : 's') + ' match · ' + ok.length + ' agreed to WhatsApp offers' + (ok.length - fresh.length ? ' · ' + (ok.length - fresh.length) + ' already on the list' : '') + '</div>' +
+    '<div class="bar"><button class="btn btn-maroon" id="aAdd"' + (fresh.length ? '' : ' disabled') + '>Add ' + fresh.length + ' to this campaign</button></div>' +
+    '<p class="hint">Only customers who agreed to get offers on WhatsApp are added. Ask the others when they next visit, in Customers.</p></div>';
+}
+$('s-add').addEventListener('click', async e => {
+  const t = e.target.closest('[data-t]');
+  if(t){ flt.tags = flt.tags.includes(t.dataset.t) ? flt.tags.filter(x => x !== t.dataset.t) : [...flt.tags, t.dataset.t]; return renderAdd(); }
+  if(e.target.closest('#aAdd')){
+    const already = new Set(contacts.filter(k => k.campaign_id === cur.id).map(k => k.customer_id));
+    const rows = audience().filter(c => c.whatsapp_ok && c.phone && !already.has(c.id)).map(c => ({campaign_id: cur.id, customer_id: c.id, name: c.name, phone: c.phone}));
+    if(!rows.length) return;
+    try{ const saved = must(await sb.from('campaign_contacts').insert(rows).select()) || []; contacts.push(...saved); toast('Added ' + saved.length + ' customers'); sub = 'send'; renderCampaign(); }catch(err){ toast(err.message); }
+  }
+});
+$('s-add').addEventListener('change', e => {
+  if(e.target.id === 'aArea') flt.area = e.target.value;
+  if(e.target.id === 'aSrc') flt.source = e.target.value;
+  if(e.target.id === 'aQuiet') flt.quiet = e.target.value;
+  if(e.target.id === 'aOcc') flt.occasion = e.target.checked;
+  if(e.target.id === 'aFn') flt.fn = e.target.checked;
+  renderAdd();
+});
+
+/* costs: what was spent, by channel */
+function renderCosts(){
+  const cs = costs.filter(x => x.campaign_id === cur.id), total = cs.reduce((s, x) => s + Number(x.amount), 0);
+  const canFix = x => NJ.me.is_owner || (x.created_by === NJ.me.user_id && iso(new Date(x.created_at)) === todayIso());
+  $('s-costs').innerHTML = '<h3>Costs<small>' + inr(total) + (cur.budget ? ' of ' + inr(cur.budget) + (total > cur.budget ? ' · over budget' : '') : '') + '</small></h3>' +
+    '<div class="sendbar"><div class="bar"><button class="btn btn-maroon" id="costAdd">Add a cost</button></div><p class="hint">E.g. printing pamphlets, the newspaper ad, Instagram boost, radio spots. Also enter it in Expenses if the shop paid it.</p></div>' +
+    (cs.length ? cs.map(x => '<div class="prow"><div><div class="nm">' + esc(x.what || x.channel || 'Cost') + '</div><div class="sub">' + esc([fmtDY(x.day), x.channel, x.created_by_name].filter(Boolean).join(' · ')) + '</div></div>' +
+      '<div class="acts"><b style="font-variant-numeric:tabular-nums">' + inr(x.amount) + '</b>' + (canFix(x) ? '<button class="btn mini btn-danger" data-delcost="' + esc(x.id) + '">Delete</button>' : '') + '</div></div>').join('') : '<div class="empty-s">No costs entered yet.</div>');
+}
+$('s-costs').addEventListener('click', async e => {
+  if(e.target.closest('#costAdd')){
+    const v = await dialog({title: 'Add a cost', ok: 'Add', fields: [
+      {id: 'channel', label: 'Channel', type: 'select', value: cur.channels[0] || 'Other', options: [...new Set([...cur.channels, ...CHANNELS])].map(x => [x, x])},
+      {id: 'what', label: 'What for', maxlength: 120, placeholder: 'e.g. 5,000 pamphlets'}, {id: 'amt', label: 'Amount (₹)', maxlength: 12}, {id: 'day', label: 'Date', type: 'date', value: todayIso()}],
+      validate: async v => { const a = num(v.amt); if(!a || Number.isNaN(a)) return 'Type the amount in rupees.'; if(!v.day) return 'Choose the date.';
+        costs.push(must(await sb.from('campaign_costs').insert({campaign_id: cur.id, channel: v.channel, what: v.what, amount: a, day: v.day}).select().single())); return ''; }});
+    if(v){ toast('Cost added'); renderCampaign(); }
+  }
+  const d = e.target.closest('[data-delcost]');
+  if(d){ const x = costs.find(y => y.id === d.dataset.delcost); if(!await ask('Delete this cost?', (x.what || x.channel) + ' · ' + inr(x.amount), 'Delete', true)) return;
+    try{ must(await sb.from('campaign_costs').delete().eq('id', x.id)); costs = costs.filter(y => y !== x); renderCampaign(); }catch(err){ toast(err.message); } }
+});
+
+/* ---------- new / edit ---------- */
+$('occList').innerHTML = OCCASIONS.map(o => '<option value="' + esc(o) + '">').join('');
+function renderCh(){ $('fCh').innerHTML = CHANNELS.map(x => '<button type="button" class="bubble" data-c="' + esc(x) + '" aria-pressed="' + fCh.includes(x) + '">' + esc(x) + '</button>').join(''); }
+$('fCh').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if(!b) return; fCh = fCh.includes(b.dataset.c) ? fCh.filter(x => x !== b.dataset.c) : [...fCh, b.dataset.c]; renderCh(); });
+function openForm(c){
+  editing = c; show('new');
+  $('fEyebrow').textContent = c ? 'Edit' : 'New'; $('fTitle').textContent = c ? c.name : 'New campaign';
+  $('fName').value = c ? c.name : ''; $('fOcc').value = c ? c.occasion : '';
+  $('fStart').value = c ? c.starts : todayIso(); $('fEnd').value = c ? c.ends : addDays(todayIso(), 14);
+  fCh = c ? c.channels.slice() : ['WhatsApp']; renderCh();
+  $('fOffer').value = c ? c.offer : ''; $('fMsg').value = c ? c.message : DEFAULT_MSG;
+  $('fBudget').value = c && c.budget != null ? Number(c.budget) : ''; $('fNotes').value = c ? c.notes : '';
+  $('fErr').textContent = ''; $('fDel').hidden = !c;
+}
+$('fCancel').onclick = () => { location.hash = editing ? 'c=' + editing.id : ''; };
+$('cf').addEventListener('submit', async e => {
+  e.preventDefault(); const err = t => { $('fErr').textContent = t; }; err('');
+  const b = num($('fBudget').value);
+  if(!$('fName').value.trim()) return err('Give the campaign a name.');
+  if(!$('fStart').value || !$('fEnd').value) return err('Choose the first and last day.');
+  if($('fEnd').value < $('fStart').value) return err('The last day is before the first day.');
+  if(Number.isNaN(b)) return err('Type the budget in rupees, or leave it empty.');
+  const row = {name: $('fName').value.trim(), occasion: $('fOcc').value.trim(), starts: $('fStart').value, ends: $('fEnd').value, channels: fCh, offer: $('fOffer').value.trim(), message: $('fMsg').value.trim(), budget: b, notes: $('fNotes').value.trim()};
+  $('fSave').setAttribute('aria-busy', 'true');
+  try{
+    const saved = must(editing ? await sb.from('campaigns').update(row).eq('id', editing.id).select().single() : await sb.from('campaigns').insert(row).select().single());
+    if(editing) Object.assign(editing, saved); else camps.unshift(saved);
+    toast(editing ? 'Saved' : 'Campaign created. Now choose the customers.');
+    sub = editing ? sub : NJ.canUse('crm') ? 'add' : 'send'; editing = null;
+    location.hash = 'c=' + saved.id;
+  }catch(x){ err(x.message); }
+  $('fSave').removeAttribute('aria-busy');
+});
+$('fDel').onclick = async () => {
+  if(!editing || !await ask('Delete ' + editing.name + '?', 'Its customer list, results and costs are removed for good.', 'Delete', true)) return;
+  try{ must(await sb.from('campaigns').delete().eq('id', editing.id)); camps = camps.filter(c => c !== editing); contacts = contacts.filter(k => k.campaign_id !== editing.id); costs = costs.filter(x => x.campaign_id !== editing.id); editing = null; toast('Campaign deleted'); location.hash = ''; }
+  catch(x){ toast(x.message); }
+};
+
+/* ---------- compare (owner) ---------- */
+function renderCompare(){
+  const rows = camps.map(c => ({c, r: results(c)}));
+  const ratio = r => r.perRupee == null ? '–' : '<span class="' + (r.perRupee >= 5 ? 'good' : r.perRupee < 1 ? 'bad' : '') + '">' + inr(r.perRupee) + '</span>';
+  $('cmpTable').innerHTML = rows.length ? '<table class="ctab"><thead><tr><th>Campaign</th><th>Dates</th><th>Spent</th><th>Sent</th><th>Came</th><th>Bought</th><th>Sales</th><th>Cost a visitor</th><th>Sales per ₹1 spent</th></tr></thead><tbody>' +
+    rows.map(({c, r}) => '<tr data-id="' + esc(c.id) + '"><td><b>' + esc(c.name) + '</b><br><span class="hint">' + esc(c.channels.join(', ')) + '</span></td><td>' + fmtD(c.starts) + ' – ' + fmtDY(c.ends) + '</td><td>' + inr(r.spent) + '</td><td>' + r.sent.length + '/' + r.list.length + '</td><td>' + r.came.length + '</td><td>' + r.bought.length + '</td><td>' + inr(r.sales) + '</td><td>' + (r.perVisit ? inr(r.perVisit) : '–') + '</td><td>' + ratio(r) + '</td></tr>').join('') + '</tbody></table>'
+    : '<div class="empty-s">No campaigns yet.</div>';
+  const ch = {}; costs.forEach(x => { const k = x.channel || 'Other'; ch[k] = ch[k] || {spent: 0, camps: new Set()}; ch[k].spent += Number(x.amount); ch[k].camps.add(x.campaign_id); });
+  const walk = {}; contacts.filter(k => k.walk_in).forEach(k => { const m = /^Heard via (.+)$/.exec(k.note || ''); const key = m ? m[1] : 'Other'; walk[key] = (walk[key] || 0) + 1; });
+  const keys = [...new Set([...Object.keys(ch), ...Object.keys(walk)])].sort((a, b) => ((ch[b] || {}).spent || 0) - ((ch[a] || {}).spent || 0));
+  $('cmpCh').innerHTML = keys.length ? '<table class="ctab"><thead><tr><th>Channel</th><th>Spent</th><th>Campaigns</th><th>Walk-ins who said so</th></tr></thead><tbody>' +
+    keys.map(k => '<tr><td>' + esc(k) + '</td><td>' + inr((ch[k] || {}).spent) + '</td><td>' + (ch[k] ? ch[k].camps.size : 0) + '</td><td>' + (walk[k] || 0) + '</td></tr>').join('') + '</tbody></table>'
+    : '<div class="empty-s">No costs entered yet.</div>';
+}
+$('cmpTable').addEventListener('click', e => { const r = e.target.closest('tr[data-id]'); if(r) location.hash = 'c=' + r.dataset.id; });
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('campaigns') && !document.querySelector('dialog[open]'))
+    loadAll().then(() => { if(cur) cur = camps.find(c => c.id === cur.id) || cur; route(); }).catch(e => toast(e.message));
+});
+
+NJ.start({onReady: async me => {
+  const ok = !!me && NJ.canUse('campaigns');
+  document.body.classList.toggle('no-access', !!me && !ok);
+  if(!ok) return;
+  try{ await loadAll(); route(); }catch(e){ toast(e.message); }
+}});
+})();
+</script>
+</body>
+</html>
