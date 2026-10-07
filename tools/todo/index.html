@@ -19,9 +19,11 @@
 .signed-out .signin-msg{display:block}
 .not-assigner .assigner-only{display:none!important}
 
-.tally .od b{color:var(--a)} .tally .td b{color:var(--h)} .tally .dn b{color:var(--p)}
-.tally4{grid-template-columns:repeat(4,1fr)}
-@media (max-width:640px){.tally4{grid-template-columns:repeat(2,1fr)}.tally4 div:nth-child(3){padding-left:0;border-left:0}.tally4 div:nth-child(n+3){padding-top:14px}}
+.progress{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 32px;border-top:1px solid var(--line);padding-top:16px;align-items:start}
+.progress.solo{grid-template-columns:minmax(0,640px)}
+@media (max-width:760px){.progress{grid-template-columns:1fr}}
+.progress h4{margin:0 0 4px;font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.week{font-size:.84rem;color:var(--muted)}
 
 /* one task per row: round tick on the left, details, actions on the right */
 .trow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 14px;align-items:start;padding:16px 18px}
@@ -72,11 +74,9 @@
       <span class="grow"></span>
       <div class="bubbles filters" id="filters" hidden></div>
     </div>
-    <div class="tally tally4">
-      <div><b id="nOpen">–</b><span>Open</span></div>
-      <div class="td"><b id="nToday">–</b><span>Due today</span></div>
-      <div class="od"><b id="nLate">–</b><span>Overdue</span></div>
-      <div class="dn"><b id="nDone">–</b><span>Done this week</span></div>
+    <div class="progress solo" id="progress">
+      <div style="display:grid;gap:8px"><div id="meter"></div><span class="week" id="week"></span></div>
+      <div id="people" hidden><h4>Each person today</h4><div class="mrows" id="peopleRows"></div></div>
     </div>
   </div></div>
   <div class="wrap content">
@@ -150,10 +150,21 @@ function render(){
   const d = today(), weekAgo = Date.now() - 7 * 864e5;
   const open = list.filter(t => t.status === 'open').sort(order);
   const done = list.filter(t => t.status === 'done').sort((a, b) => b.done_at.localeCompare(a.done_at));
-  $('nOpen').textContent = open.length;
-  $('nToday').textContent = open.filter(t => t.due === d).length;
-  $('nLate').textContent = open.filter(t => t.due && t.due < d).length;
-  $('nDone').textContent = done.filter(t => new Date(t.done_at) >= weekAgo).length;
+  // today's meter for what is shown; on All tasks, one bar per person (tap to see only theirs)
+  const label = curTab === 'mine' ? 'Today' : who ? 'Today' : 'Today by everyone';
+  $('meter').innerHTML = NJ.meterHtml(NJ.taskMeter(list), label);
+  const wk = done.filter(t => new Date(t.done_at) >= weekAgo).length;
+  $('week').textContent = wk ? wk + ' done in the last 7 days' + (open.length ? ' · ' + open.length + ' open in all' : '') : (open.length ? open.length + ' open in all' : '');
+  const byPerson = curTab === 'all' && !who;
+  $('people').hidden = !byPerson; $('progress').classList.toggle('solo', !byPerson);
+  if(byPerson){
+    const rows = people.map(p => ({p, m: NJ.taskMeter(tasks.filter(t => t.assigned_to === p.user_id))})).filter(x => x.m.total || x.m.later)
+      .sort((a, b) => (b.m.late - a.m.late) || (a.m.pct - b.m.pct) || a.p.name.localeCompare(b.p.name));
+    $('peopleRows').innerHTML = rows.length ? rows.map(({p, m}) => '<button type="button" class="mrow" data-who="' + esc(p.user_id) + '" aria-label="' + esc(p.name + ': ' + m.done + ' of ' + m.total + ' done today' + (m.late ? ', ' + m.late + ' overdue' : '')) + '">' +
+      '<span class="nm">' + esc(p.name) + '</span>' + NJ.meterBar(m) +
+      '<small>' + (m.total ? (m.left ? '<b>' + m.done + '</b>/' + m.total + (m.late ? ' · <span style="color:var(--a)">' + m.late + ' late</span>' : '') : '<span style="color:var(--p);font-weight:700">✓ ' + m.done + '/' + m.total + '</span>') : m.later + ' later') + '</small></button>').join('')
+      : '<small class="week">No tasks given for today.</small>';
+  }
 
   const row = t => {
     const canEdit = assigner;
@@ -179,6 +190,7 @@ function render(){
 
 /* ---------- actions ---------- */
 $('filters').addEventListener('click', e => { const b = e.target.closest('[data-who]'); if(!b) return; who = b.dataset.who; render(); });
+$('peopleRows').addEventListener('click', e => { const b = e.target.closest('[data-who]'); if(!b) return; who = b.dataset.who; render(); });
 
 $('list').addEventListener('click', async e => {
   const r = e.target.closest('.trow'); if(!r) return;

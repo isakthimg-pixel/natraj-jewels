@@ -414,6 +414,32 @@ function rateStatus(settings, last, updaters){
 }
 
 /* Owner backup: every table, as one JSON file. Add new apps' tables here. */
+/* Today's task meter, the same everywhere: tasks done today against what is left for today
+   (open tasks due today, overdue, or with no date). Tasks due on a later day are counted apart. */
+function taskMeter(list){
+  const t = todayIso(), dayOf = s => iso(new Date(s));
+  const done = list.filter(x => x.status === 'done' && x.done_at && dayOf(x.done_at) === t).length;
+  const open = list.filter(x => x.status === 'open');
+  const left = open.filter(x => !x.due || x.due <= t), late = left.filter(x => x.due && x.due < t).length;
+  const total = done + left.length;
+  return {done, left: left.length, late, later: open.length - left.length, total, pct: total ? Math.round(done * 100 / total) : 0};
+}
+// the bar: green for done, red for overdue still to do, the empty track for the rest
+function meterBar(m){
+  const w = n => m.total ? (n * 100 / m.total).toFixed(2) + '%' : '0%';
+  return '<span class="mtrack" aria-hidden="true">' + (m.done ? '<i class="mdone" style="width:' + w(m.done) + '"></i>' : '') +
+    (m.late ? '<i class="mlate" style="width:' + w(m.late) + '"></i>' : '') + '</span>';
+}
+function meterHtml(m, label){
+  const lab = label || 'Today';
+  const allDone = m.total && !m.left;
+  const foot = m.total ? (allDone ? '<b class="mok">✓ All done for today</b>' : '<span><b>' + m.left + '</b> left</span>' + (m.late ? '<span class="mlate-t"><b>' + m.late + '</b> overdue</span>' : ''))
+    : '<span>No tasks for today</span>';
+  return '<div class="meter" role="progressbar" aria-label="' + esc(lab + ': tasks done') + '" aria-valuemin="0" aria-valuemax="' + m.total + '" aria-valuenow="' + m.done + '" aria-valuetext="' + m.done + ' of ' + m.total + ' done">' +
+    '<div class="mhead"><span class="mnum"><b>' + m.done + '</b> of ' + m.total + ' done ' + esc(lab.toLowerCase()) + '</span>' + (m.total ? '<span class="mpct">' + m.pct + '%</span>' : '') + '</div>' +
+    meterBar(m) + '<div class="mfoot">' + foot + (m.later ? '<span>' + m.later + ' due later</span>' : '') + '</div></div>';
+}
+
 const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
@@ -422,5 +448,5 @@ async function exportAll(){
 }
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
-  pad, iso, parse, todayIso, canUse, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
+  pad, iso, parse, todayIso, canUse, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
 })();

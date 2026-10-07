@@ -142,8 +142,8 @@
         <div class="body" id="crmBox"><small>Loading…</small></div>
       </section>
       <section class="card mod" data-mod="tasks">
-        <div class="head"><h3>Open tasks</h3><a href="../todo/#all">All tasks ›</a></div>
-        <div class="body"><div class="list" id="taskBox"><small>Loading…</small></div></div>
+        <div class="head"><h3>Tasks today</h3><a href="../todo/#all">All tasks ›</a></div>
+        <div class="body"><div id="taskBox"><small>Loading…</small></div></div>
       </section>
       <section class="card mod" data-mod="designs">
         <div class="head"><h3>Design library</h3><a href="../designs/">To buy ›</a></div>
@@ -184,7 +184,7 @@ const MODS = {
   expenses:   {name: 'Expenses', box: 'expBox', load: () => loadExpenses()},
   bank:       {name: 'Bank balances', box: 'bankBox', load: () => loadBank()},
   customers:  {name: 'Customers', box: 'crmBox', load: () => loadCrm()},
-  tasks:      {name: 'Open tasks', box: 'taskBox', load: () => loadTasks()},
+  tasks:      {name: 'Tasks today', box: 'taskBox', load: () => loadTasks()},
   designs:    {name: 'Design library', box: 'desBox', load: () => loadDesigns()},
   worked:     {name: 'Days worked', box: 'bars', load: () => loadAttendance()}
 };
@@ -472,17 +472,18 @@ async function loadDesigns(){
 
 /* open tasks per person: how many, how many overdue, the next one due */
 async function loadTasks(){
-  const today = todayIso();
-  const rows = must(await sb.from('tasks').select('title,assigned_name,due,high').eq('status', 'open')) || [];
-  if(!rows.length){ $('taskBox').innerHTML = '<small>No open tasks. <a href="../todo/#all">Give a task</a>.</small>'; return; }
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const rows = must(await sb.from('tasks').select('assigned_to,assigned_name,status,due,done_at').or('status.eq.open,done_at.gte.' + start.toISOString())) || [];
+  if(!rows.length){ $('taskBox').innerHTML = '<small>No tasks for today. <a href="../todo/#all">Give a task</a>.</small>'; return; }
   const by = {};
-  rows.forEach(t => { const k = t.assigned_name || 'Not given to anyone'; (by[k] = by[k] || []).push(t); });
-  const late = t => t.due && t.due < today;
-  $('taskBox').innerHTML = Object.entries(by).map(([n, ts]) => {
-    const od = ts.filter(late).length, td = ts.filter(t => t.due === today).length;
-    return {n, ts, od, html: '<div><span>' + esc(n) + '</span><small>' + ts.length + ' open' +
-      (td ? ' · ' + td + ' due today' : '') + (od ? ' · <b style="color:var(--a)">' + od + ' overdue</b>' : '') + '</small></div>'};
-  }).sort((a, b) => b.od - a.od || b.ts.length - a.ts.length || a.n.localeCompare(b.n)).map(x => x.html).join('');
+  rows.forEach(t => { const k = t.assigned_to || ''; (by[k] = by[k] || {n: t.assigned_name || 'Not given to anyone', ts: []}).ts.push(t); });
+  const all = NJ.taskMeter(rows);
+  const people = Object.values(by).map(x => Object.assign(x, {m: NJ.taskMeter(x.ts)})).filter(x => x.m.total || x.m.later)
+    .sort((a, b) => b.m.late - a.m.late || a.m.pct - b.m.pct || a.n.localeCompare(b.n));
+  $('taskBox').innerHTML = NJ.meterHtml(all, 'Today') + '<div class="mrows" style="margin-top:12px">' + people.map(({n, m}) =>
+    '<div class="mrow"><span class="nm">' + esc(n) + '</span>' + NJ.meterBar(m) + '<small>' +
+    (m.total ? (m.left ? '<b>' + m.done + '</b>/' + m.total + (m.late ? ' · <span style="color:var(--a)">' + m.late + ' late</span>' : '') : '<span style="color:var(--p);font-weight:700">✓ ' + m.done + '/' + m.total + '</span>') : m.later + ' later') +
+    '</small></div>').join('') + '</div>';
 }
 
 async function loadRates(){
