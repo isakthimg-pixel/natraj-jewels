@@ -55,7 +55,7 @@ a.brand:hover img{opacity:.88}
 .tabs button:hover::after,.tabs button:focus-visible::after,.tabs button[aria-selected="true"]::after{transform:scaleX(1)}
 .tabs button[aria-selected="true"]{color:#FFF7EE;font-weight:600}
 @media (max-width:640px){.brand img{height:50px}.tabs{gap:20px}}
-.access{justify-self:end;display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--on-dark-muted)}
+.access{grid-column:3;justify-self:end;display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--on-dark-muted)}
 .access b{color:#FFF7EE;font-weight:600}
 .btn-gold{background:var(--gold-soft);color:#3B2420;border-color:var(--gold-soft)}
 .btn-gold:hover{background:#F1E2C4;border-color:#F1E2C4}
@@ -68,7 +68,7 @@ a.brand:hover img{opacity:.88}
 @media (max-width:640px){
   .top .wrap{grid-template-columns:minmax(0,1fr);row-gap:8px}
   .brand,.title{justify-self:center}
-  .access{justify-self:stretch;justify-content:space-between}
+  .access{grid-column:1/-1;justify-self:stretch;justify-content:space-between}
 }
 
 /* who may do what: body.signed-out / body.not-owner hide controls the person cannot use */
