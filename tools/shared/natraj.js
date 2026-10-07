@@ -269,7 +269,7 @@ function renderAccess(opts){
   a.innerHTML = me
     ? '<button class="btn btn-on-dark bell" id="nj-bell" type="button" data-nj-notes aria-label="Notifications">' + BELL + '<span class="count" hidden></span></button>' +
       '<span>Signed in as <b>' + esc(me.name) + '</b></span>' + home + '<button class="btn btn-on-dark" type="button" data-nj-out>Sign out</button>'
-    : home + '<button class="btn btn-gold" type="button" data-nj-in>Sign in</button>';
+    : home;   // signed out: the page itself shows the sign-in card
   document.body.classList.toggle('signed-in', !!me);
   document.body.classList.toggle('signed-out', !me);
   document.body.classList.toggle('not-owner', !(me && me.is_owner));
