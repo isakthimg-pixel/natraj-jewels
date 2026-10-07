@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Customer Information Form · Natraj Jewels</title>
+<!-- Printable customer information form, A5, English and Tamil.
+     Make the PDF with forms/make-pdf.js. The fields match "Enter a form" in the Customers app. -->
+<style>
+@font-face{font-family:"NS";src:url(fonts/noto-sans-latin-400-normal.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"NS";src:url(fonts/noto-sans-latin-600-normal.woff2) format("woff2");font-weight:600}
+@font-face{font-family:"NS";src:url(fonts/noto-sans-latin-700-normal.woff2) format("woff2");font-weight:700}
+@font-face{font-family:"NST";src:url(fonts/noto-sans-tamil-tamil-400-normal.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"NST";src:url(fonts/noto-sans-tamil-tamil-600-normal.woff2) format("woff2");font-weight:600}
+@font-face{font-family:"NST";src:url(fonts/noto-sans-tamil-tamil-700-normal.woff2) format("woff2");font-weight:700}
+@font-face{font-family:"PF";src:url(fonts/playfair-display-latin-700-normal.woff2) format("woff2");font-weight:700}
+@page{size:A5;margin:0}
+:root{--ink:#1d1a19;--muted:#5d5350;--line:#8a7f7a;--maroon:#8E2A2A;--gold:#845E22;--soft:#F5F2ED}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"NS","NST",sans-serif;color:var(--ink);font-size:8.6pt;line-height:1.25;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ta{font-family:"NST","NS",sans-serif;font-weight:400;color:var(--muted);font-size:7.1pt}
+.sheet{width:148mm;height:210mm;padding:6mm 7.5mm 5mm;display:flex;flex-direction:column;gap:1.5mm;position:relative;overflow:hidden}
+
+/* header */
+.head{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3mm;border-bottom:.6mm solid var(--maroon);padding-bottom:1.6mm}
+.head img{height:10.5mm;width:auto}
+.head h1{margin:0;font:700 12pt/1.05 "PF",serif;white-space:nowrap;color:var(--maroon);letter-spacing:.01em}
+.head h1 .ta{display:block;font:600 8pt "NST",sans-serif;color:var(--maroon);margin-top:.8mm;letter-spacing:0}
+.meta{display:grid;gap:1.6mm;font-size:7.6pt;min-width:36mm}
+.meta div{display:flex;align-items:flex-end;gap:1.5mm;white-space:nowrap}
+.meta .ln{flex:1;border-bottom:.25mm solid var(--line);min-width:16mm;height:3.4mm}
+.offer{background:var(--maroon);color:#fff;border-radius:1.2mm;padding:1mm 3mm;text-align:center;font-weight:600;font-size:7.8pt}
+.offer .ta{color:#F3E3C6;font-size:7pt;display:block;font-weight:600}
+
+/* rows */
+.row{display:grid;grid-template-columns:31mm 1fr;align-items:end;gap:2mm}
+.lbl{font-weight:700;font-size:8.2pt;line-height:1.1}
+.lbl .ta{display:block;font-weight:600;margin-top:.3mm}
+.fill{border-bottom:.25mm solid var(--line);height:5.4mm}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.boxes{display:flex;gap:.9mm;align-items:flex-end}
+.boxes i{display:block;width:5mm;height:5.6mm;border:.25mm solid var(--line);border-radius:.4mm}
+.boxes .sep{width:1.5mm}
+.boxes small{font-size:6.4pt;color:var(--muted);margin:0 .8mm 0 .3mm}
+.dm{display:flex;align-items:flex-end;gap:1mm}
+.dm span{font-size:6.6pt;color:var(--muted)}
+.yr{font-size:6.6pt;color:var(--muted);margin-left:1.5mm;display:flex;align-items:flex-end;gap:1mm}
+.yr b{display:block;width:11mm;border-bottom:.25mm solid var(--line);height:5mm}
+
+.sec{border-top:.25mm solid #d9cfc4;padding-top:1.3mm}
+.q{font-weight:700;font-size:8.2pt;margin-bottom:.9mm}
+.q .ta{font-weight:600;margin-left:1.5mm}
+.q em{font-style:normal;font-weight:400;color:var(--muted);font-size:7pt}
+.ticks{display:flex;flex-wrap:wrap;gap:1.4mm 4.2mm}
+.ticks.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.1mm 2mm}
+.t{display:flex;align-items:flex-start;gap:1.4mm;line-height:1.1}
+.t > span{display:block}
+.t::before{content:"";flex:none;width:3.4mm;height:3.4mm;border:.3mm solid var(--ink);border-radius:.5mm;margin-top:.1mm}
+.t .ta{display:block;font-size:6.4pt;margin-top:.1mm}
+.inline{display:flex;align-items:flex-end;gap:2.4mm;margin-top:1.2mm}
+.inline .fill{flex:1;height:5mm}
+.inline .lb{font-size:7.6pt;font-weight:600;white-space:nowrap}
+.inline .lb .ta{font-size:6.6pt;margin-left:.8mm}
+.stars{display:flex;align-items:center;gap:2.6mm}
+.stars i{font-style:normal;font-size:15pt;line-height:1;color:#b9aea6}
+.stars small{font-size:6.6pt;color:var(--muted);margin-left:2mm}
+
+.consent{border:.45mm solid var(--maroon);border-radius:1.2mm;padding:1.5mm 3mm;display:flex;gap:2mm;align-items:flex-start}
+.consent::before{content:"";flex:none;width:4.4mm;height:4.4mm;border:.4mm solid var(--maroon);border-radius:.6mm;margin-top:.2mm}
+.consent b{font-size:8.4pt}
+.consent .ta{display:block;font-size:7pt;margin-top:.4mm}
+.consent small{display:block;color:var(--muted);font-size:6.4pt;margin-top:.6mm}
+
+.staff{margin-top:auto;border:.3mm dashed var(--line);border-radius:1.2mm;padding:1.2mm 3mm;display:flex;flex-wrap:wrap;align-items:center;gap:1.4mm 4mm;background:var(--soft);font-size:7.4pt}
+.staff .h{font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:6.4pt;color:var(--gold)}
+.staff .t::before{width:3mm;height:3mm}
+.foot{display:flex;justify-content:space-between;font-size:6.4pt;color:var(--muted);border-top:.25mm solid #d9cfc4;padding-top:1.2mm}
+
+/* two forms side by side on one A4 sheet */
+body.two-up{width:297mm;height:210mm;display:flex}
+body.two-up .sheet + .sheet{border-left:.2mm dashed #bbb}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="head">
+    <img src="logo-maroon.png" alt="Natraj Jewels">
+    <h1>Customer Information Form<span class="ta">வாடிக்கையாளர் விவரப் படிவம்</span></h1>
+    <div class="meta">
+      <div>Date <span class="ta">தேதி</span><span class="ln"></span></div>
+      <div>Served by <span class="ta">ஊழியர்</span><span class="ln"></span></div>
+    </div>
+  </div>
+
+  <div class="offer">Share your birthday and anniversary: a special offer awaits you on your day!
+    <span class="ta">உங்கள் பிறந்த நாள், திருமண நாளில் உங்களுக்காக ஒரு சிறப்பு சலுகை காத்திருக்கிறது!</span></div>
+
+  <div class="row"><div class="lbl">Name<span class="ta">பெயர்</span></div><div class="fill"></div></div>
+
+  <div class="row"><div class="lbl">Mobile number<span class="ta">கைபேசி எண்</span></div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:2mm">
+      <div class="boxes"><i></i><i></i><i></i><i></i><i></i><span class="sep"></span><i></i><i></i><i></i><i></i><i></i></div>
+      <span class="t" style="font-size:7.2pt;max-width:30mm"><span>WhatsApp on this number<span class="ta">இந்த எண்ணில் WhatsApp உள்ளது</span></span></span>
+    </div></div>
+
+  <div class="row"><div class="lbl">Area<span class="ta">பகுதி / ஊர்</span></div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:3mm;align-items:end"><div class="fill"></div>
+      <div class="dm"><span>Pincode <span class="ta">பின்கோடு</span></span><div class="boxes"><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div></div>
+
+  <div class="row"><div class="lbl">Birthday<span class="ta">பிறந்த நாள்</span></div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:2mm">
+      <div class="boxes"><i></i><i></i><small>DD</small><i></i><i></i><small>MM</small></div>
+      <div class="lbl" style="text-align:right;white-space:nowrap;margin-left:auto">Anniversary<span class="ta">திருமண நாள்</span></div>
+      <div class="boxes"><i></i><i></i><small>DD</small><i></i><i></i><small>MM</small></div>
+    </div></div>
+
+  <div class="sec">
+    <div class="q">You came for <span class="ta">எதற்காக வந்தீர்கள்?</span> <em>(tick all that apply)</em></div>
+    <div class="ticks grid">
+      <span class="t"><span>Gold<span class="ta">தங்கம்</span></span></span>
+      <span class="t"><span>Silver<span class="ta">வெள்ளி</span></span></span>
+      <span class="t"><span>Diamond<span class="ta">வைரம்</span></span></span>
+      <span class="t"><span>Wedding<span class="ta">திருமணம்</span></span></span>
+      <span class="t"><span>Gift<span class="ta">பரிசு</span></span></span>
+      <span class="t"><span>Investment<span class="ta">முதலீடு</span></span></span>
+      <span class="t"><span>Daily wear<span class="ta">தினசரி அணிய</span></span></span>
+    </div>
+    <div class="inline">
+      <span class="lb">Bought today?<span class="ta">இன்று வாங்கினீர்களா?</span></span>
+      <span class="t"><span>Yes<span class="ta">ஆம்</span></span></span>
+      <span class="t"><span>Just looking<span class="ta">பார்க்க மட்டும்</span></span></span>
+      <span class="lb" style="margin-left:2mm">Looking for<span class="ta">தேடுவது</span></span><span class="fill"></span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="q">Any wedding or function in your family in the next 12 months?</div>
+    <div class="ta" style="margin:-.8mm 0 1.2mm;font-weight:600">அடுத்த 12 மாதங்களில் உங்கள் குடும்பத்தில் திருமணம் அல்லது விசேஷம் உள்ளதா?</div>
+    <div class="inline" style="margin-top:0">
+      <span class="t"><span>Yes<span class="ta">ஆம்</span></span></span>
+      <span class="lb">Month<span class="ta">மாதம்</span></span><span class="fill" style="flex:.6"></span>
+      <span class="lb">Which function<span class="ta">என்ன விசேஷம்</span></span><span class="fill"></span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="q">How did you first hear about us? <em>(tick one)</em></div>
+    <div class="ta" style="margin:-.8mm 0 1.2mm;font-weight:600">எங்களைப் பற்றி முதலில் எப்படித் தெரிந்துகொண்டீர்கள்? (ஒன்று மட்டும்)</div>
+    <div class="ticks grid">
+      <span class="t"><span>Instagram</span></span>
+      <span class="t"><span>Facebook</span></span>
+      <span class="t"><span>Google</span></span>
+      <span class="t"><span>Radio<span class="ta">வானொலி</span></span></span>
+      <span class="t"><span>Wall painting<span class="ta">சுவர் விளம்பரம்</span></span></span>
+      <span class="t"><span>Pamphlet<span class="ta">நோட்டீஸ்</span></span></span>
+      <span class="t"><span>Newspaper<span class="ta">செய்தித்தாள்</span></span></span>
+      <span class="t"><span>WhatsApp</span></span>
+      <span class="t"><span>Phone call<span class="ta">தொலைபேசி அழைப்பு</span></span></span>
+      <span class="t"><span>Family / friend<span class="ta">குடும்பம் / நண்பர்கள்</span></span></span>
+      <span class="t"><span>Passing by<span class="ta">வழியில் பார்த்தேன்</span></span></span>
+      <span class="t"><span>Other<span class="ta">மற்றவை</span></span></span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:3mm">
+      <div class="q" style="margin:0">How was our service today?<span class="ta" style="display:block;margin:.4mm 0 0">இன்று எங்கள் சேவை எப்படி இருந்தது?</span></div>
+      <div class="stars"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i><small>circle 1 to 5 stars</small></div>
+    </div>
+    <div class="inline">
+      <span class="lb">Anything you wanted that we didn’t have?<span class="ta" style="display:block;margin:.3mm 0 0">நீங்கள் தேடியதில் எங்களிடம் இல்லாதது ஏதேனும்?</span></span>
+      <span class="fill"></span>
+    </div>
+  </div>
+
+  <div class="consent"><div><b>Yes, send me offers and birthday / anniversary wishes on WhatsApp.</b>
+    <span class="ta">ஆம், சலுகைகள் மற்றும் பிறந்த நாள் / திருமண நாள் வாழ்த்துகளை WhatsApp-இல் அனுப்பவும்.</span>
+    <small>Your details are used only by Natraj Jewels and are never shared. · உங்கள் விவரங்கள் யாருடனும் பகிரப்படாது.</small></div></div>
+
+  <div class="staff"><span class="h">For staff · ஊழியர்</span>
+    <span class="t"><span>New</span></span><span class="t"><span>Returning</span></span><span class="t"><span>Chit member</span></span><span class="t"><span>Entered in app</span></span>
+    <span>Initials ______</span></div>
+
+  <div class="foot"><span>Natraj Jewels · 24, Eswaran Kovil St, Tiruppur 641604</span><span>+91 94445 22929</span></div>
+</div>
+</body>
+</html>
