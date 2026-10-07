@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v18';
+const KEY = 'natraj-demo-db-v20';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -96,7 +96,7 @@ function seed(){
   // banking: two accounts, daily cash deposits, card settlements, supplier payments, a transfer each month
   const acc = (name, bank, last4) => { const a = {id: uid(), name, bank, last4, active: true, created_at: now()}; db.bank_accounts.push(a); return a; };
   const sbi = acc('SBI Current', 'SBI, Tiruppur main', '4821'), hdfc = acc('HDFC Savings', 'HDFC, Kumaran Road', '0937');
-  const be = (a, day, direction, amount, method, party, reference, by, tid) => db.bank_entries.push({id: uid(), account_id: a.id, day, direction, amount, method, party: party || '', reference: reference || '', note: '', transfer_id: tid || null,
+  const be = (a, day, direction, amount, method, party, reference, by, tid) => db.bank_entries.push({id: uid(), account_id: a.id, day, direction, amount, method, party: party || '', reference: reference || '', note: '', transfer_id: tid || null, for_chit: false,
     created_by: by.user_id, created_by_name: by.name, created_at: day + 'T11:30:00Z', updated_by_name: '', updated_at: null});
   be(sbi, start, 'in', 845000, 'Opening balance', '', '', owner); be(hdfc, start, 'in', 312500, 'Opening balance', '', '', owner);
   for(let d = start; d <= today; d = addDays(d, 1)){
@@ -194,6 +194,17 @@ function seed(){
   member(P3, C[6].name, C[6].phone, C[6], 7, 8);                         // flexible, up to date
   member(P3, 'Sample Member Revathi', '', null, 2, 1);                   // flexible, behind, no phone
   member(P1, C[5].name, C[5].phone, C[5], 13, 11, {status: 'closed', closed_at: monthAgo(1) + 'T15:00:00Z', close_note: 'Bought a 22K chain, bill 1432'});
+  // chit money in the bank: UPI and transfers the same day, cards the next day, one UPI payment left out so the check shows a gap
+  db.chit_payments.filter(p => p.paid_on >= month0).forEach((p, i) => { p.mode = ['UPI', 'Cash', 'UPI', 'Card'][i % 4]; });
+  const chitBank = {};
+  let skipped = false;
+  db.chit_payments.filter(p => p.mode !== 'Cash' && p.paid_on >= monthAgo(1)).forEach(p => {
+    if(!skipped && p.paid_on >= month0){ skipped = true; return; }
+    const d = p.mode === 'Card' ? addDays(p.paid_on, 1) : p.paid_on;
+    if(d > today) return;
+    chitBank[d] = (chitBank[d] || 0) + Number(p.amount);
+  });
+  Object.entries(chitBank).forEach(([d, amt]) => { be(sbi, d, 'in', amt, 'UPI', 'Chit members', '', manager); db.bank_entries[db.bank_entries.length - 1].for_chit = true; });
   const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
   note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
   note(owner, 'tasks_all_done', 'Sample Staff 3 finished all their tasks', '3 done today. Last one: Arrange the silver anklets tray', 45);
@@ -542,7 +553,7 @@ function bankEntriesRest(method, params, body, single, wantRows, me){
   if(method === 'GET') sortBy(out, params.get('order'));
   else if(method === 'POST'){
     if(!may) return {status: 403, body: {code: '42501', message: 'new row violates row-level security policy for table "bank_entries"'}};
-    out = (Array.isArray(body) ? body : [body]).map(b => Object.assign({id: uid(), method: '', party: '', reference: '', note: '', transfer_id: null}, b,
+    out = (Array.isArray(body) ? body : [body]).map(b => Object.assign({id: uid(), method: '', party: '', reference: '', note: '', transfer_id: null, for_chit: false}, b,
       {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null}));
     db.bank_entries.push(...out);
   } else if(method === 'PATCH'){

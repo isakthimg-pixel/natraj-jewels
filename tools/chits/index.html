@@ -93,6 +93,24 @@
 .linked{font-size:.84rem;color:var(--p);font-weight:600;margin:0}
 .plan-note{font-size:.86rem;color:var(--muted);margin:0}
 .plans .drow .sub b{color:var(--ink)}
+.itab{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+.itab th{text-align:right;font:600 .66rem/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.itab td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.itab th:first-child,.itab td:first-child{text-align:left;white-space:normal;min-width:160px}
+.itab .vbar{display:block;height:8px;border-radius:999px;background:var(--maroon);margin-top:6px;min-width:3px}
+.itab tr.best td{background:color-mix(in srgb,var(--gold) 9%,var(--card))}
+.itab tr.best td:first-child b{color:var(--maroon)}
+.itab tr.diff td.d{color:var(--a);font-weight:700}
+.itab tr.ok td.d{color:var(--p)}
+.itab tr[data-day]{cursor:pointer}
+.itab tr[data-day]:hover td{background:color-mix(in srgb,var(--gold) 6%,var(--card))}
+.itab tr.detail td{text-align:left;white-space:normal;background:var(--paper);font-size:.84rem;color:var(--muted)}
+.itab tfoot td{font-weight:700;border-bottom:0}
+.match{border-radius:4px;padding:12px 14px;font-weight:600;font-size:.94rem}
+.match.ok{background:var(--p-bg);color:var(--p);border:1px solid var(--p)}
+.match.bad{background:var(--a-bg);color:var(--a);border:1px solid var(--a)}
+.modes{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.86rem;color:var(--muted)}
+.modes b{color:var(--ink)}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -108,6 +126,7 @@
       <button role="tab" data-tab="members" aria-selected="true">Members</button>
       <button role="tab" data-tab="collect" aria-selected="false">Collect</button>
       <button role="tab" data-tab="due" aria-selected="false">Due<span class="count" id="dueCount" hidden></span></button>
+      <button role="tab" data-tab="insights" aria-selected="false" class="owner-only">Insights</button>
       <button role="tab" data-tab="plans" aria-selected="false" class="owner-only">Plans</button>
     </nav>
   </div>
@@ -176,6 +195,24 @@
     <div class="wrap content" style="display:grid;gap:20px">
       <div class="box"><h3>Ready to redeem</h3><div id="dReady"></div></div>
       <div class="box"><h3>Behind on payments</h3><div id="dBehind"></div></div>
+    </div>
+  </section>
+
+  <!-- INSIGHTS (owner): which plans customers choose, and chit money against the bank -->
+  <section id="tab-insights" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">For the owner</span><h2 id="iTitle">Insights</h2></div>
+      <div class="stats" id="iStats"></div>
+    </div></div>
+    <div class="wrap content" style="display:grid;gap:20px">
+      <div class="box"><h3>Which plan customers choose</h3><p class="plan-note" id="iPopular" style="padding:14px 18px 0"></p><div class="tablewrap" id="iPlans"></div></div>
+      <div class="box"><h3>New members each month</h3><div class="tablewrap" id="iJoins"></div></div>
+      <div class="box" id="bankBox"><h3>Chit money in the bank</h3>
+        <div class="frow" style="padding:14px 18px 0"><button class="btn mini" id="bPrev" aria-label="Previous month">‹</button><b id="bMonth" style="min-width:9em;text-align:center"></b><button class="btn mini" id="bNext" aria-label="Next month">›</button></div>
+        <div id="bSummary" style="padding:14px 18px 0;display:grid;gap:10px"></div>
+        <div class="tablewrap" id="bDays"></div>
+        <p class="plan-note" style="padding:12px 18px 16px">Cash chit payments are left out. In Banking, tick “This is chit money” on money in from chit members (one entry per payment, or one for the day’s total). Card payments usually reach the bank a day later and cheques a few days later, so one day can differ while the running difference comes back to ₹0.</p>
+      </div>
     </div>
   </section>
 
@@ -278,7 +315,7 @@ function show(name){
   curTab = name;
   const tab = name === 'one' || name === 'join' ? 'members' : name;
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
-  ['members', 'one', 'collect', 'due', 'plans', 'join'].forEach(t => $('tab-' + t).hidden = t !== name);
+  ['members', 'one', 'collect', 'due', 'insights', 'plans', 'join'].forEach(t => $('tab-' + t).hidden = t !== name);
   window.scrollTo(0, 0);
 }
 function route(){
@@ -289,6 +326,7 @@ function route(){
   if(h === 'collect'){ show('collect'); return renderCollect(); }
   if(h === 'due'){ show('due'); return renderDue(); }
   if(h === 'plans' && NJ.me.is_owner){ show('plans'); return renderPlans(); }
+  if(h === 'insights' && NJ.me.is_owner){ show('insights'); renderInsights(); return renderBank(); }
   show('members'); renderMembers();
 }
 window.addEventListener('hashchange', route);
@@ -516,6 +554,69 @@ document.getElementById('tab-due').addEventListener('click', e => {
   if(b.dataset.remind) wa(m.phone, 'Vanakkam ' + m.name + ', this is Natraj Jewels, Tiruppur. A gentle reminder: your ' + s.pl.name + ' chit (card ' + m.card_no + ') has ' + s.behind + ' month' + (s.behind > 1 ? 's' : '') + ' pending' + (s.owe ? ' (' + inr(s.owe) + ')' : '') + '. Please pay at the shop or on UPI. Thank you.');
   if(b.dataset.ready) wa(m.phone, 'Vanakkam ' + m.name + ', this is Natraj Jewels, Tiruppur. Your ' + s.pl.name + ' chit (card ' + m.card_no + ') is complete: ' + (s.pl.saves === 'gold' ? gm(s.grams + s.bonusGrams) : inr(s.paid + s.bonus)) + ' including your bonus. Please visit us to choose your jewellery.');
 });
+
+/* ---------- insights (owner) ---------- */
+const sumOf = list => list.reduce((s, p) => s + Number(p.amount), 0);
+function renderInsights(){
+  const act = members.filter(m => m.status === 'active'), since = addMonths(thisMonth(), -5), month = todayIso().slice(0, 7);
+  const st = new Map(act.map(m => [m.id, standing(m)]));
+  const rows = plans.map(p => {
+    const all = members.filter(m => m.plan_id === p.id), run = all.filter(m => m.status === 'active');
+    const ids = new Set(all.map(m => m.id)), ps = pays.filter(x => ids.has(x.member_id));
+    return {p, all: all.length, run: run.length, recent: all.filter(m => m.start_month >= since).length,
+      upToDate: run.filter(m => !st.get(m.id).behind).length, closed: all.filter(m => m.status === 'closed').length, cancelled: all.filter(m => m.status === 'cancelled').length,
+      collected: sumOf(ps), thisMonth: sumOf(ps.filter(x => x.paid_on.slice(0, 7) === month))};
+  }).sort((a, b) => b.recent - a.recent || b.run - a.run || a.p.name.localeCompare(b.p.name));
+  const top = rows.find(r => r.recent) || rows.find(r => r.run);
+  const maxRun = Math.max(1, ...rows.map(r => r.run));
+  $('iStats').innerHTML = '<div><span>Chits running</span><b>' + act.length + '</b><em>across ' + rows.filter(r => r.run).length + ' plan' + (rows.filter(r => r.run).length === 1 ? '' : 's') + '</em></div>' +
+    '<div><span>Joined in 6 months</span><b>' + members.filter(m => m.start_month >= since).length + '</b></div>' +
+    '<div><span>Redeemed</span><b>' + members.filter(m => m.status === 'closed').length + '</b></div>' +
+    '<div><span>Cancelled</span><b>' + members.filter(m => m.status === 'cancelled').length + '</b></div>';
+  $('iPopular').innerHTML = top ? 'Most chosen lately: <b style="color:var(--ink)">' + esc(top.p.name) + '</b>, ' + top.recent + ' of the ' + members.filter(m => m.start_month >= since).length + ' who joined in the last 6 months.' : 'No members yet.';
+  $('iPlans').innerHTML = rows.length ? '<table class="itab"><thead><tr><th>Plan</th><th>Running</th><th>Joined in 6 months</th><th>All time</th><th>Up to date</th><th>Redeemed</th><th>Cancelled</th><th>Collected this month</th><th>Collected in all</th></tr></thead><tbody>' +
+    rows.map(r => '<tr class="' + (r === top ? 'best' : '') + '"><td><b>' + esc(r.p.name) + '</b>' + (r.p.active ? '' : ' <span class="tag closed">Stopped</span>') + '<span class="vbar" style="width:' + (r.run / maxRun * 100).toFixed(1) + '%" aria-hidden="true"></span></td>' +
+      '<td>' + r.run + '</td><td>' + r.recent + '</td><td>' + r.all + '</td><td>' + (r.run ? Math.round(r.upToDate * 100 / r.run) + '%' : '–') + '</td><td>' + r.closed + '</td><td>' + r.cancelled + (r.all ? ' <small style="color:var(--muted)">(' + Math.round(r.cancelled * 100 / r.all) + '%)</small>' : '') + '</td>' +
+      '<td>' + inr(r.thisMonth) + '</td><td>' + inr(r.collected) + '</td></tr>').join('') + '</tbody></table>' : '<div class="empty-s">No plans yet.</div>';
+  const months = [...Array(6)].map((_, i) => addMonths(thisMonth(), i - 5));
+  $('iJoins').innerHTML = rows.length ? '<table class="itab"><thead><tr><th>Plan</th>' + months.map(m => '<th>' + fmtM(m) + '</th>').join('') + '</tr></thead><tbody>' +
+    rows.map(r => '<tr><td>' + esc(r.p.name) + '</td>' + months.map(mo => { const n = members.filter(m => m.plan_id === r.p.id && m.start_month === mo).length; return '<td>' + (n || '<span style="color:var(--muted)">·</span>') + '</td>'; }).join('') + '</tr>').join('') +
+    '</tbody><tfoot><tr><td>All plans</td>' + months.map(mo => '<td>' + members.filter(m => m.start_month === mo).length + '</td>').join('') + '</tr></tfoot></table>' : '';
+}
+
+/* chit money paid by UPI, card, transfer or cheque, against bank money-in marked as chit money */
+let bankMonth = todayIso().slice(0, 7), bankRows = [], openDay = '';
+const monthEnd = m => { const [y, mo] = m.split('-').map(Number); const d = new Date(y, mo, 0); return m + '-' + String(d.getDate()).padStart(2, '0'); };
+async function renderBank(refetch = true){
+  $('bMonth').textContent = fmtM(bankMonth + '-01');
+  $('bNext').disabled = bankMonth >= todayIso().slice(0, 7);
+  if(refetch) try{ bankRows = must(await sb.from('bank_entries').select('day,amount,method,party,reference,note').eq('for_chit', true).eq('direction', 'in').gte('day', bankMonth + '-01').lte('day', monthEnd(bankMonth)).order('day')) || []; }
+  catch(e){ $('bSummary').innerHTML = '<p class="err">' + esc(e.message) + '</p>'; return; }
+  const mp = pays.filter(p => p.paid_on.slice(0, 7) === bankMonth), cash = mp.filter(p => p.mode === 'Cash'), non = mp.filter(p => p.mode !== 'Cash');
+  const want = sumOf(non), got = sumOf(bankRows), diff = got - want;
+  const by = {}; non.forEach(p => by[p.mode] = (by[p.mode] || 0) + Number(p.amount));
+  $('bSummary').innerHTML = '<div class="stats" style="border-top:0;padding-top:0"><div><span>Chit collected</span><b>' + inr(sumOf(mp)) + '</b><em>' + mp.length + ' payments</em></div>' +
+      '<div><span>Cash (not checked)</span><b>' + inr(sumOf(cash)) + '</b></div>' +
+      '<div><span>Should be in the bank</span><b>' + inr(want) + '</b><em>UPI, card, transfer, cheque</em></div>' +
+      '<div><span>Marked in the bank</span><b>' + inr(got) + '</b><em>' + bankRows.length + ' bank entr' + (bankRows.length === 1 ? 'y' : 'ies') + '</em></div></div>' +
+    (Object.keys(by).length ? '<div class="modes">' + Object.entries(by).map(([k, v]) => '<span>' + esc(k) + ' <b>' + inr(v) + '</b></span>').join('') + '</div>' : '') +
+    '<div class="match ' + (Math.abs(diff) < 0.5 ? 'ok' : 'bad') + '">' + (!want && !got ? 'No UPI, card, transfer or cheque chit payments this month.' : Math.abs(diff) < 0.5 ? '✓ Matches: everything taken by UPI, card, transfer or cheque is in the bank.' :
+      diff < 0 ? inr(-diff) + ' taken by UPI, card, transfer or cheque is not in the bank log.' : inr(diff) + ' more is marked as chit money in the bank than the chit payments taken.') + '</div>';
+  const days = [...new Set([...non.map(p => p.paid_on), ...bankRows.map(r => r.day)])].sort();
+  const memOf = id => members.find(m => m.id === id) || {name: '?', card_no: ''};
+  let run = 0;
+  $('bDays').innerHTML = days.length ? '<table class="itab"><thead><tr><th>Day</th><th>Chit (not cash)</th><th>In the bank</th><th>Difference</th><th>Running difference</th></tr></thead><tbody>' +
+    days.map(d => {
+      const a = sumOf(non.filter(p => p.paid_on === d)), b = sumOf(bankRows.filter(r => r.day === d)), df = b - a; run += df;
+      const sign = v => Math.abs(v) < 0.5 ? '₹0' : (v > 0 ? '+' : '−') + inr(Math.abs(v));
+      const detail = openDay === d ? '<tr class="detail"><td colspan="5"><b>Chit payments:</b> ' + (non.filter(p => p.paid_on === d).map(p => esc(memOf(p.member_id).name) + ' ' + rno(p) + ' ' + esc(p.mode) + ' ' + inr(p.amount)).join(' · ') || 'none') +
+        '<br><b>Bank entries:</b> ' + (bankRows.filter(r => r.day === d).map(r => esc(r.method || 'Money in') + (r.party ? ' from ' + esc(r.party) : '') + (r.reference ? ' (ref ' + esc(r.reference) + ')' : '') + ' ' + inr(r.amount)).join(' · ') || 'none') + '</td></tr>' : '';
+      return '<tr data-day="' + d + '" class="' + (Math.abs(df) < 0.5 ? 'ok' : 'diff') + '"><td>' + fmtD(d) + '</td><td>' + inr(a) + '</td><td>' + inr(b) + '</td><td class="d">' + sign(df) + '</td><td>' + sign(run) + '</td></tr>' + detail;
+    }).join('') + '</tbody></table>' : '';
+}
+$('bPrev').onclick = () => { bankMonth = addMonths(bankMonth + '-01', -1).slice(0, 7); openDay = ''; renderBank(); };
+$('bNext').onclick = () => { bankMonth = addMonths(bankMonth + '-01', 1).slice(0, 7); openDay = ''; renderBank(); };
+$('bDays').addEventListener('click', e => { const r = e.target.closest('tr[data-day]'); if(!r) return; openDay = openDay === r.dataset.day ? '' : r.dataset.day; renderBank(false); });
 
 /* ---------- plans (owner) ---------- */
 function renderPlans(){

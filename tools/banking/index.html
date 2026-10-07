@@ -123,6 +123,7 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
           <label>Date<input class="input" type="date" id="fDay"></label>
         </div>
         <label id="fPartyL"><span id="fPartyT">Received from</span><input class="input" id="fParty" maxlength="80" placeholder="optional"></label>
+        <label class="field check" id="fChitL"><input type="checkbox" id="fChit"> This is chit money (members paid by UPI, card, bank transfer or cheque)</label>
         <label>Cheque no. or reference<input class="input" id="fRef" maxlength="40" placeholder="optional, e.g. UTR or cheque number"></label>
         <label>Note<input class="input" id="fNote" maxlength="300" placeholder="optional"></label>
         <p class="err" id="fErr" role="alert"></p>
@@ -242,7 +243,7 @@ function describe(r){
   return r.method || (r.direction === 'in' ? 'Money in' : 'Money out');
 }
 function row(r, showDay){
-  const sub = [showDay ? fmtDay(r.day) : '', accName(r.account_id), r.method !== 'Transfer' && r.party && (r.direction === 'in' ? 'from ' : 'to ') + r.party,
+  const sub = [showDay ? fmtDay(r.day) : '', accName(r.account_id), r.for_chit && 'Chit money', r.method !== 'Transfer' && r.party && (r.direction === 'in' ? 'from ' : 'to ') + r.party,
     r.reference && 'Ref ' + r.reference, r.note].filter(Boolean).join(' · ');
   const by = NJ.me.is_owner ? 'Entered by ' + (r.created_by_name || 'someone') + (r.updated_by_name ? ' · changed by ' + r.updated_by_name : '') : '';
   const cls = r.method === 'Transfer' ? 'tr' : r.direction;
@@ -272,7 +273,7 @@ function setDir(d){
   dir = d;
   $('fDir').querySelectorAll('[data-dir]').forEach(b => b.setAttribute('aria-pressed', b.dataset.dir === d));
   const tr = d === 'tr';
-  $('fToAccL').hidden = !tr; $('fMethodL').hidden = tr; $('fPartyL').hidden = tr;
+  $('fToAccL').hidden = !tr; $('fMethodL').hidden = tr; $('fPartyL').hidden = tr; $('fChitL').hidden = d !== 'in';
   $('fAccT').textContent = tr ? 'From account' : 'Account';
   $('fPartyT').textContent = d === 'in' ? 'Received from' : 'Paid to';
   if(!tr){
@@ -309,13 +310,13 @@ $('bForm').addEventListener('submit', async e => {
     const A = accounts.find(x => x.id === acc), B = accounts.find(x => x.id === to);
     rows = [Object.assign({}, base, {account_id: acc, direction: 'out', method: 'Transfer', party: B.name, transfer_id: t}),
             Object.assign({}, base, {account_id: to, direction: 'in', method: 'Transfer', party: A.name, transfer_id: t})];
-  } else rows = [Object.assign({}, base, {account_id: acc, direction: dir, method: $('fMethod').value, party: $('fParty').value.trim()})];
+  } else rows = [Object.assign({}, base, {account_id: acc, direction: dir, method: $('fMethod').value, party: $('fParty').value.trim(), for_chit: dir === 'in' && $('fChit').checked})];
   $('fSave').setAttribute('aria-busy', 'true');
   try{
     must(await sb.from('bank_entries').insert(rows).select());
     await loadRecent();
     toast(dir === 'tr' ? 'Moved ' + inr(a) + ' to ' + accName(to) : 'Saved ' + inr(a) + (dir === 'in' ? ' in to ' : ' out of ') + accName(acc));
-    ['fAmt', 'fParty', 'fRef', 'fNote'].forEach(id => $(id).value = '');
+    ['fAmt', 'fParty', 'fRef', 'fNote'].forEach(id => $(id).value = ''); $('fChit').checked = false;
     $('fAmt').focus();
   }catch(x){ $('fErr').textContent = x.message; }
   $('fSave').removeAttribute('aria-busy');
@@ -332,7 +333,8 @@ async function editEntry(r){
     {id: 'account', label: 'Account', type: 'select', value: r.account_id, options: accounts.map(a => [a.id, accLabel(a)])},
     {id: 'direction', label: 'Money in or out', type: 'select', value: r.direction, options: [['in', 'Money in'], ['out', 'Money out']]},
     {id: 'method', label: 'How', type: 'select', value: r.method, options: [...new Set([...METHODS.in, ...METHODS.out, OPENING, r.method].filter(Boolean))].map(m => [m, m])},
-    {id: 'party', label: r.direction === 'in' ? 'Received from' : 'Paid to', type: 'text', value: r.party, maxlength: 80});
+    {id: 'party', label: r.direction === 'in' ? 'Received from' : 'Paid to', type: 'text', value: r.party, maxlength: 80},
+    {id: 'chit', label: 'This is chit money (money in only)', type: 'checkbox', value: !!r.for_chit});
   fields.push({id: 'reference', label: 'Cheque no. or reference', type: 'text', value: r.reference, maxlength: 40},
               {id: 'note', label: 'Note', type: 'text', value: r.note, maxlength: 300});
   const v = await dialog({
@@ -341,9 +343,10 @@ async function editEntry(r){
       const a = amount(v.amount);
       if(!(a > 0) || a >= 1e10) return 'Type the amount in rupees.';
       if(!v.day || v.day > todayIso()) return 'Choose a date that is not in the future.';
+      if(v.chit && v.direction === 'out') return 'Only money in can be marked as chit money.';
       const patch = {amount: a, day: v.day, reference: v.reference, note: v.note};
       if(isTr) must(await sb.from('bank_entries').update(patch).eq('transfer_id', r.transfer_id).select());
-      else must(await sb.from('bank_entries').update(Object.assign(patch, {account_id: v.account, direction: v.direction, method: v.method, party: v.party})).eq('id', r.id).select());
+      else must(await sb.from('bank_entries').update(Object.assign(patch, {account_id: v.account, direction: v.direction, method: v.method, party: v.party, for_chit: !!v.chit})).eq('id', r.id).select());
       return '';
     }
   });

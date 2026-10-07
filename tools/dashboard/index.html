@@ -477,10 +477,12 @@ async function loadDesigns(){
 
 /* chit scheme: collected this month, members running, who is behind, who can redeem (same counting as the chits page) */
 async function loadChits(){
-  const [a, b, c] = await Promise.all([sb.from('chit_plans').select('id,months,instalment'), sb.from('chit_members').select('id,plan_id,start_month,status').eq('status', 'active'), sb.from('chit_payments').select('member_id,amount,paid_on')]);
-  const plans = must(a) || [], mem = must(b) || [], pays = must(c) || [];
+  const month = todayIso().slice(0, 7);
+  const [a, b, c, d] = await Promise.all([sb.from('chit_plans').select('id,name,months,instalment'), sb.from('chit_members').select('id,plan_id,start_month,status').eq('status', 'active'),
+    sb.from('chit_payments').select('member_id,amount,paid_on,mode'), sb.from('bank_entries').select('amount').eq('for_chit', true).eq('direction', 'in').gte('day', month + '-01')]);
+  const plans = must(a) || [], mem = must(b) || [], pays = must(c) || [], bank = must(d) || [];
   if(!plans.length){ $('chitBox').innerHTML = '<small>No chit plans yet. <a href="../chits/#plans">Set up a plan</a>.</small>'; return; }
-  const month = todayIso().slice(0, 7), mm = s => { const [y, m] = s.split('-').map(Number); return y * 12 + m; };
+  const mm = s => { const [y, m] = s.split('-').map(Number); return y * 12 + m; };
   const by = {}; pays.forEach(p => (by[p.member_id] = by[p.member_id] || []).push(p));
   let behind = 0, owe = 0, ready = 0;
   mem.forEach(m => {
@@ -498,7 +500,14 @@ async function loadChits(){
     '<div><span>Collected this month</span><b>' + inr(sum) + '</b><em>' + got.length + ' payments</em></div>' +
     '<div><span>Running</span><b>' + mem.length + '</b></div>' +
     '<div><span>Behind</span><b' + (behind ? ' style="color:var(--a)"' : '') + '>' + behind + '</b>' + (owe ? '<em>' + inr(owe) + ' due</em>' : '') + '</div>' +
-    '<div><span>Ready to redeem</span><b' + (ready ? ' style="color:var(--p)"' : '') + '>' + ready + '</b></div></div>';
+    '<div><span>Ready to redeem</span><b' + (ready ? ' style="color:var(--p)"' : '') + '>' + ready + '</b></div></div>' +
+    // running chits per plan, most first
+    '<div class="list" style="margin-top:12px">' + plans.map(p => ({p, n: mem.filter(m => m.plan_id === p.id).length})).filter(x => x.n).sort((x, y) => y.n - x.n)
+      .map(x => '<div><span>' + esc(x.p.name) + '</span><small><b style="color:var(--ink)">' + x.n + '</b> running</small></div>').join('') + '</div>' +
+    // chit money taken by UPI, card, transfer or cheque against bank entries marked as chit money
+    (() => { const want = got.filter(p => p.mode !== 'Cash').reduce((s, p) => s + Number(p.amount), 0), have = bank.reduce((s, r) => s + Number(r.amount), 0), df = have - want;
+      return '<p style="margin:12px 0 0;font-size:.88rem;font-weight:600;color:' + (Math.abs(df) < 0.5 ? 'var(--p)' : 'var(--a)') + '">' + (!want && !have ? 'Bank check: no UPI, card or cheque chit payments this month.' : Math.abs(df) < 0.5 ? '✓ Bank check: chit money this month matches the bank.' :
+        'Bank check: ' + inr(Math.abs(df)) + (df < 0 ? ' of chit money is not in the bank log.' : ' more in the bank than chit payments.')) + ' <a href="../chits/#insights">See the days ›</a></p>'; })();
 }
 
 /* open tasks per person: how many, how many overdue, the next one due */
