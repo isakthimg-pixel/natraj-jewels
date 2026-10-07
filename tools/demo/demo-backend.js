@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v16';
+const KEY = 'natraj-demo-db-v17';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -60,14 +60,17 @@ function seed(){
   }
   // tasks: some open, one late, one done
   const task = (title, to, by, due, high, details, done) => ({id: uid(), title, details: details || '', assigned_to: to.user_id, assigned_name: to.name, due, high: !!high,
-    status: done ? 'done' : 'open', done_note: done || '', done_at: done ? addDays(today, -1) + 'T17:20:00Z' : null, done_by_name: done ? to.name : '',
+    status: done ? 'done' : 'open', done_note: (done || '').trim(), done_at: done ? (done === ' ' ? new Date(Date.now() - 2 * 3600e3).toISOString() : addDays(today, -1) + 'T17:20:00Z') : null, done_by_name: done ? to.name : '',
     created_by: by.user_id, created_by_name: by.name, created_at: addDays(today, -3) + 'T10:00:00Z'});
   db.tasks.push(
     task('Polish the silver display', worker, manager, today, false, 'Front counter and the window shelf.'),
     task('Call Ramesh about the bangle order', worker, owner, addDays(today, -1), true, 'He wants the 22K pair by Saturday.'),
     task('Count the 916 chain stock', manager, owner, addDays(today, 2), false),
     task('Order new jewel boxes', manager, owner, null, false, '100 small red boxes.'),
-    task('Clean the hallmark machine', worker, manager, addDays(today, -1), false, '', 'Done before closing')
+    task('Clean the hallmark machine', worker, manager, addDays(today, -1), false, '', 'Done before closing'),
+    task('Open the shop and switch on the lights', worker, manager, today, false, '', ' '),
+    task('Arrange the silver anklets tray', worker, manager, today, false, '', ' '),
+    task('Update the old gold exchange register', manager, owner, today, false, '', ' ')
   );
   // expenses: last month and this month, a fixed pattern
   const monthLast = d => { const [y, m] = d.split('-').map(Number); return iso(new Date(y, m, 0)); };
