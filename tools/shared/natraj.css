@@ -1,5 +1,5 @@
 /* Natraj Jewels tools: shared design, taken from the main website (natraj-jewels-website/index.html):
-   textured cocoa bands, gold tracked eyebrows over maroon Playfair headings,
+   textured cocoa bands, gold tracked eyebrows over maroon headings (Manrope throughout),
    hairline rules, 4px corners, pill buttons and chips. Every app page links this file. */
 [hidden]{display:none!important}
 :root{
@@ -8,9 +8,9 @@
   --cocoa:#3B2420; --gold:#845E22; --gold-soft:#E7D3AE; --err:#B3261E;
   --ink:#2A1E1B; --muted:#6D5D57; --line:#E2D6C4;
   --on-dark:#F8EFE2; --on-dark-muted:#D9C6B0;
-  --heading:"Playfair Display", "Didot", Georgia, serif;
-  --display:"Playfair Display", "Didot", Georgia, serif;
-  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --heading:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   --wrap:1180px;
   /* one colour pair per attendance category */
   --p:#2E7D4F;  --p-bg:#E3F1E8;   /* present */
@@ -34,8 +34,8 @@ img{max-width:100%;display:block}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .wrap{max-width:var(--wrap);margin-inline:auto;padding-inline:clamp(16px,4vw,40px)}
-h1,h2,h3{font-family:var(--heading);font-weight:400;text-wrap:balance;margin:0;line-height:1.08}
-h3{font-weight:600}
+h1,h2,h3{font-family:var(--heading);font-weight:700;text-wrap:balance;margin:0;line-height:1.12;letter-spacing:-.02em}
+h3{font-weight:700}
 .eyebrow{font:600 .74rem/1 var(--body);letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
 
 /* dark bands: header and footer, with the website's red texture */
@@ -46,7 +46,7 @@ a.brand:focus-visible{outline:2px solid var(--gold-soft);outline-offset:4px}
 a.brand:hover img{opacity:.88}
 .brand img{height:72px;width:auto}
 .title{display:grid;gap:4px;justify-self:center;text-align:center}
-.title h1{font-size:clamp(1.3rem,3vw,1.9rem);text-transform:uppercase;letter-spacing:.015em;color:#FFF7EE}
+.title h1{font-size:clamp(1.05rem,2.4vw,1.45rem);font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#FFF7EE}
 .tabs{grid-column:1/-1;display:flex;gap:26px;overflow-x:auto;scrollbar-width:none;margin-top:6px;border-top:1px solid rgba(231,211,174,.2)}
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{position:relative;background:none;border:0;color:var(--on-dark-muted);padding:14px 0 12px;font-size:.88rem;font-weight:500;cursor:pointer;white-space:nowrap;transition:color .2s ease}
@@ -95,7 +95,7 @@ footer img{height:54px;width:auto}
 /* page head: paper band like the website's sections */
 .band{background:var(--paper);border-bottom:1px solid var(--line)}
 .band .wrap{padding-block:clamp(22px,4vw,36px) clamp(18px,3vw,28px);display:grid;gap:16px}
-.band h2{font-size:clamp(1.8rem,4vw,2.6rem);color:var(--maroon);letter-spacing:.01em}
+.band h2{font-size:clamp(1.7rem,3.6vw,2.35rem);color:var(--maroon);letter-spacing:-.025em}
 .heading{display:grid;gap:10px}
 .content{padding-block:24px 64px}
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
@@ -126,11 +126,11 @@ select.input{line-height:1.3}
 /* 16px text stops iPhones zooming in when a box is tapped */
 @media (max-width:640px){.input{font-size:16px}}
 
-/* tally: big Playfair numerals over tracked labels, like the website timeline */
+/* tally: big bold numerals over tracked labels, like the website timeline */
 .tally{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--line)}
 .tally div{padding:14px 12px 0 0;display:grid;gap:6px}
 .tally div+div{padding-left:14px;border-left:1px solid var(--line)}
-.tally b{font:500 2rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
+.tally b{font:700 1.85rem/1 var(--display);letter-spacing:-.02em;font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
 .tally span{font:600 .66rem/1.2 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .tally .p b{color:var(--p)} .tally .hm b{color:var(--hm)} .tally .t b{color:var(--t)} .tally .h b{color:var(--h)} .tally .lv b{color:var(--a)} .tally .u b{color:var(--muted)}
 @media (max-width:640px){.tally{grid-template-columns:repeat(3,1fr)}.tally div:nth-child(4){padding-left:0;border-left:0}.tally div:nth-child(n+4){padding-top:14px}.tally b{font-size:1.6rem}.tally span{letter-spacing:.12em}}
