@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v22';
-const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits'];
+const KEY = 'natraj-demo-db-v23';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
@@ -18,10 +18,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -198,6 +198,20 @@ function seed(){
   member(P1, C[5].name, C[5].phone, C[5], 13, 11, {status: 'closed', closed_at: monthAgo(1) + 'T15:00:00Z', close_note: 'Bought a 22K chain, bill 1432'});
   // chit money in the bank: UPI and transfers the same day, cards the next day, one UPI payment left out so the check shows a gap
   db.chit_payments.filter(p => p.paid_on >= month0).forEach((p, i) => { p.mode = ['UPI', 'Cash', 'UPI', 'Card'][i % 4]; });
+  // silver: most days a few sales and sometimes old silver bought back, at that day's rate; a supplier purchase each month
+  const silverRate = d => { let r = null; for(const x of db.rates){ if(x.set_at.slice(0, 10) <= d && (!r || x.set_at > r.set_at)) r = x; } return r ? Number(r.silver) : 90; };
+  const SITEMS = [['Anklet', 30, 70], ['Toe ring', 4, 10], ['Kumkum bowl', 25, 60], ['Plate', 80, 200], ['Glass', 40, 90], ['Lamp (vilakku)', 60, 180], ['Kids items', 8, 20], ['Chain', 15, 40]];
+  for(let d = monthAgo(1); d <= today; d = addDays(d, 1)){
+    if(dow(d) === 0) continue;
+    const rt = silverRate(d), n = 1 + Math.floor(rnd() * 3);
+    for(let i = 0; i < n; i++){
+      const [item, lo, hi] = SITEMS[Math.floor(rnd() * SITEMS.length)], w = Math.round((lo + rnd() * (hi - lo)) * 1000) / 1000, making = Math.round(w * (8 + rnd() * 12) / 10) * 10;
+      const m = rnd() < 0.55 ? 'Cash' : rnd() < 0.8 ? 'UPI' : 'Card', acc = m === 'Cash' ? null : sbi;
+      db.silver_entries.push(silverRow({kind: 'sale', day: d, item, pieces: item === 'Anklet' || item === 'Toe ring' ? 2 : 1, weight_g: w, touch: 92.5, rate: rt + 2, making, gst_percent: 3, mode: m, account_id: acc && acc.id, account_name: acc ? acc.name + ' ··' + acc.last4 : '', party: rnd() < 0.4 ? C[Math.floor(rnd() * 6)].name : ''}, d));
+    }
+    if(rnd() < 0.35) db.silver_entries.push(silverRow({kind: 'purchase', day: d, item: 'Old silver', weight_g: Math.round((40 + rnd() * 200) * 1000) / 1000, touch: [70, 75, 80, 85][Math.floor(rnd() * 4)], rate: rt - 4, mode: 'Cash', party: 'Walk-in'}, d));
+  }
+  [monthAgo(1), month0].forEach(m => { const d = addDays(m, 3); if(d <= today) db.silver_entries.push(silverRow({kind: 'purchase', from_supplier: true, day: d, item: 'Bar', weight_g: 2000, touch: 99.9, rate: silverRate(d) - 1, mode: 'Bank transfer', account_id: sbi.id, account_name: sbi.name + ' ··' + sbi.last4, party: 'Salem Silver House'}, d)); });
   // who is online: Sample Staff 2 is always on the tasks page on a phone; the manager was here 40 minutes ago
   const ago = m => new Date(Date.now() - m * 60000).toISOString();
   db.presence.push({user_id: worker.user_id, page: 'Tasks', device: 'Phone', signed_in_at: ago(25), last_seen: ago(0), signed_out_at: null, demo_live: true},
@@ -366,7 +380,7 @@ function rpc(name, a, me){
       return {status: 200, body: null};
     }
     case 'presence_out': { const r = me && db.presence.find(x => x.user_id === me.user_id); if(r){ r.signed_out_at = now(); r.demo_live = false; } return {status: 200, body: null}; }
-    case 'bank_account_choices': return {status: 200, body: (canUse(me, 'expenses') || canUse(me, 'banking')) ? db.bank_accounts.filter(x => x.active).map(x => ({id: x.id, name: x.name, last4: x.last4})).sort((x, y) => x.name.localeCompare(y.name)) : []};
+    case 'bank_account_choices': return {status: 200, body: (canUse(me, 'expenses') || canUse(me, 'banking') || canUse(me, 'silver')) ? db.bank_accounts.filter(x => x.active).map(x => ({id: x.id, name: x.name, last4: x.last4})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'rate_updaters': return {status: 200, body: db.profiles.filter(p => !p.is_owner && p.apps.includes('rates')).map(p => ({name: p.name})).sort((x, y) => x.name.localeCompare(y.name))};
@@ -430,7 +444,7 @@ function rest(method, table, params, body, headers, me){
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
     notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     chit_plans: {read: canUse(me, 'chits'), write: me.is_owner}, chit_members: {read: canUse(me, 'chits'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'chits')},
-    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false},
+    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
@@ -453,6 +467,7 @@ function rest(method, table, params, body, headers, me){
   if(table === 'notifications') return notesRest(method, params, body, single, wantRows, me);
   if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
   if(table === 'designs') return designsRest(method, params, body, single, wantRows, me);
+  if(table === 'silver_entries') return silverRest(method, params, body, single, wantRows, me);
   if(table.startsWith('chit_')) return chitsRest(table, method, params, body, single, wantRows, me);
   let out;
   if(method === 'GET'){
@@ -679,6 +694,37 @@ function designsRest(method, params, body, single, wantRows, me){
   } else if(method === 'PATCH'){
     for(const r of out){ const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}); if(!stage(r, old)){ Object.assign(r, old); return bad; } }
   } else if(method === 'DELETE') db.designs = db.designs.filter(r => !out.includes(r));
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
+}
+/* silver (migration 023): fine weight and amount always worked out from weight, touch, rate, making and GST */
+function silverFigures(r){
+  const r2 = n => Math.round(n * 100) / 100;
+  if(r.kind === 'sale') r.from_supplier = false; else { r.making = 0; r.gst_percent = 0; }
+  r.fine_g = Math.round(r.weight_g * r.touch / 100 * 1000) / 1000;
+  r.amount = r.kind === 'sale' ? r2((r.weight_g * r.rate + Number(r.making)) * (1 + r.gst_percent / 100)) : r2(r.fine_g * r.rate);
+  return r;
+}
+function silverRow(x, d){
+  return silverFigures(Object.assign({id: uid(), item: '', party: '', phone: '', customer_id: null, from_supplier: false, pieces: 1, touch: 92.5, making: 0, gst_percent: 0, mode: 'Cash', account_id: null, account_name: '', bill_no: '', note: '',
+    created_by: null, created_by_name: 'Sample Staff 2', created_at: d + 'T12:00:00Z', updated_by_name: '', updated_at: null}, x));
+}
+function silverRest(method, params, body, single, wantRows, me){
+  const nowIso = now(), ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
+  let out = db.silver_entries.filter(r => matches(r, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'POST'){
+    const r = Object.assign(silverRow(Array.isArray(body) ? body[0] : body, iso(new Date())), {created_by: me.user_id, created_by_name: me.name, created_at: nowIso});
+    if(!r.day) r.day = iso(new Date());
+    expenseAccount(r, null); silverFigures(r); db.silver_entries.push(r); out = [r];
+  } else if(method === 'PATCH'){
+    out = out.filter(r => me.is_owner || ownToday(r));
+    out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}); expenseAccount(r, old); silverFigures(r); });
+  } else if(method === 'DELETE'){
+    out = out.filter(r => me.is_owner || ownToday(r));
+    db.silver_entries = db.silver_entries.filter(r => !out.includes(r));
+  }
   if(method !== 'GET' && !wantRows) return {status: 204, body: null};
   if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
   return {status: 200, body: out};

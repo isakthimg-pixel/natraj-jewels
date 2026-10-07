@@ -38,7 +38,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 | 7 | Design library (built: `tools/designs/`, the list of jewels to buy: what customers asked for and what the shop needs to restock, each with photos, type, purity, weight, size, how many, budget, needed-by date and supplier; Needed → Ordered → Arrived → Done or Dropped; whoever took an enquiry is notified and reminded on the home page when it arrives, with a WhatsApp message to the customer; send the photo or a buying list to a supplier without customer details; links to the customer in Customers) | customers, rates | needed, ordered, arrived, late |
 | 8 | Stock to be purchased (covered by the design library: restock items) | — | — |
 | 9 | Chit scheme (built: `tools/chits/`, owner sets up plans: fixed or any amount a month, saved as money or as 22K grams at the day's rate, number of months, bonus of one instalment or a percentage, other benefit; members with card numbers, linked to saved customers; payments with receipt numbers and WhatsApp receipts; staff fix their own payment on the day; progress bar of months paid and behind; Due tab with WhatsApp reminders and who is ready to redeem; redeem, cancel with a note; owner Insights: which plan customers choose (running, joined in 6 months, up to date, redeemed, cancelled, collected) and new members each month by plan; bank check: chit payments by UPI, card, transfer or cheque against bank money-in marked as chit money, day by day with a running difference) | customers, rates, banking | collected this month, running per plan, behind, ready to redeem, bank check |
-| 10 | Silver sales & purchase | customers, rates | grams sold and bought, value |
+| 10 | Silver sales & purchase (built: `tools/silver/`, sales: item, pieces, weight × rate per gram (today's silver rate filled in) + making + 3% GST, worked out on the screen and again in the database; purchases: old silver from customers or stock from suppliers, weight × touch % = fine weight × rate per fine gram; customer link, how paid and which bank account; day book with cash from silver in and out; staff fix their own entries on the day; owner's month: grams and value sold and bought, average rates, making and GST, by item, by payment and bank account, day by day, CSV) | customers, rates, banking | grams sold and bought this month and today, value |
 | 11 | Staff report card | staff, attendance, to-do | score per person over time |
 
 ## Notes
@@ -49,7 +49,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 - Notifications: a bell and a bar at the top of every page. Database triggers write them
   (`notifications` table); pages check every minute and when reopened. Tasks: managers hear about
   every finished task; the owner hears when a person's last open task is done.
-- Dashboard: modules (attendance today, rate, who is online, expenses, bank, customers, tasks, design library, chit scheme, days worked) that the
+- Dashboard: modules (attendance today, rate, who is online, expenses, bank, customers, tasks, design library, chit scheme, silver, days worked) that the
   owner can move, size (half or full width) and hide with Customise; the layout is saved per person in
   `user_prefs`, so it follows them to every device. Only the modules showing are loaded.
 - Staff are added by the owner in People & settings (no staff are pre-loaded).

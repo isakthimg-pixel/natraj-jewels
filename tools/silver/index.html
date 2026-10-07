@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Silver Sales &amp; Purchase · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.no-access main{display:none!important}
+.no-access-msg{display:none}
+.no-access .no-access-msg{display:block}
+.not-owner .owner-only{display:none!important}
+
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.sform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sform .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:560px){.sform .two,.sform .three{grid-template-columns:1fr}}
+.sform .field > span{font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.unit{position:relative}
+.unit .input{padding-right:40px}
+.unit::after{content:attr(data-u);position:absolute;right:13px;bottom:15px;color:var(--muted);font-weight:600;letter-spacing:0}
+.calc{border:1px solid var(--gold);background:color-mix(in srgb,var(--gold) 9%,var(--card));border-radius:4px;padding:14px 16px;display:grid;gap:6px;font-variant-numeric:tabular-nums}
+.calc .line{font-size:.88rem;color:var(--muted)}
+.calc .total{font:700 1.6rem/1.1 var(--display);color:var(--ink)}
+.calc .total small{font:600 .8rem var(--body);color:var(--muted);margin-left:6px}
+.kind-sale .purchase-only,.kind-purchase .sale-only{display:none!important}
+
+/* lists */
+.box{background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.box > h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:1.15rem;color:var(--maroon);display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.box > h3 small{font:600 .85rem var(--body);color:var(--muted)}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:13px 18px;border-top:1px solid var(--line)}
+.srow:first-of-type{border-top:0}
+.srow .what{font-weight:700}
+.srow .sub{font-size:.82rem;color:var(--muted);margin-top:2px}
+.srow .amt{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.srow .amt.sale{color:var(--p)} .srow .amt.purchase{color:var(--a)}
+.srow .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.tag.sale{border-color:var(--p);color:var(--p);background:var(--p-bg)}
+.tag.purchase{border-color:var(--a);color:var(--a);background:var(--a-bg)}
+.empty-s{padding:24px 18px;color:var(--muted);font-size:.92rem}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stats div{display:grid;gap:4px}
+.stats span{font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.stats b{font:700 1.45rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
+.stats em{font-style:normal;font-size:.78rem;font-weight:600;color:var(--muted)}
+.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.kv{display:grid}
+.kv div{display:flex;justify-content:space-between;gap:12px;padding:9px 18px;border-top:1px solid var(--line);font-size:.92rem;font-variant-numeric:tabular-nums}
+.kv div:first-child{border-top:0}
+.kv .head{font:600 .66rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
+.tablewrap{overflow-x:auto}
+.mtab{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+.mtab th{text-align:right;font:600 .66rem/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.mtab td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.mtab th:first-child,.mtab td:first-child{text-align:left}
+.mtab tfoot td{font-weight:700;border-bottom:0}
+.mtab .sale{color:var(--p)} .mtab .purchase{color:var(--a)}
+.cashline{padding:12px 18px;border-top:1px solid var(--line);font-weight:600;font-size:.94rem}
+</style>
+</head>
+<body class="signed-out not-owner kind-sale">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <h1>Silver Sales &amp; Purchase</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="add" aria-selected="true">Add</button>
+      <button role="tab" data-tab="day" aria-selected="false">Day book</button>
+      <button role="tab" data-tab="month" aria-selected="false" class="owner-only">Month</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to record silver sales and purchases.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+<div class="wrap content no-access-msg"><div class="form panel"><h3>No access</h3><p>Ask the owner to switch on Silver for you in People &amp; settings.</p></div></div>
+
+<main>
+  <!-- ADD -->
+  <section id="tab-add">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="aEyebrow">Silver</span><h2 id="aTitle">Add a sale or purchase</h2></div>
+      <p class="hint" id="rateNote" style="margin:0;color:var(--muted);font-size:.9rem"></p>
+    </div></div>
+    <div class="wrap content grid2">
+      <form class="form sform" id="sf" autocomplete="off" novalidate>
+        <div class="bubbles" id="fKind" role="group" aria-label="Sale or purchase">
+          <button type="button" class="bubble" data-k="sale" aria-pressed="true">Sale</button>
+          <button type="button" class="bubble" data-k="purchase" aria-pressed="false">Purchase</button>
+        </div>
+        <div class="bubbles purchase-only" id="fSrc" role="group" aria-label="Bought from">
+          <button type="button" class="bubble" data-s="old" aria-pressed="true">Old silver from a customer</button>
+          <button type="button" class="bubble" data-s="supplier" aria-pressed="false">Stock from a supplier</button>
+        </div>
+        <div class="two">
+          <label>Item<input class="input" id="fItem" maxlength="60" list="itemList" placeholder="e.g. Anklet, Kumkum bowl"><datalist id="itemList"></datalist></label>
+          <label><span id="fPartyT">Customer</span><input class="input" id="fParty" maxlength="80" list="custList" placeholder="optional"><datalist id="custList"></datalist></label>
+        </div>
+        <div class="two">
+          <label>Phone<input class="input" id="fPhone" type="tel" inputmode="tel" maxlength="20" placeholder="optional"></label>
+          <label>Pieces<input class="input" id="fPieces" inputmode="numeric" maxlength="4" value="1"></label>
+        </div>
+        <div class="three">
+          <label class="unit" data-u="g">Weight<input class="input" id="fWeight" inputmode="decimal" placeholder="e.g. 45.200"></label>
+          <label class="unit" data-u="%">Touch (purity)<input class="input" id="fTouch" inputmode="decimal" value="92.5"></label>
+          <label class="unit" data-u="₹/g"><span id="fRateT">Rate per gram</span><input class="input" id="fRate" inputmode="decimal"></label>
+        </div>
+        <div class="two sale-only">
+          <label class="unit" data-u="₹">Making charges<input class="input" id="fMaking" inputmode="decimal" placeholder="optional"></label>
+          <label class="field check" style="align-self:end;padding-bottom:12px"><input type="checkbox" id="fGst" checked> Add 3% GST</label>
+        </div>
+        <div class="calc" id="calc" aria-live="polite"></div>
+        <div class="field"><span id="fModeT">Paid by</span><div class="bubbles" id="fMode" role="group" aria-label="Paid by"></div></div>
+        <label id="fAccL" hidden><span id="fAccT">Into account</span><select class="input" id="fAcc"></select></label>
+        <div class="two">
+          <label>Date<input class="input" type="date" id="fDay"></label>
+          <label>Bill no.<input class="input" id="fBill" maxlength="30" placeholder="optional"></label>
+        </div>
+        <label>Note<input class="input" id="fNote" maxlength="300" placeholder="optional, e.g. exchanged against bill 1432"></label>
+        <p class="err" id="fErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="submit" id="fSave">Save sale</button><button class="btn" type="button" id="fCancel" hidden>Cancel</button></div>
+      </form>
+      <div class="box"><h3><span id="todayTitle">Today</span><small id="todaySum"></small></h3><div id="todayList"></div><div id="todayCash"></div></div>
+    </div>
+  </section>
+
+  <!-- DAY BOOK -->
+  <section id="tab-day" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Day book</span><h2 id="dTitle"></h2></div>
+      <div class="frow" style="margin-bottom:14px"><button class="btn mini" id="dPrev" aria-label="Previous day">‹</button><input class="input" type="date" id="dDay" style="height:40px;width:auto"><button class="btn mini" id="dNext" aria-label="Next day">›</button></div>
+      <div class="stats" id="dStats"></div>
+    </div></div>
+    <div class="wrap content"><div class="box"><div id="dList"></div><div id="dCash"></div></div></div>
+  </section>
+
+  <!-- MONTH (owner) -->
+  <section id="tab-month" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">For the owner</span><h2 id="mTitle"></h2></div>
+      <div class="frow" style="margin-bottom:14px"><button class="btn mini" id="mPrev" aria-label="Previous month">‹</button><input class="input" type="month" id="mMonth" style="height:40px;width:auto"><button class="btn mini" id="mNext" aria-label="Next month">›</button><span class="grow" style="flex:1"></span><button class="btn" id="mCsv">Download Excel (CSV)</button></div>
+      <div class="stats" id="mStats"></div>
+    </div></div>
+    <div class="wrap content" style="display:grid;gap:20px">
+      <div class="grid2">
+        <div class="box"><h3>By item</h3><div class="tablewrap" id="mItems"></div></div>
+        <div class="box"><h3>Money</h3><div class="kv" id="mMoney"></div></div>
+      </div>
+      <div class="box"><h3>Day by day</h3><div class="tablewrap" id="mDays"></div></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Silver sales &amp; purchase · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, iso, parse, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const MODES = ['Cash', 'UPI', 'Card', 'Bank transfer', 'Cheque'];
+const ITEMS = ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver', 'Other'];
+const BIG = 200000;   // ask before saving more than this, to catch an extra zero
+let kind = 'sale', src = 'old', mode = 'Cash', accounts = [], customers = [], rate = null, today = [], dayRows = [], monthRows = [], editing = null, linkedId = null;
+let curTab = 'add', dayView = todayIso(), monthView = todayIso().slice(0, 7);
+
+const inr = v => { const n = Math.round(Number(v || 0) * 100) / 100; return (n < 0 ? '−₹' : '₹') + Math.abs(n).toLocaleString('en-IN', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2}); };
+const gm = v => Number(v || 0).toLocaleString('en-IN', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + ' g';
+const num = s => { const v = String(s || '').replace(/[,\s₹]/g, ''); return v === '' ? null : /^\d+(\.\d+)?$/.test(v) ? Number(v) : NaN; };
+const r2 = n => Math.round(n * 100) / 100, r3 = n => Math.round(n * 1000) / 1000;
+const fmtDay = d => { const t = todayIso(), y = iso(new Date(Date.now() - 864e5)); return d === t ? 'Today' : d === y ? 'Yesterday' : parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'}); };
+const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
+const monthEnd = m => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + 1); d.setDate(0); return iso(d); };
+const sum = (rows, k) => rows.reduce((s, r) => s + Number(r[k] || 0), 0);
+// the owner can change any entry; others only their own, on the day they entered it
+const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && iso(new Date(r.created_at)) === todayIso()));
+// the same sums the database makes
+function work(k, w, t, rt, mk, gst){
+  const fine = r3(w * t / 100);
+  if(k === 'sale'){ const base = r2(w * rt), sub = base + mk, tax = r2(sub * gst / 100); return {fine, base, tax, amount: r2(sub * (1 + gst / 100))}; }
+  return {fine, amount: r2(fine * rt)};
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.tab === 'add' ? '' : b.dataset.tab; }));
+function show(name){
+  if(name === 'month' && !NJ.me.is_owner) name = 'add';
+  curTab = name;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  ['add', 'day', 'month'].forEach(t => $('tab-' + t).hidden = t !== name);
+  if(name === 'day') loadDay().catch(e => toast(e.message));
+  if(name === 'month') loadMonth().catch(e => toast(e.message));
+}
+const route = () => show(location.hash === '#day' ? 'day' : location.hash === '#month' ? 'month' : 'add');
+window.addEventListener('hashchange', route);
+
+/* ---------- the form ---------- */
+$('fItem').nextElementSibling.innerHTML = ITEMS.map(i => '<option value="' + esc(i) + '">').join('');
+$('fMode').innerHTML = MODES.map(m => '<button type="button" class="bubble" data-mode="' + m + '" aria-pressed="' + (m === mode) + '">' + m + '</button>').join('');
+function setKind(k, keepTouch){
+  kind = k;
+  document.body.classList.toggle('kind-sale', k === 'sale'); document.body.classList.toggle('kind-purchase', k === 'purchase');
+  $('fKind').querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k));
+  $('fPartyT').textContent = k === 'sale' ? 'Customer' : src === 'supplier' ? 'Supplier' : 'Customer';
+  $('fRateT').textContent = k === 'sale' ? 'Rate per gram' : 'Rate per fine gram';
+  $('fModeT').textContent = k === 'sale' ? 'Paid by (customer)' : 'We paid by';
+  $('fAccT').textContent = k === 'sale' ? 'Into account' : 'From account';
+  if(!keepTouch) $('fTouch').value = k === 'sale' ? '92.5' : '';
+  $('fSave').textContent = editing ? 'Save changes' : k === 'sale' ? 'Save sale' : 'Save purchase';
+  calc();
+}
+function setSrc(s){ src = s; $('fSrc').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x.dataset.s === s)); setKind(kind, true); }
+function setMode(m){ mode = m; $('fMode').querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x.dataset.mode === m)); $('fAccL').hidden = m === 'Cash' || !accounts.length; }
+$('fKind').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if(b && b.dataset.k !== kind) setKind(b.dataset.k); });
+$('fSrc').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if(b) setSrc(b.dataset.s); });
+$('fMode').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if(b) setMode(b.dataset.mode); });
+['fWeight', 'fTouch', 'fRate', 'fMaking'].forEach(id => $(id).addEventListener('input', calc));
+$('fGst').addEventListener('change', calc);
+// show the sum as it is typed, the same way the bill is made
+function calc(){
+  const w = num($('fWeight').value), t = num($('fTouch').value), rt = num($('fRate').value), mk = num($('fMaking').value) || 0, gst = $('fGst').checked ? 3 : 0;
+  if(!(w > 0) || !(t > 0) || !(rt > 0)){ $('calc').innerHTML = '<span class="line">Type the weight, touch and rate to see the amount.</span>'; return; }
+  const x = work(kind, w, t, rt, kind === 'sale' ? mk : 0, kind === 'sale' ? gst : 0);
+  $('calc').innerHTML = kind === 'sale'
+    ? '<span class="line">' + gm(w) + ' × ' + inr(rt) + ' = ' + inr(x.base) + (mk ? ' + making ' + inr(mk) : '') + (gst ? ' + GST 3% ' + inr(x.tax) : '') + '</span><span class="total">' + inr(x.amount) + '<small>to collect</small></span>'
+    : '<span class="line">' + gm(w) + ' at ' + t + '% = ' + gm(x.fine) + ' fine × ' + inr(rt) + '</span><span class="total">' + inr(x.amount) + '<small>to pay</small></span>';
+}
+// a saved customer fills the phone and links to their page in Customers
+$('fParty').addEventListener('input', () => {
+  const v = $('fParty').value;
+  const c = customers.find(x => v === x.name + (x.phone ? ' · ' + x.phone : '')) || (customers.filter(x => x.name === v).length === 1 ? customers.find(x => x.name === v) : null);
+  if(c){ linkedId = c.id; $('fParty').value = c.name; if(c.phone) $('fPhone').value = c.phone; }
+  else if(linkedId && !customers.some(x => x.id === linkedId && x.name === v.trim())) linkedId = null;
+});
+function resetForm(){
+  editing = null; linkedId = null;
+  ['fItem', 'fParty', 'fPhone', 'fWeight', 'fMaking', 'fBill', 'fNote'].forEach(id => $(id).value = '');
+  $('fPieces').value = '1'; $('fDay').value = todayIso(); $('fErr').textContent = ''; $('fCancel').hidden = true;
+  $('fRate').value = rate ? String(Number(rate.silver)) : '';
+  $('aTitle').textContent = 'Add a sale or purchase'; $('aEyebrow').textContent = 'Silver';
+  setKind(kind); setMode(mode);
+}
+function editEntry(r){
+  editing = r; linkedId = r.customer_id;
+  location.hash = ''; show('add'); window.scrollTo(0, 0);
+  src = r.from_supplier ? 'supplier' : 'old'; setSrc(src); setKind(r.kind, true);
+  $('fItem').value = r.item; $('fParty').value = r.party; $('fPhone').value = r.phone; $('fPieces').value = r.pieces;
+  $('fWeight').value = Number(r.weight_g); $('fTouch').value = Number(r.touch); $('fRate').value = Number(r.rate);
+  $('fMaking').value = Number(r.making) || ''; $('fGst').checked = Number(r.gst_percent) > 0;
+  setMode(r.mode); if(r.account_id) $('fAcc').value = r.account_id;
+  $('fDay').value = r.day; $('fBill').value = r.bill_no; $('fNote').value = r.note; $('fErr').textContent = '';
+  $('fCancel').hidden = false; $('fSave').textContent = 'Save changes';
+  $('aTitle').textContent = 'Edit ' + (r.kind === 'sale' ? 'sale' : 'purchase'); $('aEyebrow').textContent = fmtDay(r.day) + (r.bill_no ? ' · bill ' + r.bill_no : '');
+  calc();
+}
+$('fCancel').onclick = resetForm;
+$('sf').addEventListener('submit', async e => {
+  e.preventDefault(); const err = t => { $('fErr').textContent = t; }; err('');
+  const w = num($('fWeight').value), t = num($('fTouch').value), rt = num($('fRate').value), mk = num($('fMaking').value), pcs = num($('fPieces').value), day = $('fDay').value;
+  if(!(w > 0)) return err('Type the weight in grams, e.g. 45.200.');
+  if(!(t > 0) || t > 100) return err('Type the touch (purity) as a percentage, e.g. ' + (kind === 'sale' ? '92.5.' : '80.'));
+  if(!(rt > 0)) return err(kind === 'sale' ? 'Type the rate per gram.' : 'Type the rate per fine gram.');
+  if(Number.isNaN(mk) || (mk != null && mk < 0)) return err('Type the making charges in rupees, or leave it empty.');
+  if(!pcs || !Number.isInteger(pcs) || pcs > 9999) return err('Type how many pieces, e.g. 1.');
+  if(!day || day > todayIso()) return err('Choose a date that is not in the future.');
+  const phone = $('fPhone').value.trim(); if(phone && !/^[0-9+ ]{6,20}$/.test(phone)) return err('Type the phone number with digits only.');
+  const acc = mode !== 'Cash' && accounts.length ? $('fAcc').value : '';
+  if(mode !== 'Cash' && accounts.length && !acc && !(editing && editing.account_name && !editing.account_id)) return err('Choose the bank account.');
+  if(rate && Math.abs(rt - Number(rate.silver)) / Number(rate.silver) > 0.25 && !await ask('Rate ' + inr(rt) + ' per gram?', 'Today’s silver rate is ' + inr(rate.silver) + '. Check the rate before saving.', 'Save')) return;
+  const x = work(kind, w, t, rt, kind === 'sale' ? (mk || 0) : 0, kind === 'sale' && $('fGst').checked ? 3 : 0);
+  if(x.amount > BIG && !await ask('Save ' + inr(x.amount) + '?', 'This is a large amount. Check there is no extra zero.', 'Save')) return;
+  const row = {kind, from_supplier: kind === 'purchase' && src === 'supplier', item: $('fItem').value.trim(), party: $('fParty').value.trim(), phone, customer_id: linkedId, pieces: pcs,
+    weight_g: w, touch: t, rate: rt, making: kind === 'sale' ? (mk || 0) : 0, gst_percent: kind === 'sale' && $('fGst').checked ? 3 : 0, mode, day,
+    bill_no: $('fBill').value.trim(), note: $('fNote').value.trim()};
+  if(acc || mode === 'Cash' || !editing) row.account_id = acc || null;
+  $('fSave').setAttribute('aria-busy', 'true');
+  try{
+    const saved = must(editing ? await sb.from('silver_entries').update(row).eq('id', editing.id).select().single() : await sb.from('silver_entries').insert(row).select().single());
+    toast((editing ? 'Saved: ' : kind === 'sale' ? 'Sale saved: ' : 'Purchase saved: ') + gm(saved.weight_g) + ', ' + inr(saved.amount));
+    const keep = {kind, src, mode}; resetForm(); kind = keep.kind; src = keep.src; setMode(keep.mode);
+    await loadToday();
+    if(curTab === 'day') loadDay();
+    $('fWeight').focus();
+  }catch(x){ err(x.message); }
+  $('fSave').removeAttribute('aria-busy');
+});
+
+/* ---------- lists ---------- */
+function row(r, showDay){
+  const sub = [showDay ? fmtDay(r.day) : '', r.party, gm(r.weight_g) + (r.kind === 'purchase' ? ' at ' + Number(r.touch) + '% = ' + gm(r.fine_g) + ' fine' : ''), inr(r.rate) + '/g',
+    r.kind === 'sale' && Number(r.making) ? 'making ' + inr(r.making) : '', r.kind === 'sale' && Number(r.gst_percent) ? 'GST 3%' : '',
+    r.mode + (r.mode !== 'Cash' && r.account_name ? (r.kind === 'sale' ? ' into ' : ' from ') + r.account_name : ''), r.bill_no && 'bill ' + r.bill_no, r.note].filter(Boolean).join(' · ');
+  return '<div class="srow" data-id="' + esc(r.id) + '"><div><div class="what"><span class="tag ' + r.kind + '">' + (r.kind === 'sale' ? 'Sale' : r.from_supplier ? 'Bought · supplier' : 'Bought · old silver') + '</span> ' + esc(r.item || 'Silver') + (r.pieces > 1 ? ' × ' + r.pieces : '') + '</div>' +
+    '<div class="sub">' + esc(sub) + '</div>' + (NJ.me.is_owner ? '<div class="sub" style="font-size:.76rem">Entered by ' + esc(r.created_by_name || 'someone') + (r.updated_by_name ? ' · changed by ' + esc(r.updated_by_name) : '') + '</div>' : '') + '</div>' +
+    '<div class="amt ' + r.kind + '">' + (r.kind === 'sale' ? '+' : '−') + inr(r.amount) + '</div>' +
+    (canChange(r) ? '<div class="acts"><button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button></div>' : '') + '</div>';
+}
+// what came into and went out of the cash drawer through silver
+function cashLine(rows){
+  const cin = sum(rows.filter(r => r.kind === 'sale' && r.mode === 'Cash'), 'amount'), cout = sum(rows.filter(r => r.kind === 'purchase' && r.mode === 'Cash'), 'amount');
+  return rows.length ? '<div class="cashline">Cash from silver: ' + inr(cin) + ' in − ' + inr(cout) + ' out = <span style="color:' + (cin - cout < 0 ? 'var(--a)' : 'var(--p)') + '">' + inr(cin - cout) + '</span></div>' : '';
+}
+async function loadToday(){
+  today = must(await sb.from('silver_entries').select('*').eq('day', todayIso()).order('created_at', {ascending: false})) || [];
+  const s = today.filter(r => r.kind === 'sale'), p = today.filter(r => r.kind === 'purchase');
+  $('todaySum').textContent = today.length ? 'sold ' + gm(sum(s, 'weight_g')) + ' · bought ' + gm(sum(p, 'weight_g')) : '';
+  $('todayList').innerHTML = today.length ? today.map(r => row(r, false)).join('') : '<div class="empty-s">Nothing yet today.</div>';
+  $('todayCash').innerHTML = cashLine(today);
+}
+async function act(e, list, after){
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const r = list.find(x => x.id === b.closest('[data-id]').dataset.id); if(!r) return;
+  if(b.dataset.act === 'edit') return editEntry(r);
+  if(!await ask('Delete this ' + (r.kind === 'sale' ? 'sale' : 'purchase') + '?', (r.item || 'Silver') + ' · ' + gm(r.weight_g) + ' · ' + inr(r.amount), 'Delete', true)) return;
+  try{ must(await sb.from('silver_entries').delete().eq('id', r.id)); toast('Deleted'); await loadToday(); if(after) after(); }catch(x){ toast(x.message); }
+}
+$('todayList').addEventListener('click', e => act(e, today));
+
+/* ---------- day book ---------- */
+async function loadDay(){
+  $('dDay').value = dayView; $('dDay').max = todayIso(); $('dNext').disabled = dayView >= todayIso();
+  $('dTitle').textContent = parse(dayView).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
+  dayRows = must(await sb.from('silver_entries').select('*').eq('day', dayView).order('created_at')) || [];
+  const s = dayRows.filter(r => r.kind === 'sale'), p = dayRows.filter(r => r.kind === 'purchase');
+  $('dStats').innerHTML = '<div><span>Sold</span><b>' + gm(sum(s, 'weight_g')) + '</b><em>' + s.length + ' sale' + (s.length === 1 ? '' : 's') + '</em></div>' +
+    '<div><span>Sales</span><b>' + inr(sum(s, 'amount')) + '</b><em>GST ' + inr(sum(s.map(r => ({v: r.amount - r2((r.weight_g * r.rate + Number(r.making)))})), 'v')) + '</em></div>' +
+    '<div><span>Bought</span><b>' + gm(sum(p, 'weight_g')) + '</b><em>' + gm(sum(p, 'fine_g')) + ' fine</em></div>' +
+    '<div><span>Purchases</span><b>' + inr(sum(p, 'amount')) + '</b><em>' + p.length + ' purchase' + (p.length === 1 ? '' : 's') + '</em></div>';
+  $('dList').innerHTML = dayRows.length ? dayRows.map(r => row(r, false)).join('') : '<div class="empty-s">No silver sales or purchases on this day.</div>';
+  $('dCash').innerHTML = cashLine(dayRows);
+}
+$('dList').addEventListener('click', e => act(e, dayRows, loadDay));
+$('dPrev').onclick = () => { dayView = addDays(dayView, -1); loadDay(); };
+$('dNext').onclick = () => { if(dayView < todayIso()){ dayView = addDays(dayView, 1); loadDay(); } };
+$('dDay').onchange = () => { if($('dDay').value){ dayView = $('dDay').value > todayIso() ? todayIso() : $('dDay').value; loadDay(); } };
+
+/* ---------- month (owner) ---------- */
+async function loadMonth(){
+  $('mMonth').value = monthView; $('mNext').disabled = monthView >= todayIso().slice(0, 7);
+  $('mTitle').textContent = parse(monthView + '-01').toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
+  monthRows = must(await sb.from('silver_entries').select('*').gte('day', monthView + '-01').lte('day', monthEnd(monthView)).order('day')) || [];
+  const s = monthRows.filter(r => r.kind === 'sale'), p = monthRows.filter(r => r.kind === 'purchase');
+  const sg = sum(s, 'weight_g'), pg = sum(p, 'weight_g'), pf = sum(p, 'fine_g');
+  const metal = sum(s.map(r => ({v: r2(r.weight_g * r.rate)})), 'v'), making = sum(s, 'making'), gst = sum(s, 'amount') - metal - making;
+  $('mStats').innerHTML = '<div><span>Sold</span><b>' + gm(sg) + '</b><em>' + s.length + ' sales · avg ' + (sg ? inr(metal / sg) : '–') + '/g</em></div>' +
+    '<div><span>Sales</span><b>' + inr(sum(s, 'amount')) + '</b><em>making ' + inr(making) + ' · GST ' + inr(gst) + '</em></div>' +
+    '<div><span>Bought</span><b>' + gm(pg) + '</b><em>' + gm(pf) + ' fine · avg ' + (pf ? inr(sum(p, 'amount') / pf) : '–') + '/fine g</em></div>' +
+    '<div><span>Purchases</span><b>' + inr(sum(p, 'amount')) + '</b><em>' + gm(sum(p.filter(r => !r.from_supplier), 'weight_g')) + ' old silver</em></div>';
+  // by item
+  const items = {}; monthRows.forEach(r => { const k = r.item || 'Other'; const x = items[k] = items[k] || {sg: 0, sa: 0, pg: 0, pa: 0}; if(r.kind === 'sale'){ x.sg += Number(r.weight_g); x.sa += Number(r.amount); } else { x.pg += Number(r.weight_g); x.pa += Number(r.amount); } });
+  const it = Object.entries(items).sort((a, b) => (b[1].sa + b[1].pa) - (a[1].sa + a[1].pa));
+  $('mItems').innerHTML = it.length ? '<table class="mtab"><thead><tr><th>Item</th><th>Sold</th><th>Sales</th><th>Bought</th><th>Purchases</th></tr></thead><tbody>' +
+    it.map(([k, x]) => '<tr><td>' + esc(k) + '</td><td>' + (x.sg ? gm(x.sg) : '·') + '</td><td class="sale">' + (x.sa ? inr(x.sa) : '·') + '</td><td>' + (x.pg ? gm(x.pg) : '·') + '</td><td class="purchase">' + (x.pa ? inr(x.pa) : '·') + '</td></tr>').join('') + '</tbody></table>'
+    : '<div class="empty-s">Nothing this month.</div>';
+  // money in and out, by how it was paid and which bank account
+  const by = (rows, f) => { const o = {}; rows.forEach(r => { const k = f(r); o[k] = (o[k] || 0) + Number(r.amount); }); return Object.entries(o).sort((a, b) => b[1] - a[1]); };
+  const nonCash = r => r.mode !== 'Cash';
+  $('mMoney').innerHTML = '<div class="head"><span>Sales came in by</span><span></span></div>' + (by(s, r => r.mode).map(([k, v]) => '<div><span>' + esc(k) + '</span><b>' + inr(v) + '</b></div>').join('') || '<div><span>Nothing</span><b></b></div>') +
+    (s.some(nonCash) ? by(s.filter(nonCash), r => 'Into ' + (r.account_name || 'account not given')).map(([k, v]) => '<div><span style="color:var(--muted)">' + esc(k) + '</span><b>' + inr(v) + '</b></div>').join('') : '') +
+    '<div class="head"><span>Purchases paid by</span><span></span></div>' + (by(p, r => r.mode).map(([k, v]) => '<div><span>' + esc(k) + '</span><b>' + inr(v) + '</b></div>').join('') || '<div><span>Nothing</span><b></b></div>') +
+    (p.some(nonCash) ? by(p.filter(nonCash), r => 'From ' + (r.account_name || 'account not given')).map(([k, v]) => '<div><span style="color:var(--muted)">' + esc(k) + '</span><b>' + inr(v) + '</b></div>').join('') : '') +
+    '<div style="border-top:2px solid var(--line);font-weight:700"><span>Cash from silver (in − out)</span><b>' + inr(sum(s.filter(r => r.mode === 'Cash'), 'amount') - sum(p.filter(r => r.mode === 'Cash'), 'amount')) + '</b></div>';
+  // day by day
+  const days = [...new Set(monthRows.map(r => r.day))].sort();
+  $('mDays').innerHTML = days.length ? '<table class="mtab"><thead><tr><th>Day</th><th>Sold</th><th>Sales</th><th>Bought</th><th>Purchases</th></tr></thead><tbody>' +
+    days.map(d => { const ds = s.filter(r => r.day === d), dp = p.filter(r => r.day === d);
+      return '<tr><td>' + fmtDay(d) + '</td><td>' + (ds.length ? gm(sum(ds, 'weight_g')) : '·') + '</td><td class="sale">' + (ds.length ? inr(sum(ds, 'amount')) : '·') + '</td><td>' + (dp.length ? gm(sum(dp, 'weight_g')) : '·') + '</td><td class="purchase">' + (dp.length ? inr(sum(dp, 'amount')) : '·') + '</td></tr>'; }).join('') +
+    '</tbody><tfoot><tr><td>Month</td><td>' + gm(sg) + '</td><td class="sale">' + inr(sum(s, 'amount')) + '</td><td>' + gm(pg) + '</td><td class="purchase">' + inr(sum(p, 'amount')) + '</td></tr></tfoot></table>' : '';
+}
+const shiftMonth = n => { const d = parse(monthView + '-01'); d.setMonth(d.getMonth() + n); monthView = iso(d).slice(0, 7); loadMonth().catch(e => toast(e.message)); };
+$('mPrev').onclick = () => shiftMonth(-1);
+$('mNext').onclick = () => { if(monthView < todayIso().slice(0, 7)) shiftMonth(1); };
+$('mMonth').onchange = () => { if($('mMonth').value){ monthView = $('mMonth').value; loadMonth().catch(e => toast(e.message)); } };
+$('mCsv').onclick = () => {
+  const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = [['Date', 'Sale or purchase', 'Item', 'Pieces', 'Customer or supplier', 'Phone', 'Weight (g)', 'Touch %', 'Fine (g)', 'Rate (₹/g)', 'Making (₹)', 'GST %', 'Amount (₹)', 'Paid by', 'Bank account', 'Bill no.', 'Note', 'Entered by']]
+    .concat(monthRows.map(r => [r.day, r.kind === 'sale' ? 'Sale' : r.from_supplier ? 'Purchase (supplier)' : 'Purchase (old silver)', r.item, r.pieces, r.party, r.phone, Number(r.weight_g), Number(r.touch), Number(r.fine_g), Number(r.rate),
+      Number(r.making), Number(r.gst_percent), Number(r.amount), r.mode, r.mode === 'Cash' ? '' : r.account_name, r.bill_no, r.note, r.created_by_name]));
+  NJ.download('natraj-silver-' + monthView + '.csv', '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+};
+
+/* ---------- start ---------- */
+async function loadSupport(){
+  const [a, r] = await Promise.all([sb.rpc('bank_account_choices'), sb.from('rates').select('silver,set_at').order('set_at', {ascending: false}).limit(1)]);
+  accounts = a.data || []; rate = (r.data || [])[0] || null;
+  $('fAcc').innerHTML = '<option value="">Choose the account</option>' + accounts.map(x => '<option value="' + esc(x.id) + '">' + esc(x.name + (x.last4 ? ' ··' + x.last4 : '')) + '</option>').join('');
+  if(accounts.length === 1) $('fAcc').value = accounts[0].id;
+  const todays = rate && new Date(rate.set_at).toDateString() === new Date().toDateString();
+  $('rateNote').textContent = rate ? 'Today’s silver rate: ' + inr(rate.silver) + ' per gram' + (todays ? '.' : ' (last set ' + new Date(rate.set_at).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}) + '; today’s is not in yet).') : 'No silver rate has been entered yet. Type the rate on each entry.';
+  if(NJ.canUse('crm')){
+    customers = must(await sb.from('customers').select('id,name,phone').order('name')) || [];
+    $('custList').innerHTML = customers.map(c => '<option value="' + esc(c.name + (c.phone ? ' · ' + c.phone : '')) + '">').join('');
+  }
+}
+NJ.start({onReady: async me => {
+  const ok = !!me && NJ.canUse('silver');
+  document.body.classList.toggle('no-access', !!me && !ok);
+  if(!ok) return;
+  try{ await loadSupport(); }catch(e){}
+  resetForm();
+  try{ await loadToday(); }catch(e){ toast(e.message); }
+  route();
+}});
+})();
+</script>
+</body>
+</html>

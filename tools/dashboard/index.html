@@ -157,6 +157,10 @@
         <div class="head"><h3>Chit scheme</h3><a href="../chits/#due">Due ›</a></div>
         <div class="body" id="chitBox"><small>Loading…</small></div>
       </section>
+      <section class="card mod" data-mod="silver">
+        <div class="head"><h3>Silver</h3><a href="../silver/#month">This month ›</a></div>
+        <div class="body" id="silverBox"><small>Loading…</small></div>
+      </section>
       <section class="card mod" data-mod="worked">
         <div class="head"><h3 id="mTitle">Days worked this month</h3><a href="../attendance/">Monthly register ›</a></div>
         <div class="body" style="display:grid;gap:12px"><div class="bars" id="bars"><small>Loading…</small></div><p class="axisnote" id="barNote" style="margin:0"></p></div>
@@ -196,6 +200,7 @@ const MODS = {
   tasks:      {name: 'Tasks today', box: 'taskBox', load: () => loadTasks()},
   designs:    {name: 'Design library', box: 'desBox', load: () => loadDesigns()},
   chits:      {name: 'Chit scheme', box: 'chitBox', load: () => loadChits()},
+  silver:     {name: 'Silver', box: 'silverBox', load: () => loadSilver()},
   worked:     {name: 'Days worked', box: 'bars', load: () => loadAttendance()}
 };
 // the starting layout: the essentials, with the longer lists hidden until wanted
@@ -203,7 +208,7 @@ const DEFAULT = [
   {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'}, {k: 'online', w: 'half'},
   {k: 'expenses', w: 'half'}, {k: 'bank', w: 'half'},
   {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
-  {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'},
+  {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'}, {k: 'silver', w: 'half'},
   {k: 'worked', w: 'full', hidden: true}
 ];
 const PREF_KEY = 'natraj-dashboard-layout';
@@ -529,6 +534,20 @@ async function loadOnline(){
 }
 // keep "who is online" current while the dashboard is open
 setInterval(() => { if(document.visibilityState === 'visible' && NJ.me && NJ.me.is_owner && !customising && layout.some(x => x.k === 'online' && !x.hidden)) loadOnline().catch(() => {}); }, 30000);
+
+/* silver: grams sold and bought this month, their value, and today */
+async function loadSilver(){
+  const today = todayIso();
+  const rows = must(await sb.from('silver_entries').select('kind,day,weight_g,fine_g,amount').gte('day', today.slice(0, 8) + '01')) || [];
+  const inr = n => '₹' + Math.round(n).toLocaleString('en-IN'), g = n => Number(n).toLocaleString('en-IN', {maximumFractionDigits: 1}) + ' g';
+  const tot = (k, f, d) => rows.filter(r => r.kind === k && (!d || r.day === d)).reduce((s, r) => s + Number(r[f]), 0);
+  if(!rows.length){ $('silverBox').innerHTML = '<small>No silver sales or purchases this month. <a href="../silver/">Add one</a>.</small>'; return; }
+  $('silverBox').innerHTML = '<div class="rates">' +
+    '<div><span>Sold this month</span><b>' + g(tot('sale', 'weight_g')) + '</b><em>' + inr(tot('sale', 'amount')) + '</em></div>' +
+    '<div><span>Bought this month</span><b>' + g(tot('purchase', 'weight_g')) + '</b><em>' + inr(tot('purchase', 'amount')) + ' · ' + g(tot('purchase', 'fine_g')) + ' fine</em></div>' +
+    '<div><span>Sold today</span><b>' + g(tot('sale', 'weight_g', today)) + '</b><em>' + inr(tot('sale', 'amount', today)) + '</em></div>' +
+    '<div><span>Bought today</span><b>' + g(tot('purchase', 'weight_g', today)) + '</b><em>' + inr(tot('purchase', 'amount', today)) + '</em></div></div>';
+}
 
 /* open tasks per person: how many, how many overdue, the next one due */
 async function loadTasks(){

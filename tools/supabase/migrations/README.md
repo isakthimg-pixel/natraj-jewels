@@ -33,4 +33,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `020_bank_chit_flag.sql` — bank money-in entries can be marked as chit money, so the owner can check chit payments (not cash) against the bank. Applied.
 - `021_presence.sql` — who is online: each open page checks in once a minute (`heartbeat`), signing out calls `presence_out`; the owner sees everyone. Applied.
 - `022_expense_account.sql` — which bank account an expense was paid from (not for cash); `bank_account_choices()` lists the accounts to people who enter expenses. Applied.
+- `023_silver.sql` — silver sales and purchases; fine weight and amount worked out in the database; staff fix their own entries on the day; bank account for non-cash. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

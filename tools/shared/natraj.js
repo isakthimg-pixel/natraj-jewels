@@ -18,7 +18,8 @@ const APPS = {
   banking: {name: 'Banking', path: 'banking/', desc: 'Deposits, withdrawals and transfers for each bank account, with statements and balances.'},
   crm: {name: 'Customers', path: 'crm/', desc: 'Customer details, follow-ups to call back, and birthdays and anniversaries coming up.'},
   designs: {name: 'Design library', path: 'designs/', desc: 'What customers asked for and what to restock, with photos: order it, track it, tell the customer when it arrives.', short: 'Designs'},
-  chits: {name: 'Chit scheme', path: 'chits/', desc: 'Monthly savings plans: members, payments with receipts, who is behind, and who is ready to redeem.', short: 'Chits'}
+  chits: {name: 'Chit scheme', path: 'chits/', desc: 'Monthly savings plans: members, payments with receipts, who is behind, and who is ready to redeem.', short: 'Chits'},
+  silver: {name: 'Silver sales & purchase', path: 'silver/', desc: 'Silver sold and bought: weight, touch, rate and amount, with a day book and monthly totals.', short: 'Silver'}
 };
 
 /* Line icons for the app tiles (24×24, drawn with the current text colour). New apps add one here. */
@@ -32,6 +33,7 @@ const ICONS = {
   banking: '<path d="M3 9.5 12 4l9 5.5"/><path d="M3.5 20.5h17M5.5 18v-6.5M10 18v-6.5M14 18v-6.5M18.5 18v-6.5M4 9.5h16"/>',
   crm: '<rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10.5" r="2.5"/><path d="M5.5 16.5c.5-1.9 1.9-3 3.5-3s3 1.1 3.5 3M14.5 9.5h4M14.5 13h4"/>',
   designs: '<path d="M6.5 4h11l3.5 5-9 11L3 9z"/><path d="M3 9h18M9.5 4 8 9l4 11 4-11-1.5-5"/>',
+  silver: '<path d="M4 15h16l-2 5H6z"/><path d="M7 15l1.5-5h7L17 15M10 10l.8-3h2.4l.8 3"/>',
   chits: '<ellipse cx="12" cy="6.5" rx="7" ry="2.5"/><path d="M5 6.5v4c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-4M5 10.5v4c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-4M5 14.5v3c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-3"/>',
   leave: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M9.5 15h5"/>'
 };
@@ -471,7 +473,7 @@ function meterHtml(m, label){
     meterBar(m) + '<div class="mfoot">' + foot + (m.later ? '<span>' + m.later + ' due later</span>' : '') + '</div></div>';
 }
 
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
   for(const t of TABLES) out.tables[t] = must(await sb.from(t).select('*'));
