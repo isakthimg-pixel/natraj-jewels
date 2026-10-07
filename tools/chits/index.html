@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Chit Scheme · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.no-access main{display:none!important}
+.no-access-msg{display:none}
+.no-access .no-access-msg{display:block}
+.not-owner .owner-only{display:none!important}
+
+.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.frow .input{height:42px}
+.search{flex:1 1 240px;max-width:420px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stats div{display:grid;gap:4px}
+.stats span{font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.stats b{font:700 1.5rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
+.stats em{font-style:normal;font-size:.78rem;font-weight:600;color:var(--muted)}
+.stats .bad b{color:var(--a)} .stats .good b{color:var(--p)}
+
+/* member rows */
+.mlist{display:grid}
+.mem{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(120px,1fr) auto;gap:6px 18px;align-items:center;padding:14px 18px;border-top:1px solid var(--line);background:var(--card);cursor:pointer;text-align:left;font:inherit;color:inherit;border-left:0;border-right:0;border-bottom:0;width:100%}
+.mem:first-child{border-top:0}
+.mem:hover{background:color-mix(in srgb,var(--gold) 6%,var(--card))}
+.mem .nm{font-weight:700;font-size:1rem}
+.mem .sub{font-size:.82rem;color:var(--muted);margin-top:2px}
+.mem .prog{display:grid;gap:5px}
+.mem .prog small{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.mem .right{display:grid;justify-items:end;gap:4px;font-variant-numeric:tabular-nums}
+.mem .right b{font-size:1rem}
+@media (max-width:640px){.mem{grid-template-columns:minmax(0,1fr) auto}.mem .prog{grid-column:1/-1;grid-row:2}}
+.tag.behind{border-color:var(--a);color:var(--a);background:var(--a-bg)}
+.tag.ready{border-color:var(--p);color:var(--p);background:var(--p-bg)}
+.tag.closed{border-color:var(--muted);color:#fff;background:var(--muted)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.box > h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:1.15rem;color:var(--maroon)}
+.empty-s{padding:24px 18px;color:var(--muted);font-size:.92rem}
+
+/* one member */
+.mview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:24px;align-items:start}
+@media (max-width:860px){.mview{grid-template-columns:1fr}}
+.side{display:grid;gap:16px;min-width:0}
+.ready-box{border:1px solid var(--p);background:var(--p-bg);border-radius:4px;padding:16px;display:grid;gap:10px}
+.ready-box p{margin:0}
+.ready-box .big{font:700 1.6rem/1.1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+.info{display:grid;margin:0}
+.info div{display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:.94rem}
+.info div:first-child{border-top:0}
+.info dt{color:var(--muted);font-size:.82rem;font-weight:600;padding-top:2px}
+.info dd{margin:0;overflow-wrap:anywhere}
+.info a{color:var(--maroon);font-weight:600}
+.pay{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+.pay th{text-align:left;font:600 .66rem/1.2 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);padding:10px 12px;border-bottom:1px solid var(--line)}
+.pay td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.pay td.n,.pay th.n{text-align:right}
+.pay small{display:block;color:var(--muted);font-size:.78rem}
+.tablewrap{overflow-x:auto}
+.btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
+.btn-wa:hover{background:#0B6358;border-color:#0B6358}
+
+/* due and collect rows */
+.drow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:14px 18px;border-top:1px solid var(--line)}
+.drow:first-of-type{border-top:0}
+.drow .nm{font-weight:700}
+.drow .sub{font-size:.84rem;color:var(--muted);margin-top:2px}
+.drow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.drow{grid-template-columns:1fr}.drow .acts{justify-content:flex-start}}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+.mode-tally{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 18px;border-top:1px solid var(--line);font-size:.86rem;color:var(--muted)}
+.mode-tally b{color:var(--ink)}
+
+/* join form */
+.jform{max-width:760px}
+.jform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.jform .two{grid-template-columns:1fr}}
+.linked{font-size:.84rem;color:var(--p);font-weight:600;margin:0}
+.plan-note{font-size:.86rem;color:var(--muted);margin:0}
+.plans .drow .sub b{color:var(--ink)}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <h1>Chit Scheme</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="members" aria-selected="true">Members</button>
+      <button role="tab" data-tab="collect" aria-selected="false">Collect</button>
+      <button role="tab" data-tab="due" aria-selected="false">Due<span class="count" id="dueCount" hidden></span></button>
+      <button role="tab" data-tab="plans" aria-selected="false" class="owner-only">Plans</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to see the chit scheme.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+<div class="wrap content no-access-msg"><div class="form panel"><h3>No access</h3><p>Ask the owner to switch on Chits for you in People &amp; settings.</p></div></div>
+
+<main>
+  <!-- MEMBERS -->
+  <section id="tab-members">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="mEyebrow">Chit scheme</span><h2 id="mTitle">Members</h2></div>
+      <div class="frow" style="margin-bottom:14px">
+        <input class="input search" id="q" type="search" placeholder="Search name, phone or card number" aria-label="Search members" autocomplete="off">
+        <select class="input" id="fPlan" aria-label="Plan"></select>
+        <select class="input" id="fState" aria-label="Show">
+          <option value="active">Running</option><option value="behind">Behind on payments</option><option value="ready">Ready to redeem</option>
+          <option value="closed">Closed</option><option value="cancelled">Cancelled</option><option value="">Everyone</option>
+        </select>
+        <button class="btn btn-maroon" id="goJoin">Add a member</button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div></div>
+    <div class="wrap content">
+      <div class="box"><div class="mlist" id="mlist"><div class="loading">Loading…</div></div></div>
+    </div>
+  </section>
+
+  <!-- ONE MEMBER -->
+  <section id="tab-one" hidden>
+    <div class="band"><div class="wrap">
+      <div class="bar"><button class="btn" id="backBtn">‹ All members</button></div>
+      <div class="heading"><span class="eyebrow" id="oEyebrow"></span><h2 id="oName"></h2></div>
+      <div class="bar" id="oActs"></div>
+    </div></div>
+    <div class="wrap content mview">
+      <div class="side">
+        <div class="form panel" id="oProgress"></div>
+        <div id="oReady"></div>
+        <div class="form panel"><h3>Details</h3><dl class="info" id="oInfo"></dl>
+          <div class="bar"><button class="btn" id="oEdit">Edit details</button><button class="btn owner-only" id="oCancel">Cancel scheme</button><button class="btn btn-danger owner-only" id="oDel">Delete</button></div></div>
+      </div>
+      <div class="box"><h3>Payments</h3><div class="tablewrap" id="oPays"></div></div>
+    </div>
+  </section>
+
+  <!-- COLLECT -->
+  <section id="tab-collect" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Take a payment</span><h2>Collect</h2></div>
+      <div class="frow"><input class="input search" id="cq" type="search" placeholder="Name, phone or card number" aria-label="Find a member" autocomplete="off"></div>
+      <p class="plan-note" id="rateNote" style="margin-top:10px"></p>
+    </div></div>
+    <div class="wrap content cols">
+      <div class="box"><h3>Members</h3><div id="cResults"></div></div>
+      <div class="box"><h3 id="todayTitle">Collected today</h3><div id="todayList"></div><div class="mode-tally" id="todayModes"></div></div>
+    </div>
+  </section>
+
+  <!-- DUE -->
+  <section id="tab-due" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="dEyebrow">This month</span><h2>Due</h2></div>
+    </div></div>
+    <div class="wrap content" style="display:grid;gap:20px">
+      <div class="box"><h3>Ready to redeem</h3><div id="dReady"></div></div>
+      <div class="box"><h3>Behind on payments</h3><div id="dBehind"></div></div>
+    </div>
+  </section>
+
+  <!-- PLANS (owner) -->
+  <section id="tab-plans" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Set up by the owner</span><h2>Plans</h2></div>
+      <div class="bar"><button class="btn btn-maroon" id="planAdd">New plan</button></div>
+    </div></div>
+    <div class="wrap content"><div class="box plans" id="planList"></div></div>
+  </section>
+
+  <!-- JOIN / EDIT MEMBER -->
+  <section id="tab-join" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="jEyebrow">New member</span><h2 id="jTitle">Add a member</h2></div>
+    </div></div>
+    <div class="wrap content">
+      <form class="form jform" id="jf" autocomplete="off" novalidate>
+        <label>Plan<select class="input" id="jPlan"></select></label>
+        <p class="plan-note" id="jPlanNote"></p>
+        <div class="two">
+          <label>Name<input class="input" id="jName" maxlength="80" list="custList" placeholder="type to find a saved customer"><datalist id="custList"></datalist></label>
+          <label>Phone<input class="input" id="jPhone" type="tel" inputmode="tel" maxlength="20" placeholder="for WhatsApp receipts"></label>
+        </div>
+        <p class="linked" id="jLinked" hidden></p>
+        <div class="two">
+          <label>Card number<input class="input" id="jCard" maxlength="20" placeholder="leave empty for the next number"></label>
+          <label>First month<input class="input" id="jStart" type="month"></label>
+        </div>
+        <label>Notes<textarea class="input" id="jNotes" maxlength="300" placeholder="optional, e.g. nominee, address"></textarea></label>
+        <p class="err" id="jErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="submit" id="jSave">Save</button><button class="btn" type="button" id="jCancel">Cancel</button></div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Chit scheme · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, dialog, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const MODES = ['Cash', 'UPI', 'Card', 'Bank transfer', 'Cheque'];
+let plans = [], members = [], pays = [], customers = [], rate = null, curTab = 'members', cur = null, editing = null, linkedId = null;
+
+/* ---------- money, grams and months ---------- */
+const inr = n => '₹' + Number(n || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
+const gm = n => Number(n || 0).toLocaleString('en-IN', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + ' g';
+const num = s => { const v = String(s || '').replace(/[,\s₹]/g, ''); return v === '' ? null : /^\d+(\.\d+)?$/.test(v) ? Number(v) : NaN; };
+const thisMonth = () => todayIso().slice(0, 7) + '-01';
+const addMonths = (m, n) => { const [y, mo] = m.split('-').map(Number); const d = new Date(y, mo - 1 + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'; };
+const monthsBetween = (a, b) => { const [y1, m1] = a.split('-').map(Number), [y2, m2] = b.split('-').map(Number); return (y2 - y1) * 12 + (m2 - m1); };
+const fmtM = m => new Date(m.slice(0, 7) + '-01T00:00:00').toLocaleDateString('en-IN', {month: 'short', year: 'numeric'});
+const fmtD = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+const digits = p => { const x = String(p || '').replace(/\D/g, ''); return x.length === 10 ? '91' + x : x; };
+const planOf = m => plans.find(p => p.id === m.plan_id) || {name: '?', months: 1, saves: 'money', instalment: null, bonus_kind: 'none', bonus_value: 0, benefit: ''};
+// payments by member, rebuilt whenever the list of payments changes
+let payIdx = {src: null, n: -1, by: {}};
+const paysOf = m => {
+  if(payIdx.src !== pays || payIdx.n !== pays.length){ const by = {}; pays.forEach(p => (by[p.member_id] = by[p.member_id] || []).push(p)); payIdx = {src: pays, n: pays.length, by}; }
+  return (payIdx.by[m.id] || []).slice().sort((a, b) => b.paid_on.localeCompare(a.paid_on) || b.receipt_no - a.receipt_no);
+};
+const rno = p => 'R-' + String(p.receipt_no).padStart(5, '0');
+
+/* Where a member stands. A fixed plan counts whole instalments paid; a flexible plan counts the
+   months in which something was paid. Behind = months due so far that are not covered. */
+function standing(m){
+  const pl = planOf(m), ps = paysOf(m);
+  const paid = ps.reduce((s, p) => s + Number(p.amount), 0), grams = ps.reduce((s, p) => s + Number(p.grams || 0), 0);
+  const dueSoFar = Math.max(0, Math.min(pl.months, monthsBetween(m.start_month, thisMonth()) + 1));
+  const covered = pl.instalment ? Math.floor(paid / Number(pl.instalment) + 1e-6) : new Set(ps.map(p => p.paid_on.slice(0, 7))).size;
+  const done = Math.min(covered, pl.months);
+  const behind = m.status === 'active' ? Math.max(0, dueSoFar - covered) : 0;
+  const lastMonth = addMonths(m.start_month, pl.months - 1);
+  const complete = pl.instalment ? covered >= pl.months : covered >= pl.months || (covered > 0 && monthsBetween(lastMonth, thisMonth()) > 0);
+  const paidThisMonth = ps.some(p => p.paid_on.slice(0, 7) === todayIso().slice(0, 7));
+  const bonus = pl.bonus_kind === 'instalment' ? Number(pl.instalment || 0) : pl.bonus_kind === 'percent' ? paid * Number(pl.bonus_value) / 100 : 0;
+  const bonusGrams = pl.saves === 'gold' && pl.bonus_kind === 'percent' ? grams * Number(pl.bonus_value) / 100 : 0;
+  return {pl, ps, paid, grams, done, behind, dueSoFar, complete, lastMonth, paidThisMonth, bonus, bonusGrams,
+    ready: m.status === 'active' && complete, owe: pl.instalment ? Math.max(0, dueSoFar * Number(pl.instalment) - paid) : 0};
+}
+// the green part is months paid, the red part months behind
+const bar = s => NJ.meterBar({done: s.done, late: Math.min(s.behind, s.pl.months - s.done), total: s.pl.months});
+const bonusText = (pl, s) => pl.bonus_kind === 'none' ? 'No bonus' : pl.bonus_kind === 'instalment' ? 'One instalment free' + (s ? ' (' + inr(s.bonus) + ')' : '') : pl.bonus_value + '% bonus' + (s ? ' (' + (pl.saves === 'gold' ? gm(s.bonusGrams) : inr(s.bonus)) + ')' : '');
+
+/* ---------- tabs and routes: #m=<id> #collect #due #plans #join #edit=<id> ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.tab === 'members' ? '' : b.dataset.tab; }));
+function show(name){
+  curTab = name;
+  const tab = name === 'one' || name === 'join' ? 'members' : name;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  ['members', 'one', 'collect', 'due', 'plans', 'join'].forEach(t => $('tab-' + t).hidden = t !== name);
+  window.scrollTo(0, 0);
+}
+function route(){
+  const h = decodeURIComponent(location.hash.slice(1));
+  if(h.startsWith('m=')) return openMember(h.slice(2));
+  if(h === 'join') return openJoin(null);
+  if(h.startsWith('edit=')) return openJoin(members.find(m => m.id === h.slice(5)) || null);
+  if(h === 'collect'){ show('collect'); return renderCollect(); }
+  if(h === 'due'){ show('due'); return renderDue(); }
+  if(h === 'plans' && NJ.me.is_owner){ show('plans'); return renderPlans(); }
+  show('members'); renderMembers();
+}
+window.addEventListener('hashchange', route);
+
+async function loadAll(){
+  const [a, b, c, r] = await Promise.all([
+    sb.from('chit_plans').select('*').order('name'),
+    sb.from('chit_members').select('*').order('created_at', {ascending: false}),
+    sb.from('chit_payments').select('*').order('paid_on', {ascending: false}),
+    sb.from('rates').select('gold_22k,set_at').order('set_at', {ascending: false}).limit(1)
+  ]);
+  plans = must(a) || []; members = must(b) || []; pays = must(c) || []; rate = (must(r) || [])[0] || null;
+  const due = members.filter(m => m.status === 'active').map(standing).filter(s => s.behind > 0 || s.ready).length;
+  $('dueCount').hidden = !due; $('dueCount').textContent = due;
+}
+async function loadCustomers(){
+  if(!NJ.canUse('crm')) return;
+  customers = must(await sb.from('customers').select('id,name,phone').order('name')) || [];
+  $('custList').innerHTML = customers.map(c => '<option value="' + esc(c.name + (c.phone ? ' · ' + c.phone : '')) + '">').join('');
+}
+
+/* ---------- members list ---------- */
+function renderMembers(){
+  $('fPlan').innerHTML = '<option value="">All plans</option>' + plans.map(p => '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>').join('');
+  $('fPlan').value = $('fPlan').dataset.v || '';
+  const active = members.filter(m => m.status === 'active'), st = active.map(standing);
+  const month = todayIso().slice(0, 7), monthPays = pays.filter(p => p.paid_on.slice(0, 7) === month);
+  const nBehind = st.filter(s => s.behind > 0).length, nReady = st.filter(s => s.ready).length;
+  $('stats').innerHTML = '<div><span>Running</span><b>' + active.length + '</b><em>' + plans.filter(p => p.active).length + ' plan' + (plans.filter(p => p.active).length === 1 ? '' : 's') + '</em></div>' +
+    '<div class="good"><span>Collected this month</span><b>' + inr(monthPays.reduce((s, p) => s + Number(p.amount), 0)) + '</b><em>' + monthPays.length + ' payments</em></div>' +
+    '<div' + (nBehind ? ' class="bad"' : '') + '><span>Behind</span><b>' + nBehind + '</b>' + (nBehind ? '<em>' + inr(st.reduce((s, x) => s + x.owe, 0)) + ' due</em>' : '') + '</div>' +
+    '<div' + (nReady ? ' class="good"' : '') + '><span>Ready to redeem</span><b>' + nReady + '</b></div>';
+  if(!plans.length){
+    $('mlist').innerHTML = '<div class="empty-s">' + (NJ.me.is_owner ? 'Start by setting up a plan: how much each month, for how many months, and the bonus. <a href="#plans">Set up a plan ›</a>' : 'The owner has not set up a chit plan yet.') + '</div>';
+    return;
+  }
+  const q = $('q').value.trim().toLowerCase(), pf = $('fPlan').value, sf = $('fState').value;
+  const list = members.map(m => ({m, s: standing(m)})).filter(({m, s}) =>
+    (!pf || m.plan_id === pf) &&
+    (sf === '' || (sf === 'active' && m.status === 'active') || (sf === 'behind' && s.behind > 0) || (sf === 'ready' && s.ready) || m.status === sf && ['closed', 'cancelled'].includes(sf)) &&
+    (!q || [m.name, m.phone, m.card_no].join(' ').toLowerCase().includes(q)));
+  list.sort((a, b) => (b.s.ready - a.s.ready) || (b.s.behind - a.s.behind) || a.m.name.localeCompare(b.m.name));
+  $('mTitle').textContent = members.length ? active.length + ' running' : 'Members';
+  $('mlist').innerHTML = list.length ? list.map(({m, s}) => '<button type="button" class="mem" data-id="' + esc(m.id) + '">' +
+      '<span><span class="nm">' + esc(m.name) + '</span><span class="sub" style="display:block">Card ' + esc(m.card_no) + ' · ' + esc(s.pl.name) + (m.phone ? ' · ' + esc(m.phone) : '') + '</span></span>' +
+      '<span class="prog">' + bar(s) + '<small>' + s.done + ' of ' + s.pl.months + ' months' + (m.status === 'active' ? ' · ends ' + fmtM(s.lastMonth) : '') + '</small></span>' +
+      '<span class="right"><b>' + (s.pl.saves === 'gold' ? gm(s.grams) : inr(s.paid)) + '</b>' +
+        (m.status !== 'active' ? '<span class="tag closed">' + (m.status === 'closed' ? 'Closed' : 'Cancelled') + '</span>' : s.ready ? '<span class="tag ready">Ready to redeem</span>' : s.behind ? '<span class="tag behind">' + s.behind + ' behind</span>' : '') + '</span>' +
+    '</button>').join('')
+    : '<div class="empty-s">' + (members.length ? 'No members match.' : 'No members yet. Use “Add a member” when a customer joins.') + '</div>';
+}
+$('mlist').addEventListener('click', e => { const r = e.target.closest('.mem'); if(r) location.hash = 'm=' + r.dataset.id; });
+$('q').addEventListener('input', renderMembers);
+$('fPlan').addEventListener('change', () => { $('fPlan').dataset.v = $('fPlan').value; renderMembers(); });
+$('fState').addEventListener('change', renderMembers);
+$('goJoin').onclick = () => {
+  if(!plans.some(p => p.active)) return toast(NJ.me.is_owner ? 'Set up a plan first, in Plans.' : 'The owner has not set up a plan yet.');
+  location.hash = 'join';
+};
+
+/* ---------- one member ---------- */
+function openMember(id){
+  cur = members.find(m => m.id === id) || null;
+  show('one');
+  if(!cur){ $('oName').textContent = 'Member not found'; ['oProgress', 'oReady', 'oInfo', 'oPays', 'oActs'].forEach(x => { $(x).innerHTML = ''; }); return; }
+  renderMember();
+}
+function renderMember(){
+  const m = cur, s = standing(m), pl = s.pl, gold = pl.saves === 'gold';
+  $('oName').textContent = m.name;
+  $('oEyebrow').textContent = 'Card ' + m.card_no + ' · ' + pl.name;
+  $('oActs').innerHTML = m.status === 'active' ? '<button class="btn btn-maroon" id="oPay">Take a payment</button>' + (m.phone && s.ps.length ? '<button class="btn btn-wa" id="oStatement">Send summary on WhatsApp</button>' : '') : '';
+  $('oProgress').innerHTML = '<h3>' + s.done + ' of ' + pl.months + ' months paid</h3>' + bar(s) +
+    '<div class="mfoot" style="margin-top:8px"><span>Paid <b>' + inr(s.paid) + '</b></span>' + (gold ? '<span>Saved <b>' + gm(s.grams) + '</b></span>' : '') +
+    (s.behind ? '<span class="mlate-t"><b>' + s.behind + '</b> month' + (s.behind > 1 ? 's' : '') + ' behind' + (s.owe ? ' · ' + inr(s.owe) + ' due' : '') + '</span>' : '') +
+    '<span>' + fmtM(m.start_month) + ' to ' + fmtM(s.lastMonth) + '</span></div>';
+  $('oReady').innerHTML = s.ready ? '<div class="ready-box"><p><b>Ready to redeem.</b> All ' + pl.months + ' months are paid.</p>' +
+      '<div class="big">' + (gold ? gm(s.grams + s.bonusGrams) + (pl.bonus_kind === 'instalment' ? ' + ' + inr(s.bonus) : '') : inr(s.paid + s.bonus)) + '</div>' +
+      '<p style="font-size:.88rem">' + (gold ? gm(s.grams) + ' saved' : inr(s.paid) + ' paid') + ' · ' + esc(bonusText(pl, s)) + (pl.benefit ? ' · ' + esc(pl.benefit) : '') + '</p>' +
+      '<div class="bar"><button class="btn btn-maroon" id="oRedeem">Mark redeemed</button></div></div>'
+    : m.status !== 'active' ? '<div class="notice">' + (m.status === 'closed' ? 'Redeemed and closed' : 'Cancelled') + (m.closed_at ? ' on ' + fmtD(m.closed_at.slice(0, 10)) : '') + (m.close_note ? ': ' + esc(m.close_note) : '') + '. <button class="linkish" id="oReopen">Open again</button></div>' : '';
+  const crm = m.customer_id && NJ.canUse('crm') ? ' · <a href="../crm/#c=' + esc(m.customer_id) + '">Customer page ›</a>' : '';
+  const rows = [['Card', esc(m.card_no)], ['Plan', esc(pl.name)],
+    ['Each month', pl.instalment ? inr(pl.instalment) : 'Any amount'], ['Saves', gold ? '22K gold at the day’s rate' : 'Money'],
+    ['Bonus', esc(bonusText(pl)) + (pl.benefit ? ' · ' + esc(pl.benefit) : '')],
+    ['Phone', m.phone ? '<a href="tel:' + esc(m.phone.replace(/\s/g, '')) + '">' + esc(m.phone) + '</a>' : ''], ['Customer', m.customer_id ? 'Saved customer' + crm : ''],
+    ['Notes', esc(m.notes)], ['Joined', esc((m.created_by_name ? m.created_by_name + ', ' : '') + fmtD(m.created_at.slice(0, 10)))]].filter(r => r[1]);
+  $('oInfo').innerHTML = rows.map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>').join('');
+  $('oCancel').hidden = m.status !== 'active';
+  const canFix = p => NJ.me.is_owner || (p.created_by === NJ.me.user_id && new Date(p.created_at).toDateString() === new Date().toDateString());
+  $('oPays').innerHTML = s.ps.length ? '<table class="pay"><thead><tr><th>Date</th><th>Receipt</th><th class="n">Amount</th>' + (gold ? '<th class="n">Gold</th>' : '') + '<th></th></tr></thead><tbody>' +
+    s.ps.map(p => '<tr data-id="' + esc(p.id) + '"><td>' + fmtD(p.paid_on) + '<small>' + esc(p.mode) + (p.created_by_name ? ' · ' + esc(p.created_by_name) : '') + '</small></td><td>' + rno(p) + (p.note ? '<small>' + esc(p.note) + '</small>' : '') + '</td>' +
+      '<td class="n">' + inr(p.amount) + '</td>' + (gold ? '<td class="n">' + (p.grams ? gm(p.grams) + '<small>at ' + inr(p.gold_rate) + '/g</small>' : '') + '</td>' : '') +
+      '<td class="n"><div class="tacts" style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">' + (m.phone ? '<button class="btn mini" data-r="send">Receipt</button>' : '') +
+      (canFix(p) ? '<button class="btn mini" data-r="edit">Edit</button><button class="btn mini btn-danger" data-r="del">Delete</button>' : '') + '</div></td></tr>').join('') + '</tbody></table>'
+    : '<div class="empty-s">No payments yet.' + (m.status === 'active' ? ' Use “Take a payment”.' : '') + '</div>';
+}
+$('oActs').addEventListener('click', e => {
+  if(e.target.closest('#oPay')) return takePayment(cur);
+  if(e.target.closest('#oStatement')) return sendSummary(cur);
+});
+$('oReady').addEventListener('click', async e => {
+  if(e.target.closest('#oRedeem')){
+    const s = standing(cur);
+    const v = await dialog({title: 'Mark redeemed', msg: cur.name + ' takes ' + (s.pl.saves === 'gold' ? gm(s.grams + s.bonusGrams) : inr(s.paid + s.bonus)) + ' in jewellery. The scheme closes.', ok: 'Mark redeemed',
+      fields: [{id: 'note', label: 'Note (optional)', maxlength: 200, placeholder: 'e.g. bought a 22K chain, bill 1432'}]});
+    if(!v) return;
+    try{ Object.assign(cur, must(await sb.from('chit_members').update({status: 'closed', close_note: v.note}).eq('id', cur.id).select().single())); toast('Redeemed and closed'); renderMember(); }catch(x){ toast(x.message); }
+  }
+  if(e.target.closest('#oReopen')){
+    try{ Object.assign(cur, must(await sb.from('chit_members').update({status: 'active', close_note: ''}).eq('id', cur.id).select().single())); toast('Open again'); renderMember(); }catch(x){ toast(x.message); }
+  }
+});
+$('oPays').addEventListener('click', async e => {
+  const b = e.target.closest('[data-r]'); if(!b) return;
+  const p = pays.find(x => x.id === b.closest('tr').dataset.id);
+  if(b.dataset.r === 'send') return sendReceipt(cur, p);
+  if(b.dataset.r === 'edit') return takePayment(cur, p);
+  if(b.dataset.r === 'del'){
+    if(!await ask('Delete receipt ' + rno(p) + '?', inr(p.amount) + ' on ' + fmtD(p.paid_on) + '. The receipt number is not used again.', 'Delete', true)) return;
+    try{ must(await sb.from('chit_payments').delete().eq('id', p.id)); pays = pays.filter(x => x !== p); toast('Payment deleted'); renderMember(); }catch(x){ toast(x.message); }
+  }
+});
+$('backBtn').onclick = () => { location.hash = ''; };
+$('oEdit').onclick = () => { location.hash = 'edit=' + cur.id; };
+$('oCancel').onclick = async () => {
+  const s = standing(cur);
+  const v = await dialog({title: 'Cancel this scheme?', msg: cur.name + ' has paid ' + inr(s.paid) + '. Note what was agreed, e.g. refunded or adjusted in a bill.', ok: 'Cancel scheme', danger: true, cancel: 'Keep it',
+    fields: [{id: 'note', label: 'What happened', maxlength: 200, placeholder: 'e.g. refunded ₹6,000 in cash'}],
+    validate: async v => v.note ? '' : 'Write what was agreed.'});
+  if(!v) return;
+  try{ Object.assign(cur, must(await sb.from('chit_members').update({status: 'cancelled', close_note: v.note}).eq('id', cur.id).select().single())); toast('Scheme cancelled'); renderMember(); }catch(x){ toast(x.message); }
+};
+$('oDel').onclick = async () => {
+  if(!await ask('Delete ' + cur.name + ' and all their payments?', 'Only for a member added by mistake. To stop a scheme, use Cancel instead.', 'Delete', true)) return;
+  try{ must(await sb.from('chit_members').delete().eq('id', cur.id)); pays = pays.filter(p => p.member_id !== cur.id); members = members.filter(m => m !== cur); toast('Member deleted'); location.hash = ''; }catch(x){ toast(x.message); }
+};
+
+/* ---------- payments and receipts ---------- */
+async function takePayment(m, old){
+  const s = standing(m), pl = s.pl, gold = pl.saves === 'gold';
+  const todays = rate && new Date(rate.set_at).toDateString() === new Date().toDateString();
+  const fields = [
+    {id: 'amount', label: 'Amount (₹)', value: old ? String(Number(old.amount)) : pl.instalment ? String(Number(pl.instalment)) : '', maxlength: 12, placeholder: 'e.g. 2000'},
+    {id: 'mode', label: 'Paid by', type: 'select', value: old ? old.mode : 'Cash', options: MODES.map(x => [x, x])},
+    {id: 'day', label: 'Date', type: 'date', value: old ? old.paid_on : todayIso()}];
+  if(gold) fields.push({id: 'rate', label: '22K rate (₹ per gram)' + (old || todays ? '' : ': today’s rate is not in yet'), value: old && old.gold_rate ? String(Number(old.gold_rate)) : rate ? String(Number(rate.gold_22k)) : '', maxlength: 10});
+  fields.push({id: 'note', label: 'Note (optional)', value: old ? old.note : '', maxlength: 200});
+  const v = await dialog({title: (old ? 'Edit ' + rno(old) : 'Payment from ' + m.name), msg: old ? '' : 'Card ' + m.card_no + ' · ' + pl.name + ' · ' + s.done + ' of ' + pl.months + ' months paid' + (s.behind ? ', ' + s.behind + ' behind' : '') + '.',
+    ok: old ? 'Save' : 'Save payment', fields,
+    validate: async v => {
+      const a = num(v.amount), r = gold ? num(v.rate) : null;
+      if(!a || Number.isNaN(a)) return 'Type the amount in rupees, e.g. 2000.';
+      if(gold && (!r || Number.isNaN(r))) return 'Type the 22K rate per gram.';
+      if(!v.day) return 'Choose the date.';
+      if(v.day > todayIso()) return 'The date cannot be in the future.';
+      const row = {amount: a, mode: v.mode, paid_on: v.day, gold_rate: gold ? r : null, note: v.note};
+      const saved = must(old ? await sb.from('chit_payments').update(row).eq('id', old.id).select().single() : await sb.from('chit_payments').insert(Object.assign({member_id: m.id}, row)).select().single());
+      if(old) Object.assign(old, saved); else pays.unshift(saved);
+      v.saved = saved; return '';
+    }});
+  if(!v) return;
+  const saved = old || pays[0];
+  toast(old ? 'Saved' : 'Saved: receipt ' + rno(saved));
+  await loadAll();
+  if(curTab === 'one'){ cur = members.find(x => x.id === m.id); renderMember(); } else renderCollect();
+  if(!old && m.phone && await ask('Send the receipt on WhatsApp?', m.name + ' · ' + m.phone, 'Send receipt')) sendReceipt(m, pays.find(p => p.id === saved.id) || saved);
+}
+function receiptText(m, p){
+  const s = standing(m), pl = s.pl, gold = pl.saves === 'gold';
+  return ['Natraj Jewels, Tiruppur · Chit receipt ' + rno(p), m.name + ' · Card ' + m.card_no + ' · ' + pl.name,
+    'Paid ' + inr(p.amount) + ' on ' + fmtD(p.paid_on) + ' (' + p.mode + ')' + (gold && p.grams ? ': ' + gm(p.grams) + ' at ' + inr(p.gold_rate) + '/g' : ''),
+    'Total paid ' + inr(s.paid) + (gold ? ' · ' + gm(s.grams) + ' saved' : '') + ' · ' + s.done + ' of ' + pl.months + ' months',
+    'Thank you.'].join('\n');
+}
+const wa = (phone, text) => window.open('https://wa.me/' + digits(phone) + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
+const sendReceipt = (m, p) => wa(m.phone, receiptText(m, p));
+function sendSummary(m){
+  const s = standing(m), pl = s.pl;
+  wa(m.phone, ['Natraj Jewels, Tiruppur · Chit card ' + m.card_no, m.name + ' · ' + pl.name, s.done + ' of ' + pl.months + ' months paid · ' + inr(s.paid) + (pl.saves === 'gold' ? ' · ' + gm(s.grams) + ' saved' : ''),
+    s.ready ? 'Your scheme is complete. Please visit us to choose your jewellery.' : s.behind ? s.behind + ' month' + (s.behind > 1 ? 's' : '') + ' pending' + (s.owe ? ' (' + inr(s.owe) + ')' : '') + '. Please pay when you can.' : 'Last month: ' + fmtM(s.lastMonth) + '.'].join('\n'));
+}
+
+/* ---------- collect ---------- */
+function renderCollect(){
+  const todays = rate && new Date(rate.set_at).toDateString() === new Date().toDateString();
+  $('rateNote').innerHTML = plans.some(p => p.saves === 'gold') ? (rate ? 'Gold plans use the 22K rate: <b>' + inr(rate.gold_22k) + '/g</b>' + (todays ? ' (today).' : ', last set ' + new Date(rate.set_at).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}) + '. Today’s rate is not in yet.') : 'No gold rate has been entered yet.') : '';
+  const q = $('cq').value.trim().toLowerCase();
+  const act = members.filter(m => m.status === 'active');
+  const found = q ? act.filter(m => [m.name, m.phone, m.card_no].join(' ').toLowerCase().includes(q)) : act.map(m => ({m, s: standing(m)})).filter(x => !x.s.paidThisMonth && x.s.behind > 0).map(x => x.m);
+  $('cResults').innerHTML = (q ? '' : '<p class="plan-note" style="padding:12px 18px 0">Not paid this month. Search to find anyone else.</p>') +
+    (found.length ? found.slice(0, 40).map(m => { const s = standing(m); return '<div class="drow"><div><div class="nm">' + esc(m.name) + '</div><div class="sub">Card ' + esc(m.card_no) + ' · ' + esc(s.pl.name) + ' · ' + s.done + '/' + s.pl.months + (s.behind ? ' · <span style="color:var(--a)">' + s.behind + ' behind</span>' : '') + '</div></div>' +
+      '<div class="acts"><button class="btn btn-maroon mini" data-pay="' + esc(m.id) + '">Take payment</button></div></div>'; }).join('')
+      : '<div class="empty-s">' + (q ? 'No running member matches.' : 'Everyone has paid this month.') + '</div>');
+  const today = todayIso(), tp = pays.filter(p => p.paid_on === today).sort((a, b) => b.receipt_no - a.receipt_no);
+  const memOf = id => members.find(m => m.id === id) || {name: '?', card_no: ''};
+  $('todayTitle').textContent = 'Collected today · ' + inr(tp.reduce((s, p) => s + Number(p.amount), 0));
+  $('todayList').innerHTML = tp.length ? tp.map(p => '<div class="drow"><div><div class="nm">' + esc(memOf(p.member_id).name) + '</div><div class="sub">' + rno(p) + ' · Card ' + esc(memOf(p.member_id).card_no) + ' · ' + esc(p.mode) + (p.created_by_name ? ' · ' + esc(p.created_by_name) : '') + '</div></div><b style="font-variant-numeric:tabular-nums">' + inr(p.amount) + '</b></div>').join('')
+    : '<div class="empty-s">Nothing collected yet today.</div>';
+  const by = {}; tp.forEach(p => by[p.mode] = (by[p.mode] || 0) + Number(p.amount));
+  $('todayModes').innerHTML = Object.entries(by).map(([k, v]) => '<span>' + esc(k) + ' <b>' + inr(v) + '</b></span>').join('');
+  $('todayModes').hidden = !tp.length;
+}
+$('cq').addEventListener('input', renderCollect);
+$('cResults').addEventListener('click', e => { const b = e.target.closest('[data-pay]'); if(b) takePayment(members.find(m => m.id === b.dataset.pay)); });
+
+/* ---------- due ---------- */
+function renderDue(){
+  const act = members.filter(m => m.status === 'active').map(m => ({m, s: standing(m)}));
+  const ready = act.filter(x => x.s.ready), behind = act.filter(x => !x.s.ready && x.s.behind > 0).sort((a, b) => b.s.behind - a.s.behind || a.m.name.localeCompare(b.m.name));
+  $('dEyebrow').textContent = new Date().toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
+  $('dReady').innerHTML = ready.length ? ready.map(({m, s}) => '<div class="drow"><div><div class="nm">' + esc(m.name) + '</div><div class="sub">Card ' + esc(m.card_no) + ' · ' + esc(s.pl.name) + ' · ' + (s.pl.saves === 'gold' ? gm(s.grams + s.bonusGrams) : inr(s.paid + s.bonus)) + ' with bonus</div></div>' +
+      '<div class="acts">' + (m.phone ? '<button class="btn btn-wa mini" data-ready="' + esc(m.id) + '">Tell them on WhatsApp</button>' : '') + '<button class="btn mini" data-open="' + esc(m.id) + '">Open</button></div></div>').join('')
+    : '<div class="empty-s">Nobody has finished a scheme yet.</div>';
+  $('dBehind').innerHTML = behind.length ? behind.map(({m, s}) => '<div class="drow"><div><div class="nm">' + esc(m.name) + '</div><div class="sub">Card ' + esc(m.card_no) + ' · ' + esc(s.pl.name) + ' · <span style="color:var(--a)">' + s.behind + ' month' + (s.behind > 1 ? 's' : '') + ' behind' + (s.owe ? ' · ' + inr(s.owe) : '') + '</span>' + (s.paidThisMonth ? ' · paid something this month' : '') + (m.phone ? ' · ' + esc(m.phone) : '') + '</div></div>' +
+      '<div class="acts">' + (m.phone ? '<button class="btn btn-wa mini" data-remind="' + esc(m.id) + '">Remind on WhatsApp</button>' : '') + '<button class="btn btn-maroon mini" data-pay="' + esc(m.id) + '">Take payment</button></div></div>').join('')
+    : '<div class="empty-s">Everyone is up to date.</div>';
+}
+document.getElementById('tab-due').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  const m = members.find(x => x.id === (b.dataset.pay || b.dataset.remind || b.dataset.ready || b.dataset.open)); if(!m) return;
+  const s = standing(m);
+  if(b.dataset.pay) takePayment(m).then(renderDue);
+  if(b.dataset.open) location.hash = 'm=' + m.id;
+  if(b.dataset.remind) wa(m.phone, 'Vanakkam ' + m.name + ', this is Natraj Jewels, Tiruppur. A gentle reminder: your ' + s.pl.name + ' chit (card ' + m.card_no + ') has ' + s.behind + ' month' + (s.behind > 1 ? 's' : '') + ' pending' + (s.owe ? ' (' + inr(s.owe) + ')' : '') + '. Please pay at the shop or on UPI. Thank you.');
+  if(b.dataset.ready) wa(m.phone, 'Vanakkam ' + m.name + ', this is Natraj Jewels, Tiruppur. Your ' + s.pl.name + ' chit (card ' + m.card_no + ') is complete: ' + (s.pl.saves === 'gold' ? gm(s.grams + s.bonusGrams) : inr(s.paid + s.bonus)) + ' including your bonus. Please visit us to choose your jewellery.');
+});
+
+/* ---------- plans (owner) ---------- */
+function renderPlans(){
+  $('planList').innerHTML = plans.length ? plans.map(p => { const n = members.filter(m => m.plan_id === p.id && m.status === 'active').length; return '<div class="drow"><div><div class="nm">' + esc(p.name) + (p.active ? '' : ' <span class="tag closed">Stopped</span>') + '</div>' +
+      '<div class="sub"><b>' + (p.instalment ? inr(p.instalment) + ' a month' : 'Any amount each month') + '</b> · ' + p.months + ' months · ' + (p.saves === 'gold' ? 'saved as 22K gold' : 'saved as money') + ' · ' + esc(bonusText(p)) + (p.benefit ? ' · ' + esc(p.benefit) : '') + ' · ' + n + ' running</div></div>' +
+      '<div class="acts"><button class="btn mini" data-plan="' + esc(p.id) + '">Edit</button></div></div>'; }).join('')
+    : '<div class="empty-s">No plans yet. A common one: ₹1,000 a month for 11 months, and the shop pays the 12th month as a bonus.</div>';
+}
+async function planDialog(p){
+  const v = await dialog({title: p ? 'Edit plan' : 'New plan', ok: 'Save', fields: [
+    {id: 'name', label: 'Plan name', value: p ? p.name : '', maxlength: 60, placeholder: 'e.g. Gold 11 months ₹1,000'},
+    {id: 'saves', label: 'Saved as', type: 'select', value: p ? p.saves : 'money', options: [['money', 'Money (rupees)'], ['gold', '22K gold: each payment buys grams at the day’s rate']]},
+    {id: 'months', label: 'How many months', value: p ? String(p.months) : '11', maxlength: 2},
+    {id: 'inst', label: 'Each month (₹), empty for any amount', value: p && p.instalment ? String(Number(p.instalment)) : '', maxlength: 10, placeholder: 'e.g. 1000'},
+    {id: 'bonus', label: 'Bonus at the end', type: 'select', value: p ? p.bonus_kind : 'instalment', options: [['instalment', 'One instalment free (fixed amount only)'], ['percent', 'A percentage of what was paid'], ['none', 'No bonus']]},
+    {id: 'pct', label: 'Bonus percentage, if a percentage', value: p && p.bonus_kind === 'percent' ? String(Number(p.bonus_value)) : '', maxlength: 5},
+    {id: 'benefit', label: 'Other benefit (optional)', value: p ? p.benefit : '', maxlength: 200, placeholder: 'e.g. No wastage up to 8%'},
+    {id: 'active', label: 'New members can join this plan', type: 'checkbox', value: p ? p.active : true}],
+    validate: async v => {
+      const months = num(v.months), inst = num(v.inst), pct = num(v.pct);
+      if(!v.name) return 'Give the plan a name.';
+      if(!months || !Number.isInteger(months) || months > 60) return 'Type the number of months, 1 to 60.';
+      if(Number.isNaN(inst)) return 'Type the monthly amount in rupees, or leave it empty.';
+      if(v.bonus === 'instalment' && !inst) return '“One instalment free” needs a fixed monthly amount.';
+      if(v.bonus === 'percent' && (!pct || Number.isNaN(pct) || pct > 100)) return 'Type the bonus percentage, e.g. 5.';
+      const row = {name: v.name, saves: v.saves, months, instalment: inst, bonus_kind: v.bonus, bonus_value: v.bonus === 'percent' ? pct : 0, benefit: v.benefit, active: v.active};
+      const saved = must(p ? await sb.from('chit_plans').update(row).eq('id', p.id).select().single() : await sb.from('chit_plans').insert(row).select().single());
+      if(p) Object.assign(p, saved); else plans.push(saved);
+      return '';
+    }});
+  if(v){ toast('Plan saved'); plans.sort((a, b) => a.name.localeCompare(b.name)); renderPlans(); }
+}
+$('planAdd').onclick = () => planDialog(null);
+$('planList').addEventListener('click', e => { const b = e.target.closest('[data-plan]'); if(b) planDialog(plans.find(p => p.id === b.dataset.plan)); });
+
+/* ---------- join / edit member ---------- */
+function planNote(){
+  const p = plans.find(x => x.id === $('jPlan').value);
+  $('jPlanNote').textContent = p ? (p.instalment ? inr(p.instalment) + ' a month' : 'Any amount each month') + ' for ' + p.months + ' months · ' + (p.saves === 'gold' ? 'saved as 22K gold' : 'saved as money') + ' · ' + bonusText(p) + (p.benefit ? ' · ' + p.benefit : '') : '';
+}
+$('jPlan').addEventListener('change', planNote);
+function showLinked(){ const c = customers.find(x => x.id === linkedId); $('jLinked').hidden = !c; if(c) $('jLinked').textContent = '✓ Saved customer: ' + c.name + (c.phone ? ' · ' + c.phone : ''); }
+$('jName').addEventListener('input', () => {
+  const v = $('jName').value;
+  const c = customers.find(x => v === x.name + (x.phone ? ' · ' + x.phone : '')) || (customers.filter(x => x.name === v).length === 1 ? customers.find(x => x.name === v) : null);
+  if(c){ linkedId = c.id; $('jName').value = c.name; if(c.phone) $('jPhone').value = c.phone; }
+  else if(linkedId && !customers.some(x => x.id === linkedId && x.name === v.trim())) linkedId = null;
+  showLinked();
+});
+function openJoin(m){
+  editing = m; show('join');
+  const owner = NJ.me.is_owner, ps = plans.filter(p => p.active || (m && p.id === m.plan_id));
+  $('jEyebrow').textContent = m ? 'Card ' + m.card_no : 'New member';
+  $('jTitle').textContent = m ? 'Edit ' + m.name : 'Add a member';
+  $('jPlan').innerHTML = ps.map(p => '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>').join('');
+  $('jPlan').value = m ? m.plan_id : (ps[0] || {}).id || '';
+  // after payments start, only the owner changes the plan or the first month
+  const locked = !!m && !owner && pays.some(p => p.member_id === m.id);
+  $('jPlan').disabled = locked; $('jStart').disabled = locked;
+  linkedId = m ? m.customer_id : null;
+  $('jName').value = m ? m.name : ''; $('jPhone').value = m ? m.phone : ''; $('jCard').value = m ? m.card_no : '';
+  $('jStart').value = (m ? m.start_month : thisMonth()).slice(0, 7); $('jNotes').value = m ? m.notes : '';
+  $('jErr').textContent = ''; showLinked(); planNote();
+}
+$('jCancel').onclick = () => { location.hash = editing ? 'm=' + editing.id : ''; };
+$('jf').addEventListener('submit', async e => {
+  e.preventDefault(); const err = t => { $('jErr').textContent = t; }; err('');
+  const name = $('jName').value.trim().replace(/\s+/g, ' '), phone = $('jPhone').value.trim(), card = $('jCard').value.trim().toUpperCase();
+  if(!$('jPlan').value) return err('Choose a plan.');
+  if(!name) return err('Type the member’s name.');
+  if(phone && !/^[0-9+ ]{6,20}$/.test(phone)) return err('Type the phone number with digits only, e.g. 98430 12345.');
+  if(!/^\d{4}-\d{2}$/.test($('jStart').value)) return err('Choose the first month.');
+  if(card && members.some(m => m.card_no === card && m !== editing)) return err('Card ' + card + ' is already used.');
+  const row = {plan_id: $('jPlan').value, name, phone, card_no: card, start_month: $('jStart').value + '-01', notes: $('jNotes').value.trim(), customer_id: linkedId};
+  $('jSave').setAttribute('aria-busy', 'true');
+  try{
+    const saved = must(editing ? await sb.from('chit_members').update(row).eq('id', editing.id).select().single() : await sb.from('chit_members').insert(row).select().single());
+    if(editing) Object.assign(editing, saved); else members.unshift(saved);
+    toast(editing ? 'Saved' : 'Added: card ' + saved.card_no);
+    const first = !editing;
+    editing = null; location.hash = 'm=' + saved.id;
+    if(first && await ask('Take the first payment now?', saved.name + ' · card ' + saved.card_no, 'Take payment')) takePayment(saved);
+  }catch(x){ err(/card_no|duplicate key/.test(x.message) ? 'That card number is already used.' : x.message); }
+  $('jSave').removeAttribute('aria-busy');
+});
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('chits') && !document.querySelector('dialog[open]') && ['members', 'collect', 'due'].includes(curTab))
+    loadAll().then(route).catch(e => toast(e.message));
+});
+
+NJ.start({onReady: async me => {
+  const ok = !!me && NJ.canUse('chits');
+  document.body.classList.toggle('no-access', !!me && !ok);
+  if(!ok) return;
+  try{ await Promise.all([loadAll(), loadCustomers().catch(() => {})]); route(); }catch(e){ toast(e.message); }
+}});
+})();
+</script>
+</body>
+</html>

@@ -149,6 +149,10 @@
         <div class="head"><h3>Design library</h3><a href="../designs/">To buy ›</a></div>
         <div class="body" id="desBox"><small>Loading…</small></div>
       </section>
+      <section class="card mod" data-mod="chits">
+        <div class="head"><h3>Chit scheme</h3><a href="../chits/#due">Due ›</a></div>
+        <div class="body" id="chitBox"><small>Loading…</small></div>
+      </section>
       <section class="card mod" data-mod="worked">
         <div class="head"><h3 id="mTitle">Days worked this month</h3><a href="../attendance/">Monthly register ›</a></div>
         <div class="body" style="display:grid;gap:12px"><div class="bars" id="bars"><small>Loading…</small></div><p class="axisnote" id="barNote" style="margin:0"></p></div>
@@ -186,6 +190,7 @@ const MODS = {
   customers:  {name: 'Customers', box: 'crmBox', load: () => loadCrm()},
   tasks:      {name: 'Tasks today', box: 'taskBox', load: () => loadTasks()},
   designs:    {name: 'Design library', box: 'desBox', load: () => loadDesigns()},
+  chits:      {name: 'Chit scheme', box: 'chitBox', load: () => loadChits()},
   worked:     {name: 'Days worked', box: 'bars', load: () => loadAttendance()}
 };
 // the starting layout: the essentials, with the longer lists hidden until wanted
@@ -193,7 +198,7 @@ const DEFAULT = [
   {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'},
   {k: 'expenses', w: 'half'}, {k: 'bank', w: 'half'},
   {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
-  {k: 'designs', w: 'half'},
+  {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'},
   {k: 'worked', w: 'full', hidden: true}
 ];
 const PREF_KEY = 'natraj-dashboard-layout';
@@ -468,6 +473,32 @@ async function loadDesigns(){
     (show.length ? '<div class="list">' + show.map(d => '<div><a href="../designs/#d=' + esc(d.id) + '" style="color:var(--ink);text-decoration:none">' + esc(label(d)) + '</a><small' + (d.status === 'received' ? ' style="color:var(--p);font-weight:600"' : ' style="color:var(--a)"') + '>' +
       (d.status === 'received' ? 'arrived · tell customer' : 'late · needed ' + parse(d.needed_by).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</small></div>').join('') + '</div>'
       : '<small>Nothing late, and nothing waiting to be given to a customer.</small>');
+}
+
+/* chit scheme: collected this month, members running, who is behind, who can redeem (same counting as the chits page) */
+async function loadChits(){
+  const [a, b, c] = await Promise.all([sb.from('chit_plans').select('id,months,instalment'), sb.from('chit_members').select('id,plan_id,start_month,status').eq('status', 'active'), sb.from('chit_payments').select('member_id,amount,paid_on')]);
+  const plans = must(a) || [], mem = must(b) || [], pays = must(c) || [];
+  if(!plans.length){ $('chitBox').innerHTML = '<small>No chit plans yet. <a href="../chits/#plans">Set up a plan</a>.</small>'; return; }
+  const month = todayIso().slice(0, 7), mm = s => { const [y, m] = s.split('-').map(Number); return y * 12 + m; };
+  const by = {}; pays.forEach(p => (by[p.member_id] = by[p.member_id] || []).push(p));
+  let behind = 0, owe = 0, ready = 0;
+  mem.forEach(m => {
+    const pl = plans.find(p => p.id === m.plan_id); if(!pl) return;
+    const ps = by[m.id] || [], paid = ps.reduce((s, p) => s + Number(p.amount), 0);
+    const due = Math.max(0, Math.min(pl.months, mm(month) - mm(m.start_month) + 1));
+    const covered = pl.instalment ? Math.floor(paid / Number(pl.instalment) + 1e-6) : new Set(ps.map(p => p.paid_on.slice(0, 7))).size;
+    const lastPassed = mm(month) - (mm(m.start_month) + pl.months - 1) > 0;
+    if(pl.instalment ? covered >= pl.months : covered >= pl.months || (covered > 0 && lastPassed)) ready++;
+    else if(due > covered){ behind++; if(pl.instalment) owe += due * Number(pl.instalment) - paid; }
+  });
+  const got = pays.filter(p => p.paid_on.slice(0, 7) === month), sum = got.reduce((s, p) => s + Number(p.amount), 0);
+  const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+  $('chitBox').innerHTML = '<div class="rates">' +
+    '<div><span>Collected this month</span><b>' + inr(sum) + '</b><em>' + got.length + ' payments</em></div>' +
+    '<div><span>Running</span><b>' + mem.length + '</b></div>' +
+    '<div><span>Behind</span><b' + (behind ? ' style="color:var(--a)"' : '') + '>' + behind + '</b>' + (owe ? '<em>' + inr(owe) + ' due</em>' : '') + '</div>' +
+    '<div><span>Ready to redeem</span><b' + (ready ? ' style="color:var(--p)"' : '') + '>' + ready + '</b></div></div>';
 }
 
 /* open tasks per person: how many, how many overdue, the next one due */

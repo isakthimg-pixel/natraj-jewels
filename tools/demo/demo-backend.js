@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v17';
-const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs'];
+const KEY = 'natraj-demo-db-v18';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
@@ -18,10 +18,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {},
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1},
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -165,6 +165,35 @@ function seed(){
   des('restock', 'Gold', 'Pendant', '22K 916', 3, {qty: 4, supplier: 'Sri Murugan Works'}, ['pendant'], 20, 'done').close_note = 'On the counter';
   const arrived = db.designs.find(d => d.kind === 'enquiry' && d.status === 'received');
   db.notifications.push({id: uid(), user_id: manager.user_id, kind: 'design_arrived', title: 'Arrived for ' + arrived.customer_name, body: '22K 916 gold bangle. Tell the customer.', link: 'designs/#d=' + arrived.id, created_at: new Date(Date.now() - 90 * 60000).toISOString(), read_at: null});
+  // chit scheme: three plans and members at every stage (behind, up to date, ready to redeem, closed)
+  const plan = (name, saves, months, instalment, bonus_kind, bonus_value, benefit) => { const p = {id: uid(), name, saves, months, instalment, bonus_kind, bonus_value, benefit, active: true, created_at: at(-400)}; db.chit_plans.push(p); return p; };
+  const P1 = plan('Gold savings ₹1,000 × 11', 'money', 11, 1000, 'instalment', 0, 'No wastage up to 8%');
+  const P2 = plan('Swarna gold ₹2,000 × 11', 'gold', 11, 2000, 'percent', 5, '');
+  const P3 = plan('Flexi 12 months', 'money', 12, null, 'percent', 3, '');
+  const month0 = today.slice(0, 7) + '-01', monthAgo = n => { const [y, m] = month0.split('-').map(Number); const d = new Date(y, m - 1 - n, 1); return iso(d); };
+  const rateOn = d => { let r = null; for(const x of db.rates){ if(x.set_at.slice(0, 10) <= d && (!r || x.set_at > r.set_at)) r = x; } return r ? r.gold_22k : 6600; };
+  const member = (pl, name, phone, cust, startAgo, paidMonths, extra) => {
+    const m = Object.assign({id: uid(), card_no: String(db.chitSeq.card++), plan_id: pl.id, customer_id: cust ? cust.id : null, name, phone, start_month: monthAgo(startAgo), status: 'active', closed_at: null, close_note: '', notes: '',
+      created_by: manager.user_id, created_by_name: manager.name, created_at: monthAgo(startAgo) + 'T11:00:00Z', updated_by_name: '', updated_at: null}, extra || {});
+    db.chit_members.push(m);
+    for(let i = 0; i < paidMonths; i++){
+      let day = addDays(monthAgo(startAgo - i), 4 + Math.floor(rnd() * 8));
+      if(day > today) day = today;
+      const amount = pl.instalment || (Math.round((1 + rnd() * 4)) * 500), gr = pl.saves === 'gold' ? rateOn(day) : null;
+      db.chit_payments.push({id: uid(), receipt_no: db.chitSeq.receipt++, member_id: m.id, paid_on: day, amount, mode: rnd() < 0.6 ? 'Cash' : 'UPI', gold_rate: gr, grams: gr ? Math.round(amount / gr * 1000) / 1000 : null, note: '',
+        created_by: manager.user_id, created_by_name: rnd() < 0.5 ? manager.name : 'Sample Staff 2', created_at: day + 'T12:00:00Z', updated_by_name: '', updated_at: null});
+    }
+    return m;
+  };
+  member(P1, C[0].name, C[0].phone, C[0], 10, 11);                       // all 11 paid: ready to redeem
+  member(P1, C[2].name, C[2].phone, C[2], 6, 7);                         // up to date, paid this month
+  member(P1, C[4].name, C[4].phone, C[4], 5, 3);                         // behind
+  member(P1, 'Sample Member Ganesh', '9786012345', null, 3, 3);          // not yet paid this month
+  member(P2, C[1].name, C[1].phone, C[1], 8, 9);                         // gold, up to date
+  member(P2, C[3].name, C[3].phone, C[3], 4, 3);                         // gold, one behind
+  member(P3, C[6].name, C[6].phone, C[6], 7, 8);                         // flexible, up to date
+  member(P3, 'Sample Member Revathi', '', null, 2, 1);                   // flexible, behind, no phone
+  member(P1, C[5].name, C[5].phone, C[5], 13, 11, {status: 'closed', closed_at: monthAgo(1) + 'T15:00:00Z', close_note: 'Bought a 22K chain, bill 1432'});
   const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
   note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
   note(owner, 'tasks_all_done', 'Sample Staff 3 finished all their tasks', '3 done today. Last one: Arrange the silver anklets tray', 45);
@@ -373,6 +402,8 @@ function rest(method, table, params, body, headers, me){
     expenses: {read: canUse(me, 'expenses'), write: canUse(me, 'expenses')},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
     notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
+    chit_plans: {read: canUse(me, 'chits'), write: me.is_owner}, chit_members: {read: canUse(me, 'chits'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'chits')},
+    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
@@ -390,6 +421,7 @@ function rest(method, table, params, body, headers, me){
   if(table === 'notifications') return notesRest(method, params, body, single, wantRows, me);
   if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
   if(table === 'designs') return designsRest(method, params, body, single, wantRows, me);
+  if(table.startsWith('chit_')) return chitsRest(table, method, params, body, single, wantRows, me);
   let out;
   if(method === 'GET'){
     out = rows.filter(r => matches(r, params));
@@ -608,6 +640,43 @@ function designsRest(method, params, body, single, wantRows, me){
   } else if(method === 'PATCH'){
     for(const r of out){ const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}); if(!stage(r, old)){ Object.assign(r, old); return bad; } }
   } else if(method === 'DELETE') db.designs = db.designs.filter(r => !out.includes(r));
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
+}
+/* chit scheme (migration 019): card numbers and receipt numbers count up; staff fix only their own payment on the day */
+function chitsRest(table, method, params, body, single, wantRows, me){
+  const nowIso = now();
+  const ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
+  const fix = r => {
+    if(table === 'chit_members'){ r.card_no = String(r.card_no || '').trim().toUpperCase(); r.closed_at = r.status === 'active' ? null : (r.closed_at || nowIso); }
+    if(table === 'chit_payments') r.grams = r.gold_rate ? Math.round(r.amount / r.gold_rate * 1000) / 1000 : null;
+    return r;
+  };
+  const dup = what => ({status: 409, body: {code: '23505', message: 'duplicate key value violates unique constraint "' + what + '"'}});
+  let out = db[table].filter(r => matches(r, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'POST'){
+    const b = Array.isArray(body) ? body[0] : body;
+    const base = table === 'chit_plans' ? {saves: 'money', instalment: null, bonus_kind: 'none', bonus_value: 0, benefit: '', active: true, created_at: nowIso}
+      : table === 'chit_members' ? {customer_id: null, phone: '', status: 'active', closed_at: null, close_note: '', notes: '', card_no: ''}
+      : {paid_on: iso(new Date()), mode: 'Cash', gold_rate: null, note: ''};
+    const r = Object.assign({id: uid()}, base, b);
+    if(table !== 'chit_plans') Object.assign(r, {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null});
+    if(table === 'chit_members' && !String(r.card_no).trim()) r.card_no = String(db.chitSeq.card++);
+    if(table === 'chit_payments') r.receipt_no = db.chitSeq.receipt++;
+    fix(r);
+    if(table === 'chit_plans' && db.chit_plans.some(x => x.name === r.name)) return dup('chit_plans_name_key');
+    if(table === 'chit_members' && db.chit_members.some(x => x.card_no === r.card_no)) return dup('chit_members_card_no_key');
+    db[table].push(r); out = [r];
+  } else if(method === 'PATCH'){
+    if(table === 'chit_payments') out = out.filter(r => me.is_owner || ownToday(r));
+    out.forEach(r => { Object.assign(r, body); if(table !== 'chit_plans') Object.assign(r, {updated_by_name: me.name, updated_at: nowIso}); fix(r); });
+  } else if(method === 'DELETE'){
+    out = out.filter(r => me.is_owner || (table === 'chit_payments' && ownToday(r)));
+    db[table] = db[table].filter(r => !out.includes(r));
+    if(table === 'chit_members') db.chit_payments = db.chit_payments.filter(p => !out.some(m => m.id === p.member_id));
+  }
   if(method !== 'GET' && !wantRows) return {status: 204, body: null};
   if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
   return {status: 200, body: out};
