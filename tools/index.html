@@ -17,6 +17,21 @@
 .taskmeter{display:grid;gap:10px;background:var(--card);border-color:var(--line);max-width:560px}
 .taskmeter .tm-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .taskmeter .tm-head a{color:var(--maroon);font-weight:600;font-size:.88rem}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.hrow .heading{margin:0}
+.todayrate{display:grid;gap:8px;padding:14px 18px;border:1px solid var(--line);border-radius:4px;background:var(--card);text-decoration:none;color:var(--ink);min-width:min(100%,320px)}
+.todayrate:hover{border-color:var(--gold)}
+.todayrate .lab{font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.todayrate .vals{display:flex;gap:28px;flex-wrap:wrap}
+.todayrate .v{display:grid;gap:2px}
+.todayrate .v span{font-size:.8rem;font-weight:600;color:var(--muted)}
+.todayrate .v b{font:700 1.6rem/1.05 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
+.todayrate .v b small{font:600 .78rem var(--body);color:var(--muted)}
+.todayrate .v em{font-style:normal;font-size:.76rem;font-weight:700}
+.todayrate .v em.up{color:var(--p)} .todayrate .v em.down{color:var(--a)}
+.todayrate .when{font-size:.78rem;color:var(--muted)}
+.todayrate.old .vals{opacity:.55}
+@media (max-width:640px){.todayrate{width:100%}}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -32,7 +47,8 @@
 <main>
   <section>
     <div class="band"><div class="wrap">
-      <div class="heading"><span class="eyebrow" id="hEyebrow">Welcome</span><h2 id="hTitle">Natraj Jewels tools</h2></div>
+      <div class="hrow"><div class="heading"><span class="eyebrow" id="hEyebrow">Welcome</span><h2 id="hTitle">Natraj Jewels tools</h2></div>
+      <a class="todayrate" id="todayRate" href="rates/" hidden></a></div>
     </div></div>
     <div class="wrap content">
       <div id="home" class="loading">Loading…</div>
@@ -62,6 +78,7 @@ function tile(href, name, desc, cls, ic){
 
 async function render(me){
   if(!me){
+    document.getElementById('todayRate').hidden = true;
     const setup = (await NJ.sb.rpc('setup_needed')).data === true;
     document.getElementById('hEyebrow').textContent = setup ? 'First time' : 'Welcome';
     document.getElementById('hTitle').textContent = setup ? 'Set up the owner' : 'Sign in to continue';
@@ -95,10 +112,34 @@ async function render(me){
     if(grid && r.data && r.data.length && !grid.querySelector('[href="report/"]')) grid.insertAdjacentHTML('beforeend', tile('report/', 'My report card', 'Your monthly report card from the owner: attendance, tasks, work done and remarks.', '', 'report'));
   });
   rateReminder(me).catch(() => {});
+  showTodayRate().catch(() => {});
   taskReminder(me).catch(() => {});
   followReminder(me).catch(() => {});
   designReminder(me).catch(() => {});
 }
+
+/* Today's 22K gold and silver rate, at the top, as soon as it is entered */
+async function showTodayRate(){
+  const box = document.getElementById('todayRate');
+  if(!NJ.me){ box.hidden = true; return; }
+  const {data} = await NJ.sb.from('rates').select('gold_22k,silver,set_at,set_by_name').order('set_at', {ascending: false}).limit(30);
+  const rows = data || [];
+  if(!rows.length){ box.hidden = true; return; }
+  const cur = rows[0], day = t => NJ.iso(new Date(t)), isToday = day(cur.set_at) === NJ.todayIso();
+  const prev = rows.find(r => day(r.set_at) < day(cur.set_at));      // the last rate from an earlier day
+  const money = (n, dp) => '₹' + Number(n).toLocaleString('en-IN', {minimumFractionDigits: dp, maximumFractionDigits: 2});
+  const change = (a, b, dp) => { if(!b) return ''; const d = Math.round((Number(a) - Number(b)) * 100) / 100; return d ? '<em class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '▲ ' : '▼ ') + money(Math.abs(d), dp) + '</em>' : '<em>no change</em>'; };
+  const time = new Date(cur.set_at).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
+  box.className = 'todayrate' + (isToday ? '' : ' old');
+  box.innerHTML = '<span class="lab">' + (isToday ? 'Today’s rate' : 'Today’s rate is not in yet') + '</span>' +
+    '<span class="vals"><span class="v"><span>22K gold</span><b>' + money(cur.gold_22k, 0) + '<small> /g</small></b>' + (isToday ? change(cur.gold_22k, prev && prev.gold_22k, 0) : '') + '</span>' +
+    '<span class="v"><span>Silver</span><b>' + money(cur.silver, 2) + '<small> /g</small></b>' + (isToday ? change(cur.silver, prev && prev.silver, 2) : '') + '</span></span>' +
+    '<span class="when">' + (isToday ? 'Updated ' + time + (cur.set_by_name ? ' by ' + NJ.esc(cur.set_by_name) : '') : 'Last rate, from ' + new Date(cur.set_at).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</span>';
+  box.hidden = false;
+}
+// keep it current while the home page stays open
+setInterval(() => { if(document.visibilityState === 'visible') showTodayRate().catch(() => {}); }, 120000);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') showTodayRate().catch(() => {}); });
 
 /* The person who updates the gold & silver rate sees a reminder until today's rate is in. */
 async function rateReminder(me){
