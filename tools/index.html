@@ -82,12 +82,18 @@ async function render(me){
   if(me.is_owner){
     h += tile('dashboard/', 'Dashboard', 'Today at a glance: attendance, leave waiting and this month’s totals.', 'owner', 'dashboard');
     h += tile('people/', 'People & settings', 'Who can sign in, which apps they use, the staff list and shop settings.', 'owner', 'people');
+    h += tile('report/', 'Staff report card', 'Each staff member’s month: attendance, tasks and work in the apps, with your ratings and remarks.', 'owner', 'report');
   }
   h += apps.map(([k, a]) => tile(a.path, a.name, a.desc, '', k)).join('');
   if(!apps.length && !me.is_owner) h += '<div class="form panel"><h3>No apps yet</h3><p>Ask the owner to give you access to the apps you need.</p></div>';
   h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.', '', 'leave');
   box.className = '';
   box.innerHTML = '<p class="notice" id="due" hidden></p><div class="notice taskmeter" id="taskDue" hidden></div><p class="notice" id="fuDue" hidden></p><p class="notice" id="desDue" hidden></p><div class="tiles">' + h + '</div>';
+  // staff see their report card once the owner has shared one
+  if(!me.is_owner && me.staff_id) NJ.sb.from('report_cards').select('id').eq('shared', true).limit(1).then(r => {
+    const grid = box.querySelector('.tiles');
+    if(grid && r.data && r.data.length && !grid.querySelector('[href="report/"]')) grid.insertAdjacentHTML('beforeend', tile('report/', 'My report card', 'Your monthly report card from the owner: attendance, tasks, work done and remarks.', '', 'report'));
+  });
   rateReminder(me).catch(() => {});
   taskReminder(me).catch(() => {});
   followReminder(me).catch(() => {});

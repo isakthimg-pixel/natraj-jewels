@@ -24,6 +24,7 @@ const APPS = {
 
 /* Line icons for the app tiles (24×24, drawn with the current text colour). New apps add one here. */
 const ICONS = {
+  report: '<rect x="4.5" y="3" width="15" height="18" rx="2"/><path d="M8.5 3v2.5h7V3"/><path d="m12 9.3 1.1 2.2 2.4.4-1.7 1.7.4 2.4-2.2-1.1-2.2 1.1.4-2.4-1.7-1.7 2.4-.4z"/>',
   dashboard: '<rect x="3.5" y="3.5" width="7" height="9" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="15.5" width="7" height="5" rx="1.5"/>',
   people: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6"/><path d="M18 14.8c2 .7 3.2 2.4 3.5 5.2"/>',
   attendance: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="m8.8 14.6 2.2 2.2 4.4-4.4"/>',
@@ -264,7 +265,7 @@ function touch(){
 const canUse = app => !!me && (me.is_owner || (me.apps || []).includes(app));
 
 /* ---------- who is online: while a page is open and on screen, check in about once a minute ---------- */
-const PAGES = {dashboard: 'Dashboard', people: 'People & settings'};
+const PAGES = {dashboard: 'Dashboard', people: 'People & settings', report: 'Report card'};
 function pageName(){
   const parts = location.pathname.split('/').filter(Boolean);
   if(parts.length && /\.html?$/.test(parts[parts.length - 1])) parts.pop();
@@ -500,7 +501,7 @@ function matchExpenses(expenses, bank, from, to){
   return {matched, missing, waiting, noAccount, extra};
 }
 
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
   for(const t of TABLES) out.tables[t] = must(await sb.from(t).select('*'));

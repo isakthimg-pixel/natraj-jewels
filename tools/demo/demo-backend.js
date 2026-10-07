@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v25';
+const KEY = 'natraj-demo-db-v26';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -21,7 +21,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -219,6 +219,15 @@ function seed(){
     if(rnd() < 0.35) db.silver_entries.push(silverRow({kind: 'purchase', day: d, item: 'Old silver', weight_g: Math.round((40 + rnd() * 200) * 1000) / 1000, touch: [70, 75, 80, 85][Math.floor(rnd() * 4)], rate: rt - 4, mode: 'Cash', party: 'Walk-in'}, d));
   }
   [monthAgo(1), month0].forEach(m => { const d = addDays(m, 3); if(d <= today) db.silver_entries.push(silverRow({kind: 'purchase', from_supplier: true, day: d, item: 'Bar', weight_g: 2000, touch: 99.9, rate: silverRate(d) - 1, mode: 'Bank transfer', account_id: sbi.id, account_name: sbi.name + ' ··' + sbi.last4, party: 'Salem Silver House'}, d)); });
+  // report cards: last month's card shared with Sample Staff 2; this month rated for the manager, not shared yet
+  const lastM = monthAgo(1);
+  db.report_cards.push({id: uid(), staff_id: staff[1].id, month: lastM, ratings: {punctual: 4, service: 5, team: 4, knowledge: 3, discipline: 4},
+    remarks: 'Very good with customers at the silver counter. Come in on time for the morning opening.', target: 'Learn the gold rate message and send it on time.',
+    metrics: {att: {working: 26, worked: 24.5, leave: 1, absent: 0, half: 1, unmarked: 0, pct: 94.2}, linked: true, signIn: worker.name,
+      tasks: {given: 9, done: 8, onTime: 7, overdue: 1, onTimePct: 77.8}, work: {customers: 6, visits: 11, followups: 4, enquiries: 3, chitMembers: 1, chitPays: 14, chitAmount: 21000, silverSales: 22, silverGrams: 1104.5, silverAmount: 112400, rates: 0}},
+    score: 85.6, grade: 'A', shared: true, shared_at: lastM.slice(0, 8) + '28T18:00:00Z', updated_by_name: 'Owner', updated_at: lastM.slice(0, 8) + '28T18:00:00Z'});
+  db.report_cards.push({id: uid(), staff_id: staff[0].id, month: month0, ratings: {punctual: 5, service: 4, team: 5, knowledge: 5, discipline: 4}, remarks: 'Runs the floor well.', target: '',
+    metrics: {}, score: null, grade: '', shared: false, shared_at: null, updated_by_name: 'Owner', updated_at: now()});
   // who is online: Sample Staff 2 is always on the tasks page on a phone; the manager was here 40 minutes ago
   const ago = m => new Date(Date.now() - m * 60000).toISOString();
   db.presence.push({user_id: worker.user_id, page: 'Tasks', device: 'Phone', signed_in_at: ago(25), last_seen: ago(0), signed_out_at: null, demo_live: true},
@@ -303,6 +312,8 @@ function cmp(a, op, b){
   a = a === null || a === undefined ? (op === 'is' ? 'null' : '') : String(a);
   if(op === 'eq' || op === 'is') return a === b;
   if(op === 'neq') return a !== b;
+  if(op === 'lt') return a < b;
+  if(op === 'gt') return a > b;
   if(op === 'in') return b.replace(/^\(|\)$/g, '').split(',').map(x => x.replace(/^"|"$/g, '')).includes(a);
   if(op === 'gte') return a >= b;
   if(op === 'lte') return a <= b;
@@ -452,7 +463,7 @@ function rest(method, table, params, body, headers, me){
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
     notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     chit_plans: {read: canUse(me, 'chits'), write: me.is_owner}, chit_members: {read: canUse(me, 'chits'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'chits')},
-    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
+    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
@@ -475,6 +486,19 @@ function rest(method, table, params, body, headers, me){
   if(table === 'notifications') return notesRest(method, params, body, single, wantRows, me);
   if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
   if(table === 'designs') return designsRest(method, params, body, single, wantRows, me);
+  if(table === 'report_cards'){
+    let out = db.report_cards.filter(r => me.is_owner || (r.shared && r.staff_id === me.staff_id)).filter(r => matches(r, params));
+    const stamp = (r, old) => { r.updated_by_name = me.name; r.updated_at = now(); if(r.shared && (!old || !old.shared || JSON.stringify(r.metrics) !== JSON.stringify(old.metrics))) r.shared_at = r.updated_at; if(!r.shared) r.shared_at = null; };
+    if(method === 'GET') sortBy(out, params.get('order'));
+    else if(method === 'POST'){ const r = Object.assign({id: uid(), ratings: {}, remarks: '', target: '', metrics: {}, score: null, grade: '', shared: false, shared_at: null}, Array.isArray(body) ? body[0] : body);
+      if(db.report_cards.some(x => x.staff_id === r.staff_id && x.month === r.month)) return {status: 409, body: {code: '23505', message: 'duplicate key'}};
+      stamp(r, null); db.report_cards.push(r); out = [r]; }
+    else if(method === 'PATCH') out.forEach(r => { const old = JSON.parse(JSON.stringify(r)); Object.assign(r, body); stamp(r, old); });
+    else if(method === 'DELETE') db.report_cards = db.report_cards.filter(r => !out.includes(r));
+    if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+    if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+    return {status: 200, body: out.map(r => JSON.parse(JSON.stringify(r)))};
+  }
   if(table === 'silver_entries') return silverRest(method, params, body, single, wantRows, me);
   if(table.startsWith('chit_')) return chitsRest(table, method, params, body, single, wantRows, me);
   let out;

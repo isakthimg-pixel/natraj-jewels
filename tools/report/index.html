@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Staff Report Card · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.not-owner .owner-only{display:none!important}
+
+/* the list of staff */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.scard{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:18px;display:grid;gap:12px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:border-color .2s,box-shadow .2s}
+.scard:hover{border-color:var(--gold);box-shadow:0 10px 24px rgba(42,30,27,.08)}
+.scard .shead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.scard .nm{font-weight:700;font-size:1.08rem}
+.scard .des{font-size:.82rem;color:var(--muted)}
+.scard .facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;font-size:.78rem;color:var(--muted)}
+.scard .facts b{display:block;font:700 1.05rem/1.2 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+.scard .foot{font-size:.8rem;font-weight:600;color:var(--muted)}
+.scard .foot.ok{color:var(--p)}
+.grade{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;font:800 1.15rem/1 var(--display);color:#fff;background:var(--muted);flex:none}
+.grade small{display:block;font:600 .62rem/1 var(--body);opacity:.85;margin-top:2px}
+.g-ap,.g-a{background:var(--p)} .g-b{background:var(--hm)} .g-c{background:var(--h)} .g-d{background:var(--a)}
+.grade.big{width:92px;height:92px;font-size:1.9rem}
+.grade.big small{font-size:.72rem}
+
+/* one card */
+.rview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.rview{grid-template-columns:1fr}}
+.panel2{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:18px 20px;display:grid;gap:12px;min-width:0}
+.panel2 h3{margin:0;font-size:1.15rem;color:var(--maroon)}
+.kv{display:grid}
+.kv div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:.93rem;font-variant-numeric:tabular-nums}
+.kv div:first-child{border-top:0}
+.kv span{color:var(--muted)}
+.scorebox{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.scorebox .parts{display:grid;gap:6px;font-size:.88rem;color:var(--muted);flex:1;min-width:200px}
+.scorebox .parts b{color:var(--ink)}
+.stars{display:flex;gap:2px}
+.stars button{border:0;background:none;padding:2px;cursor:pointer;font-size:1.45rem;line-height:1;color:var(--line)}
+.stars button.on{color:var(--gold)}
+.stars button:disabled{cursor:default}
+.rate-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--line)}
+.rate-row:first-of-type{border-top:0}
+.rate-row span{font-size:.93rem}
+.share{border:1px solid var(--gold);background:color-mix(in srgb,var(--gold) 9%,var(--card));border-radius:4px;padding:14px 16px;display:grid;gap:10px}
+.share p{margin:0;font-size:.92rem}
+.nolink{font-size:.86rem;color:var(--h);font-weight:600;margin:0}
+.trend{font-size:.82rem;font-weight:700}
+.trend.up{color:var(--p)} .trend.down{color:var(--a)}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <h1 id="pageTitle">Staff Report Card</h1>
+    </div>
+    <div class="access" id="access"></div>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to see report cards.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+
+<main>
+  <!-- LIST -->
+  <section id="tab-list">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="lEyebrow">Report cards</span><h2 id="lTitle">–</h2></div>
+      <div class="frow owner-only"><button class="btn mini" id="mPrev" aria-label="Previous month">‹</button><input class="input" type="month" id="mMonth" style="height:40px;width:auto"><button class="btn mini" id="mNext" aria-label="Next month">›</button></div>
+    </div></div>
+    <div class="wrap content"><div class="cards" id="cards"><div class="loading">Loading…</div></div></div>
+  </section>
+
+  <!-- ONE CARD -->
+  <section id="tab-one" hidden>
+    <div class="band"><div class="wrap">
+      <div class="bar"><button class="btn" id="backBtn">‹ All report cards</button></div>
+      <div class="heading"><span class="eyebrow" id="oEyebrow"></span><h2 id="oName"></h2></div>
+      <div class="scorebox" id="oScore"></div>
+    </div></div>
+    <div class="wrap content rview">
+      <div style="display:grid;gap:20px;min-width:0">
+        <div class="panel2"><h3>Attendance</h3><div class="kv" id="oAtt"></div></div>
+        <div class="panel2"><h3>Tasks</h3><div class="kv" id="oTasks"></div></div>
+        <div class="panel2"><h3>Work in the apps</h3><div class="kv" id="oWork"></div></div>
+      </div>
+      <div style="display:grid;gap:20px;min-width:0">
+        <div class="panel2"><h3>Owner’s rating</h3><div id="oRatings"></div></div>
+        <div class="panel2"><h3>Remarks</h3>
+          <label class="field" style="margin:0">What went well, what to improve<textarea class="input" id="oRemarks" maxlength="1000" rows="4"></textarea></label>
+          <label class="field" style="margin:0">Target for next month<textarea class="input" id="oTarget" maxlength="500" rows="2"></textarea></label>
+          <p class="err" id="oErr" role="alert"></p>
+          <div class="bar owner-only"><button class="btn btn-maroon" id="oSave">Save</button></div>
+        </div>
+        <div class="share owner-only" id="oShare"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Staff report card · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+const {sb, esc, must, toast, ask, iso, parse, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const WORKED = {P: 1, HM: 1, T: 1, H: 0.5};
+const RATINGS = [['punctual', 'Punctuality'], ['service', 'Customer service'], ['team', 'Teamwork'], ['knowledge', 'Product knowledge'], ['discipline', 'Neatness & discipline']];
+let month = todayIso().slice(0, 7), staff = [], profiles = [], cards = [], data = null, metricsBy = {}, cur = null, ratings = {};
+
+const inr = n => '₹' + Math.round(Number(n || 0)).toLocaleString('en-IN');
+const gm = n => Number(n || 0).toLocaleString('en-IN', {maximumFractionDigits: 1}) + ' g';
+const pct = n => n == null ? '–' : Math.round(n) + '%';
+const days1 = n => (Number.isInteger(n) ? n : n.toFixed(1)) + ' day' + (n === 1 ? '' : 's');
+const monthEnd = m => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + 1); d.setDate(0); return iso(d); };
+const monthLabel = m => parse(m + '-01').toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
+const prevMonth = m => { const d = parse(m + '-01'); d.setMonth(d.getMonth() - 1); return iso(d).slice(0, 7); };
+const localDay = t => t ? iso(new Date(t)) : '';
+// the score: attendance (40), tasks done on time (30) and the owner's rating (30), counting only the parts there are
+function scoreOf(m, r){
+  const parts = [];
+  if(m.att.pct != null) parts.push([m.att.pct, 40]);
+  if(m.tasks.onTimePct != null) parts.push([m.tasks.onTimePct, 30]);
+  const vals = RATINGS.map(([k]) => Number(r[k] || 0)).filter(Boolean);
+  if(vals.length) parts.push([vals.reduce((s, v) => s + v, 0) / vals.length * 20, 30]);
+  if(!parts.length) return {score: null, grade: ''};
+  const w = parts.reduce((s, p) => s + p[1], 0), score = Math.round(parts.reduce((s, p) => s + p[0] * p[1], 0) / w * 10) / 10;
+  return {score, grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'};
+}
+const gradeHtml = (g, score, big) => '<span class="grade' + (big ? ' big' : '') + ' g-' + (g ? g.replace('+', 'p').toLowerCase() : 'none') + '">' + (g || '–') + (score != null ? '<small>' + Math.round(score) + '/100</small>' : '') + '</span>';
+
+/* ---------- the month's figures for every staff member (owner) ---------- */
+async function loadMonthData(m){
+  const first = m + '-01', last = monthEnd(m), today = todayIso(), upto = last < today ? last : today;
+  const startIso = new Date(parse(first)).toISOString(), endIso = new Date(parse(last).getTime() + 864e5).toISOString();
+  const q = (t, sel) => sb.from(t).select(sel);
+  const [st, at, tk, cu, ca, de, cp, cm, si, ra] = await Promise.all([
+    q('settings', 'weekly_off').eq('id', 1).maybeSingle(),
+    q('attendance', 'staff_id,day,status').gte('day', first).lte('day', last),
+    q('tasks', 'assigned_to,status,due,done_at,created_at'),
+    q('customers', 'created_by,created_at').gte('created_at', startIso).lt('created_at', endIso),
+    q('customer_activity', 'kind,status,assigned_to,created_by,created_at,done_at').or('created_at.gte.' + startIso + ',done_at.gte.' + startIso),
+    q('designs', 'created_by,created_at').gte('created_at', startIso).lt('created_at', endIso),
+    q('chit_payments', 'created_by,amount,paid_on').gte('paid_on', first).lte('paid_on', last),
+    q('chit_members', 'created_by,created_at').gte('created_at', startIso).lt('created_at', endIso),
+    q('silver_entries', 'created_by,kind,weight_g,amount,day').gte('day', first).lte('day', last),
+    q('rates', 'set_by,set_at').gte('set_at', startIso).lt('set_at', endIso)
+  ]);
+  const off = (st.data || {weekly_off: 0}).weekly_off, ok = r => r.data || [];
+  // working days so far this month, without the weekly holiday
+  let working = 0;
+  for(let d = first; d <= upto; d = iso(new Date(parse(d).getTime() + 864e5))) if(parse(d).getDay() !== off) working++;
+  const inMonth = t => t && t >= startIso && t < endIso;
+  metricsBy = {};
+  staff.forEach(s => {
+    const att = ok(at).filter(r => r.staff_id === s.id && r.day <= upto);
+    const worked = att.reduce((sum, r) => sum + (WORKED[r.status] || 0), 0);
+    const leave = att.filter(r => r.status === 'LA').length, absent = att.filter(r => r.status === 'A').length, half = att.filter(r => r.status === 'H').length;
+    const marked = att.filter(r => r.status && r.status !== 'WO' && parse(r.day).getDay() !== off).length;
+    const p = profiles.find(x => x.staff_id === s.id), uid = p && p.user_id;
+    const m0 = {att: {working, worked, leave, absent, half, unmarked: Math.max(0, working - marked), pct: working && marked ? Math.min(100, worked / working * 100) : null},   // nothing marked yet: not counted
+      linked: !!p, signIn: p ? p.name : '', tasks: {given: 0, done: 0, onTime: 0, overdue: 0, onTimePct: null}, work: {}};
+    if(uid){
+      // tasks due this month (or with no date and given this month), and tasks finished this month
+      const rel = ok(tk).filter(t => t.assigned_to === uid && ((t.due && t.due >= first && t.due <= last) || (!t.due && inMonth(t.created_at)) || (t.status === 'done' && inMonth(t.done_at))));
+      const done = rel.filter(t => t.status === 'done'), onTime = done.filter(t => !t.due || localDay(t.done_at) <= t.due);
+      const judged = rel.filter(t => t.status === 'done' || (t.due && t.due < today));
+      m0.tasks = {given: rel.length, done: done.length, onTime: onTime.length, overdue: rel.filter(t => t.status === 'open' && t.due && t.due < today).length,
+        onTimePct: judged.length ? onTime.length / judged.length * 100 : null};
+      const mine = (rows, k) => ok(rows).filter(r => r[k] === uid);
+      const acts = ok(ca);
+      const sales = mine(si, 'created_by').filter(r => r.kind === 'sale'), cps = mine(cp, 'created_by');
+      m0.work = {
+        customers: mine(cu, 'created_by').length,
+        visits: acts.filter(a => a.kind === 'visit' && a.created_by === uid && inMonth(a.created_at)).length,
+        followups: acts.filter(a => a.kind === 'followup' && a.status === 'done' && a.assigned_to === uid && inMonth(a.done_at)).length,
+        enquiries: mine(de, 'created_by').length,
+        chitMembers: mine(cm, 'created_by').length,
+        chitPays: cps.length, chitAmount: cps.reduce((x, r) => x + Number(r.amount), 0),
+        silverSales: sales.length, silverGrams: sales.reduce((x, r) => x + Number(r.weight_g), 0), silverAmount: sales.reduce((x, r) => x + Number(r.amount), 0),
+        rates: new Set(mine(ra, 'set_by').map(r => localDay(r.set_at))).size
+      };
+    }
+    metricsBy[s.id] = m0;
+  });
+}
+
+/* ---------- list (owner) ---------- */
+async function loadList(){
+  $('mMonth').value = month; $('mMonth').max = todayIso().slice(0, 7); $('mNext').disabled = month >= todayIso().slice(0, 7);
+  $('lTitle').textContent = monthLabel(month);
+  $('cards').innerHTML = '<div class="loading">Loading…</div>';
+  const [c, prev] = await Promise.all([sb.from('report_cards').select('*').eq('month', month + '-01'), sb.from('report_cards').select('staff_id,score').eq('month', prevMonth(month) + '-01')]);
+  cards = must(c) || []; const before = must(prev) || [];
+  await loadMonthData(month);
+  const list = staff.filter(s => s.active || cards.some(x => x.staff_id === s.id));
+  $('lEyebrow').textContent = 'Report cards · ' + cards.filter(x => x.shared).length + ' of ' + list.length + ' shared';
+  $('cards').innerHTML = list.length ? list.map(s => {
+    const m = metricsBy[s.id], card = cards.find(x => x.staff_id === s.id), r = card ? card.ratings : {}, sc = scoreOf(m, r);
+    const stars = RATINGS.map(([k]) => Number(r[k] || 0)).filter(Boolean), was = before.find(x => x.staff_id === s.id);
+    const trend = was && was.score != null && sc.score != null ? Math.round(sc.score - Number(was.score)) : null;
+    return '<button type="button" class="scard" data-id="' + esc(s.id) + '"><span class="shead"><span><span class="nm">' + esc(s.name) + '</span><span class="des" style="display:block">' + esc(s.designation || 'Staff') + '</span>' +
+      (trend != null && trend !== 0 ? '<span class="trend ' + (trend > 0 ? 'up' : 'down') + '">' + (trend > 0 ? '▲ ' : '▼ ') + Math.abs(trend) + ' vs last month</span>' : '') + '</span>' + gradeHtml(sc.grade, sc.score) + '</span>' +
+      '<span class="facts"><span><b>' + pct(m.att.pct) + '</b>attendance</span><span><b>' + pct(m.tasks.onTimePct) + '</b>tasks on time</span><span><b>' + (stars.length ? (stars.reduce((a, b) => a + b, 0) / stars.length).toFixed(1) + '★' : '–') + '</b>your rating</span></span>' +
+      '<span class="foot' + (card && card.shared ? ' ok' : '') + '">' + (card && card.shared ? '✓ Shared with ' + esc(m.signIn || s.name) : card ? 'Rated, not shared yet' : 'Not rated yet') + (m.linked ? '' : ' · no sign-in linked') + '</span></button>';
+  }).join('') : '<div class="empty">No staff yet. Add them in People &amp; settings.</div>';
+}
+$('cards').addEventListener('click', e => { const c = e.target.closest('.scard'); if(c) location.hash = (NJ.me.is_owner ? 's=' : 'c=') + c.dataset.id; });
+const shiftMonth = n => { const d = parse(month + '-01'); d.setMonth(d.getMonth() + n); month = iso(d).slice(0, 7); route(); };
+$('mPrev').onclick = () => shiftMonth(-1);
+$('mNext').onclick = () => { if(month < todayIso().slice(0, 7)) shiftMonth(1); };
+$('mMonth').onchange = () => { if($('mMonth').value){ month = $('mMonth').value > todayIso().slice(0, 7) ? todayIso().slice(0, 7) : $('mMonth').value; route(); } };
+
+/* ---------- one card: the owner's (live figures) or a staff member's (shared copy) ---------- */
+function renderCard(s, m, card, editable){
+  ratings = Object.assign({}, card ? card.ratings : {});
+  const sc = editable ? scoreOf(m, ratings) : {score: card.score, grade: card.grade};
+  $('oName').textContent = s.name;
+  $('oEyebrow').textContent = monthLabel((card ? card.month : month + '-01').slice(0, 7)) + (s.designation ? ' · ' + s.designation : '');
+  const vals = RATINGS.map(([k]) => Number(ratings[k] || 0)).filter(Boolean);
+  $('oScore').innerHTML = gradeHtml(sc.grade, sc.score, true) + '<div class="parts">' +
+    '<span>Attendance <b>' + pct(m.att.pct) + '</b> · counts 40</span><span>Tasks on time <b>' + pct(m.tasks.onTimePct) + '</b> · counts 30</span>' +
+    '<span>Owner’s rating <b>' + (vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) + ' of 5' : 'not rated') + '</b> · counts 30</span>' +
+    '<span style="font-size:.78rem">A+ 90 and above · A 80 · B 70 · C 60 · D below 60</span></div>';
+  const a = m.att;
+  $('oAtt').innerHTML = [['Working days', a.working], ['Days worked', days1(a.worked)], ['Half days', a.half], ['Leave', a.leave], ['Absent', a.absent], ['Not marked', a.unmarked]]
+    .filter(([k, v]) => v || k === 'Working days' || k === 'Days worked').map(([k, v]) => '<div><span>' + k + '</span><b>' + v + '</b></div>').join('') + '<div><span>Attendance</span><b>' + pct(a.pct) + '</b></div>';
+  const t = m.tasks;
+  $('oTasks').innerHTML = m.linked ? (t.given ? [['Tasks for the month', t.given], ['Done', t.done], ['Done on time', t.onTime], ['Overdue, still open', t.overdue], ['On time', pct(t.onTimePct)]].map(([k, v]) => '<div><span>' + k + '</span><b' + (k.startsWith('Overdue') && v ? ' style="color:var(--a)"' : '') + '>' + v + '</b></div>').join('') : '<div><span>No tasks this month</span><b></b></div>')
+    : '<p class="nolink">No sign-in is linked to ' + esc(s.name) + ', so tasks and app work can’t be counted. Link one in People &amp; settings.</p>';
+  const w = m.work || {};
+  const rows = [['Customers added', w.customers], ['Visit forms filled in', w.visits], ['Follow-ups done', w.followups], ['Enquiries and restock added', w.enquiries], ['Chit members added', w.chitMembers],
+    ['Chit payments taken', w.chitPays ? w.chitPays + ' · ' + inr(w.chitAmount) : 0], ['Silver sales', w.silverSales ? w.silverSales + ' · ' + gm(w.silverGrams) + ' · ' + inr(w.silverAmount) : 0], ['Days the rate was entered', w.rates]].filter(r => r[1]);
+  $('oWork').innerHTML = m.linked ? (rows.length ? rows.map(([k, v]) => '<div><span>' + k + '</span><b>' + v + '</b></div>').join('') : '<div><span>Nothing recorded in the apps this month</span><b></b></div>') : '<p class="nolink">Not linked to a sign-in.</p>';
+  $('oRatings').innerHTML = RATINGS.map(([k, l]) => '<div class="rate-row"><span>' + l + '</span><span class="stars" role="group" aria-label="' + l + '">' +
+    [1, 2, 3, 4, 5].map(n => '<button type="button" data-k="' + k + '" data-v="' + n + '" class="' + (Number(ratings[k] || 0) >= n ? 'on' : '') + '" aria-label="' + l + ': ' + n + ' of 5"' + (editable ? '' : ' disabled') + '>★</button>').join('') + '</span></div>').join('');
+  $('oRemarks').value = card ? card.remarks : ''; $('oTarget').value = card ? card.target : '';
+  $('oRemarks').readOnly = $('oTarget').readOnly = !editable; $('oErr').textContent = '';
+  if(editable) renderShare(s, m, card);
+}
+function renderShare(s, m, card){
+  $('oShare').innerHTML = !m.linked ? '<p>' + esc(s.name) + ' has no sign-in, so the card can’t be shared. You can still save it.</p>'
+    : card && card.shared ? '<p><b>Shared with ' + esc(m.signIn) + '</b>' + (card.shared_at ? ' on ' + new Date(card.shared_at).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}) : '') + '. They see the figures as they were then. Share again after changes to update it.</p><div class="bar"><button class="btn btn-maroon" id="oShareBtn">Update shared card</button><button class="btn" id="oUnshare">Stop sharing</button></div>'
+    : '<p>Not shared. Sharing lets ' + esc(m.signIn) + ' see this card, with today’s figures, as “My report card”.</p><div class="bar"><button class="btn btn-maroon" id="oShareBtn">Share with ' + esc(m.signIn) + '</button></div>';
+}
+$('oRatings').addEventListener('click', e => {
+  const b = e.target.closest('[data-k]'); if(!b || b.disabled) return;
+  ratings[b.dataset.k] = Number(ratings[b.dataset.k]) === Number(b.dataset.v) ? 0 : Number(b.dataset.v);   // tap the same star again to clear
+  const s = staff.find(x => x.id === cur), m = metricsBy[cur], card = cards.find(x => x.staff_id === cur);
+  const keep = {remarks: $('oRemarks').value, target: $('oTarget').value};
+  renderCard(s, m, Object.assign({}, card || {month: month + '-01', remarks: '', target: ''}, {ratings, remarks: keep.remarks, target: keep.target, shared: card && card.shared}), true);
+});
+async function saveCard(share){
+  const s = staff.find(x => x.id === cur), m = metricsBy[cur], card = cards.find(x => x.staff_id === cur), sc = scoreOf(m, ratings);
+  const row = {staff_id: cur, month: month + '-01', ratings, remarks: $('oRemarks').value.trim(), target: $('oTarget').value.trim(), score: sc.score, grade: sc.grade};
+  if(share === true) Object.assign(row, {shared: true, metrics: m});
+  if(share === false) row.shared = false;
+  const saved = must(card ? await sb.from('report_cards').update(row).eq('id', card.id).select().single() : await sb.from('report_cards').insert(row).select().single());
+  if(card) Object.assign(card, saved); else cards.push(saved);
+  renderCard(s, m, saved, true);
+  return saved;
+}
+$('oSave').onclick = async () => { try{ await saveCard(); toast('Saved'); }catch(x){ $('oErr').textContent = x.message; } };
+$('oShare').addEventListener('click', async e => {
+  if(e.target.closest('#oShareBtn')){ try{ await saveCard(true); toast('Shared with ' + metricsBy[cur].signIn); }catch(x){ $('oErr').textContent = x.message; } }
+  if(e.target.closest('#oUnshare')){ if(!await ask('Stop sharing this card?', 'It disappears from ' + metricsBy[cur].signIn + '’s “My report card”.', 'Stop sharing')) return; try{ await saveCard(false); toast('No longer shared'); }catch(x){ $('oErr').textContent = x.message; } }
+});
+
+/* ---------- a staff member's own shared cards ---------- */
+let mine = [];
+async function loadMine(){
+  mine = must(await sb.from('report_cards').select('*').eq('shared', true).order('month', {ascending: false})) || [];
+  $('pageTitle').textContent = 'My Report Card';
+  $('lEyebrow').textContent = 'Shared by the owner'; $('lTitle').textContent = 'My report cards';
+  $('cards').innerHTML = mine.length ? mine.map(c => '<button type="button" class="scard" data-id="' + esc(c.id) + '"><span class="shead"><span><span class="nm">' + esc(monthLabel(c.month.slice(0, 7))) + '</span>' +
+      '<span class="des" style="display:block">Shared ' + new Date(c.shared_at || c.updated_at).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}) + '</span></span>' + gradeHtml(c.grade, c.score) + '</span>' +
+      '<span class="facts"><span><b>' + pct(c.metrics.att && c.metrics.att.pct) + '</b>attendance</span><span><b>' + pct(c.metrics.tasks && c.metrics.tasks.onTimePct) + '</b>tasks on time</span><span><b>' + (c.target ? '✓' : '–') + '</b>target set</span></span></button>').join('')
+    : '<div class="empty">No report card has been shared with you yet.</div>';
+}
+
+/* ---------- routes: list, or #s=<staff id> (owner) / #c=<card id> (staff) ---------- */
+function show(name){ $('tab-list').hidden = name !== 'list'; $('tab-one').hidden = name !== 'one'; window.scrollTo(0, 0); }
+async function route(){
+  const h = location.hash.slice(1), me = NJ.me;
+  try{
+    if(me.is_owner){
+      if(h.startsWith('s=')){
+        cur = h.slice(2);
+        if(!metricsBy[cur]){ cards = must(await sb.from('report_cards').select('*').eq('month', month + '-01')) || []; await loadMonthData(month); }
+        const s = staff.find(x => x.id === cur); if(!s){ location.hash = ''; return; }
+        show('one'); renderCard(s, metricsBy[cur], cards.find(x => x.staff_id === cur), true); return;
+      }
+      show('list'); await loadList(); return;
+    }
+    if(!mine.length) await loadMine();
+    if(h.startsWith('c=')){ const c = mine.find(x => x.id === h.slice(2)); if(c){ show('one'); renderCard({name: me.name, designation: ''}, c.metrics, c, false); return; } }
+    show('list');
+  }catch(e){ toast(e.message); }
+}
+window.addEventListener('hashchange', route);
+$('backBtn').onclick = () => { location.hash = ''; };
+
+NJ.start({onReady: async me => {
+  if(!me) return;
+  if(me.is_owner){
+    const [s, p] = await Promise.all([sb.from('staff').select('*').order('name'), sb.from('profiles').select('user_id,name,staff_id')]);
+    staff = must(s) || []; profiles = must(p) || [];
+  }
+  route();
+}});
+})();
+</script>
+</body>
+</html>
