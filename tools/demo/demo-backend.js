@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v15';
+const KEY = 'natraj-demo-db-v16';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -138,28 +138,30 @@ function seed(){
   visit(C[5], 20, ['Gold', 'Investment'], true, 'Gold coins', 4, '', 'Sample Staff 3');
   visit(C[6], 26, ['Gold', 'Gift'], false, 'Kids’ chain', 3, '22K kids’ chain under 4 g', 'Sample Staff 2');
   act(C[5], 'followup', 'Old gold exchange rate check', addDays(today, -6), 'done', manager, {outcome: 'Came in, exchanged 18 g.'});
-  // design library: drawn sample photos (see samplePhoto below), gold and silver
-  const des = (code, metal, category, purity, weight_g, va_percent, supplier, tags, status, kinds, ago, notes) => db.designs.push({id: uid(), code, metal, category, purity, weight_g, va_percent, supplier, tags, status, notes: notes || '',
-    photos: kinds.map((k, i) => 'sample/' + k + '-' + metal.toLowerCase() + '-' + i + '-' + code + '.svg'), created_by: manager.user_id, created_by_name: manager.name,
-    created_at: addDays(today, -ago) + 'T12:00:00Z', updated_by_name: status === 'sold' ? manager.name : '', updated_at: status === 'sold' ? addDays(today, -Math.min(ago, 3)) + 'T17:00:00Z' : null});
-  des('G-NEC-0001', 'Gold', 'Necklace', '22K 916', 38.42, 14, 'Sri Murugan Works', ['Temple', 'Bridal', 'Antique'], 'in_shop', ['necklace', 'necklace'], 40, 'Comes with matching earrings (G-EAR-0002).');
-  des('G-NEC-0002', 'Gold', 'Necklace', '22K 916', 18.65, 12, 'Kerala Designs', ['Kerala', 'Light weight'], 'in_shop', ['necklace'], 25);
-  des('G-HAR-0001', 'Gold', 'Haram', '22K 916', 72.3, 16, 'Sri Murugan Works', ['Bridal', 'Nakshi', 'Handmade'], 'order', ['haram', 'haram'], 60, 'Made to order in 3 weeks. Length can change.');
-  des('G-BNG-0001', 'Gold', 'Bangle', '22K 916', 24.1, 11, 'Coimbatore Casting', ['Antique', 'Daily wear'], 'in_shop', ['bangle', 'bangle'], 18, 'Set of 2. Sizes 2.4 and 2.6.');
-  des('G-BNG-0002', 'Gold', 'Bangle', '22K 916', 15.8, 10, 'Coimbatore Casting', ['Plain', 'Daily wear'], 'sold', ['bangle'], 30);
-  des('G-RNG-0001', 'Gold', 'Ring', '22K 916', 4.25, 13, 'Sri Murugan Works', ['CZ stones', 'Gift'], 'in_shop', ['ring'], 6);
-  des('G-RNG-0002', 'Gold', 'Ring', '18K 750', 3.1, 15, 'Kerala Designs', ['Light weight'], 'in_shop', ['ring'], 3);
-  des('G-EAR-0001', 'Gold', 'Earrings', '22K 916', 8.6, 14, 'Sri Murugan Works', ['Temple', 'Antique'], 'in_shop', ['earrings', 'earrings'], 12, 'Jhumka with screw back.');
-  des('G-EAR-0002', 'Gold', 'Earrings', '22K 916', 6.2, 12, 'Kerala Designs', ['Bridal', 'Kundan'], 'sold', ['earrings'], 9);
-  des('G-CHN-0001', 'Gold', 'Chain', '22K 916', 12.0, 8, 'Coimbatore Casting', ['Daily wear', 'Plain'], 'in_shop', ['chain'], 15, '22 inch. Also in 20 and 24.');
-  des('G-PND-0001', 'Gold', 'Pendant', '22K 916', 2.9, 12, 'Sri Murugan Works', ['Temple', 'Gift'], 'in_shop', ['pendant'], 2);
-  des('G-THL-0001', 'Gold', 'Thali / Mangalsutra', '22K 916', 9.4, 10, 'Kerala Designs', ['Bridal', 'Handmade'], 'order', ['pendant'], 45);
-  des('S-ANK-0001', 'Silver', 'Anklet', '92.5 sterling', 42.5, 8, 'Salem Silver House', ['Daily wear', 'Light weight'], 'in_shop', ['chain', 'chain'], 20, 'Pair. Ghungroo bells.');
-  des('S-ANK-0002', 'Silver', 'Anklet', '80 silver', 65.0, 6, 'Salem Silver House', ['Bridal', 'Handmade'], 'in_shop', ['chain'], 7);
-  des('S-BNG-0001', 'Silver', 'Bangle', '92.5 sterling', 28.0, 9, 'Salem Silver House', ['Kids', 'Gift'], 'sold', ['bangle'], 14);
-  des('S-RNG-0001', 'Silver', 'Ring', '92.5 sterling', 5.5, 10, 'Salem Silver House', ['CZ stones'], 'in_shop', ['ring'], 4);
-  des('S-POO-0001', 'Silver', 'Pooja items', '92.5 sterling', 245.0, 5, 'Salem Silver House', ['Gift', 'Handmade'], 'in_shop', ['bowl', 'bowl'], 22, 'Kumkum bowl set with plate.');
-  des('S-NEC-0001', 'Silver', 'Necklace', '92.5 sterling', 34.0, 8, 'Salem Silver House', ['Antique', 'Temple'], 'in_shop', ['necklace'], 1);
+  // design library: customer enquiries and restock at every stage, with drawn sample photos (see samplePhoto)
+  const at = (n, h) => addDays(today, n) + 'T' + (h || '11') + ':00:00Z';
+  const des = (kind, metal, category, purity, weight_g, extra, kinds, ago, status) => {
+    const r = Object.assign({id: uid(), kind, metal, category, purity, weight_g, size: '', qty: 1, budget: null, customer_id: null, customer_name: '', customer_phone: '', needed_by: null, supplier: '', notes: '',
+      photos: kinds.map((k, i) => 'sample/' + k + '-' + metal.toLowerCase() + '-' + i + '-' + db.designs.length + '.svg'), status, expected: null, close_note: '',
+      created_by: manager.user_id, created_by_name: manager.name, created_at: at(-ago, '10'), updated_by_name: '', updated_at: null,
+      ordered_at: ['ordered', 'received', 'done'].includes(status) ? at(-ago + 1) : null, received_at: ['received', 'done'].includes(status) ? at(-Math.max(ago - 6, 0), '16') : null,
+      closed_at: ['done', 'dropped'].includes(status) ? at(-Math.max(ago - 8, 0), '17') : null}, extra);
+    db.designs.push(r); return r;
+  };
+  des('enquiry', 'Gold', 'Haram', '22K 916', 42, {customer_id: C[1].id, customer_name: C[1].name, customer_phone: C[1].phone, size: '30 inch', budget: 600000, needed_by: addDays(today, 20), supplier: 'Sri Murugan Works', notes: 'Temple bridal haram like the photo, a little lighter.'}, ['haram', 'haram'], 5, 'ordered').expected = addDays(today, 6);
+  des('enquiry', 'Gold', 'Bangle', '22K 916', 24, {customer_id: C[0].id, customer_name: C[0].name, customer_phone: C[0].phone, size: '2.6', notes: 'Antique finish, pair.'}, ['bangle'], 9, 'received');
+  des('enquiry', 'Gold', 'Necklace', '22K 916', 18, {customer_id: C[4].id, customer_name: C[4].name, customer_phone: C[4].phone, budget: 200000, needed_by: addDays(today, -2), notes: 'Kerala style, light weight.'}, ['necklace'], 12, 'open');
+  des('enquiry', 'Gold', 'Chain', '22K 916', 4, {customer_id: C[6].id, customer_name: C[6].name, customer_phone: C[6].phone, size: '14 inch', needed_by: addDays(today, 10), notes: 'Kids’ chain under 4 g.'}, ['chain'], 3, 'open');
+  des('enquiry', 'Diamond', 'Earrings', '18K 750', null, {customer_id: C[3].id, customer_name: C[3].name, customer_phone: C[3].phone, budget: 150000, supplier: 'Coimbatore Diamonds', notes: 'Solitaire studs, about 30 cents.'}, ['earrings'], 15, 'ordered');
+  des('enquiry', 'Silver', 'Pooja items', '92.5 sterling', 250, {customer_name: 'Walk-in: Mr. Senthil', customer_phone: '9790011223', notes: 'Kumkum bowl set with plate.'}, ['bowl'], 25, 'done').close_note = 'Bought it';
+  des('enquiry', 'Gold', 'Ring', '22K 916', 5, {customer_name: 'Walk-in: Mrs. Kavitha', customer_phone: ''}, ['ring'], 30, 'dropped').close_note = 'Bought elsewhere';
+  des('restock', 'Gold', 'Ring', '22K 916', 4, {qty: 6, supplier: 'Sri Murugan Works', notes: 'Best sellers: CZ stone rings, sizes 12–16.'}, ['ring', 'ring'], 2, 'open');
+  des('restock', 'Silver', 'Anklet', '92.5 sterling', 40, {qty: 4, supplier: 'Salem Silver House', notes: 'Ghungroo anklets, pairs.'}, ['chain'], 4, 'open');
+  des('restock', 'Gold', 'Earrings', '22K 916', 6, {qty: 3, supplier: 'Kerala Designs', needed_by: addDays(today, -1), notes: 'Jhumkas sold out before the festival.'}, ['earrings'], 8, 'ordered');
+  des('restock', 'Silver', 'Bangle', '92.5 sterling', 28, {qty: 5, supplier: 'Salem Silver House', notes: 'Kids’ bangles.'}, ['bangle'], 14, 'received');
+  des('restock', 'Gold', 'Pendant', '22K 916', 3, {qty: 4, supplier: 'Sri Murugan Works'}, ['pendant'], 20, 'done').close_note = 'On the counter';
+  const arrived = db.designs.find(d => d.kind === 'enquiry' && d.status === 'received');
+  db.notifications.push({id: uid(), user_id: manager.user_id, kind: 'design_arrived', title: 'Arrived for ' + arrived.customer_name, body: '22K 916 gold bangle. Tell the customer.', link: 'designs/#d=' + arrived.id, created_at: new Date(Date.now() - 90 * 60000).toISOString(), read_at: null});
   const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
   note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
   note(owner, 'tasks_all_done', 'Sample Staff 3 finished all their tasks', '3 done today. Last one: Arrange the silver anklets tray', 45);
@@ -577,21 +579,31 @@ function prefsRest(method, params, body, single, wantRows, me){
 }
 
 /* tasks: same rules as the stamp_task trigger and the row policies */
-/* design library (migration 017) */
+/* design library (migration 018): enquiries and restock; each stage is stamped, and whoever took an enquiry hears when it arrives */
 function designsRest(method, params, body, single, wantRows, me){
-  const nowIso = now(), dup = (code, id) => db.designs.some(d => d.code === code && d.id !== id);
-  const taken = {status: 409, body: {code: '23505', message: 'duplicate key value violates unique constraint "designs_code_key"'}};
+  const nowIso = now();
+  const stage = (r, old) => {
+    if(['ordered', 'received', 'done'].includes(r.status) && !r.ordered_at) r.ordered_at = nowIso;
+    if(['received', 'done'].includes(r.status) && !r.received_at) r.received_at = nowIso;
+    r.closed_at = ['done', 'dropped'].includes(r.status) ? (r.closed_at || nowIso) : null;
+    if(r.status === 'open'){ r.ordered_at = null; r.received_at = null; }
+    if(r.status === 'ordered') r.received_at = null;
+    if(r.kind === 'enquiry' && !String(r.customer_name).trim()) return false;
+    if(old && r.status === 'received' && old.status !== 'received' && r.kind === 'enquiry' && r.created_by && r.created_by !== me.user_id)
+      db.notifications.push({id: uid(), user_id: r.created_by, kind: 'design_arrived', title: 'Arrived for ' + r.customer_name,
+        body: [r.purity, r.metal.toLowerCase(), (r.category || '').toLowerCase()].filter(Boolean).join(' ') + '. Tell the customer.', link: 'designs/#d=' + r.id, created_at: nowIso, read_at: null});
+    return true;
+  };
+  const bad = {status: 400, body: {code: '23514', message: 'Type the customer’s name.'}};
   let out = db.designs.filter(r => matches(r, params));
   if(method === 'GET') sortBy(out, params.get('order'));
   else if(method === 'POST'){
-    const r = Object.assign({id: uid(), metal: 'Gold', category: '', purity: '', weight_g: null, va_percent: null, supplier: '', tags: [], status: 'in_shop', notes: '', photos: []}, Array.isArray(body) ? body[0] : body,
-      {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null});
-    r.code = String(r.code || '').trim().toUpperCase();
-    if(dup(r.code)) return taken;
+    const r = Object.assign({id: uid(), kind: 'enquiry', metal: 'Gold', category: '', purity: '', weight_g: null, size: '', qty: 1, budget: null, customer_id: null, customer_name: '', customer_phone: '', needed_by: null, supplier: '', notes: '', photos: [], status: 'open', expected: null, close_note: ''},
+      Array.isArray(body) ? body[0] : body, {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null, ordered_at: null, received_at: null, closed_at: null});
+    if(!stage(r)) return bad;
     db.designs.push(r); out = [r];
   } else if(method === 'PATCH'){
-    if(body.code !== undefined){ body.code = String(body.code).trim().toUpperCase(); if(out.some(r => dup(body.code, r.id))) return taken; }
-    out.forEach(r => Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}));
+    for(const r of out){ const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}); if(!stage(r, old)){ Object.assign(r, old); return bad; } }
   } else if(method === 'DELETE') db.designs = db.designs.filter(r => !out.includes(r));
   if(method !== 'GET' && !wantRows) return {status: 204, body: null};
   if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }

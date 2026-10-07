@@ -66,10 +66,6 @@
 .bar-row b{min-width:3.2em;font:600 1rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;text-align:right;color:var(--ink)}
 .bar-row:hover .track i{background:var(--maroon-deep)}
 .axisnote{font-size:.78rem;color:var(--muted)}
-.dthumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
-.dthumbs a{display:grid;gap:4px;text-decoration:none;color:var(--ink);font-size:.74rem;font-weight:600;min-width:0}
-.dthumbs img,.dthumbs i{width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid var(--line);background:var(--paper);display:block}
-.dthumbs span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .soon{display:flex;flex-wrap:wrap;gap:8px}
 .rates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .rates div{display:grid;gap:4px}
@@ -150,7 +146,7 @@
         <div class="body"><div class="list" id="taskBox"><small>Loading…</small></div></div>
       </section>
       <section class="card mod" data-mod="designs">
-        <div class="head"><h3>Design library</h3><a href="../designs/">All designs ›</a></div>
+        <div class="head"><h3>Design library</h3><a href="../designs/">To buy ›</a></div>
         <div class="body" id="desBox"><small>Loading…</small></div>
       </section>
       <section class="card mod" data-mod="worked">
@@ -197,7 +193,7 @@ const DEFAULT = [
   {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'},
   {k: 'expenses', w: 'half'}, {k: 'bank', w: 'half'},
   {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
-  {k: 'designs', w: 'full'},
+  {k: 'designs', w: 'half'},
   {k: 'worked', w: 'full', hidden: true}
 ];
 const PREF_KEY = 'natraj-dashboard-layout';
@@ -452,26 +448,26 @@ async function loadCrm(){
       : '<small>No birthdays or anniversaries in the next 7 days. <a href="../crm/#occ">See the next 30 days</a>.</small>');
 }
 
-/* design library: how many in the shop, added and sold this month, and the newest photos */
+/* design library: what is waiting to be bought, what has arrived for customers, and what is late */
 async function loadDesigns(){
-  const first = todayIso().slice(0, 8) + '01';
-  const ds = must(await sb.from('designs').select('id,code,metal,status,photos,created_at,updated_at').order('created_at', {ascending: false})) || [];
-  if(!ds.length){ $('desBox').innerHTML = '<small>No designs yet. <a href="../designs/#add">Add the first one</a>.</small>'; return; }
-  const inShop = m => ds.filter(d => d.metal === m && d.status === 'in_shop').length;
-  const added = ds.filter(d => d.created_at.slice(0, 10) >= first).length;
-  const sold = ds.filter(d => d.status === 'sold' && (d.updated_at || d.created_at).slice(0, 10) >= first).length;
-  const latest = ds.slice(0, 8), paths = latest.map(d => d.photos[0]).filter(Boolean), urls = {};
-  if(paths.length && !(window.NJ_DEMO && NJ_DEMO.photo)){
-    const {data} = await sb.storage.from('designs').createSignedUrls(paths, 3600);
-    (data || []).forEach(x => { if(x.signedUrl) urls[x.path] = x.signedUrl; });
-  }
-  const url = p => p ? (window.NJ_DEMO && NJ_DEMO.photo && NJ_DEMO.photo(p)) || urls[p] || '' : '';
-  $('desBox').innerHTML = '<div class="rates" style="margin-bottom:14px">' +
-      '<div><span>Gold in shop</span><b>' + inShop('Gold') + '</b></div>' +
-      '<div><span>Silver in shop</span><b>' + inShop('Silver') + '</b>' + (inShop('Diamond') ? '<em>' + inShop('Diamond') + ' diamond</em>' : '') + '</div>' +
-      '<div><span>Added this month</span><b>' + added + '</b></div>' +
-      '<div><span>Sold this month</span><b>' + sold + '</b></div></div>' +
-    '<div class="dthumbs">' + latest.map(d => '<a href="../designs/#d=' + esc(d.id) + '">' + (url(d.photos[0]) ? '<img loading="lazy" src="' + esc(url(d.photos[0])) + '" alt="">' : '<i></i>') + '<span>' + esc(d.code) + '</span></a>').join('') + '</div>';
+  const today = todayIso(), first = today.slice(0, 8) + '01';
+  const ds = must(await sb.from('designs').select('id,kind,metal,category,customer_name,qty,status,needed_by,expected,created_at,closed_at').in('status', ['open', 'ordered', 'received', 'done'])) || [];
+  const act = ds.filter(d => d.status !== 'done');
+  if(!act.length && !ds.length){ $('desBox').innerHTML = '<small>Nothing to buy. <a href="../designs/#add">Add a customer enquiry or restock</a>.</small>'; return; }
+  const n = s => act.filter(d => d.status === s).length;
+  const isLate = d => d.needed_by && d.needed_by < today;
+  const lateN = act.filter(isLate).length, doneN = ds.filter(d => d.status === 'done' && (d.closed_at || '').slice(0, 10) >= first).length;
+  const label = d => (d.category || 'Jewel') + ' · ' + d.metal + ' — ' + (d.kind === 'enquiry' ? d.customer_name : 'restock' + (d.qty > 1 ? ' ×' + d.qty : ''));
+  // first what has arrived for customers, then what is late
+  const show = [...act.filter(d => d.status === 'received' && d.kind === 'enquiry'), ...act.filter(d => isLate(d) && !(d.status === 'received' && d.kind === 'enquiry'))].slice(0, 6);
+  $('desBox').innerHTML = '<div class="rates" style="margin-bottom:12px">' +
+      '<div><span>Needed</span><b>' + n('open') + '</b></div>' +
+      '<div><span>Ordered</span><b>' + n('ordered') + '</b></div>' +
+      '<div><span>Arrived</span><b' + (n('received') ? ' style="color:var(--p)"' : '') + '>' + n('received') + '</b><em>' + doneN + ' done this month</em></div>' +
+      '<div><span>Late</span><b' + (lateN ? ' style="color:var(--a)"' : '') + '>' + lateN + '</b></div></div>' +
+    (show.length ? '<div class="list">' + show.map(d => '<div><a href="../designs/#d=' + esc(d.id) + '" style="color:var(--ink);text-decoration:none">' + esc(label(d)) + '</a><small' + (d.status === 'received' ? ' style="color:var(--p);font-weight:600"' : ' style="color:var(--a)"') + '>' +
+      (d.status === 'received' ? 'arrived · tell customer' : 'late · needed ' + parse(d.needed_by).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</small></div>').join('') + '</div>'
+      : '<small>Nothing late, and nothing waiting to be given to a customer.</small>');
 }
 
 /* open tasks per person: how many, how many overdue, the next one due */

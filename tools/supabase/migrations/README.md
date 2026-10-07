@@ -27,4 +27,6 @@ That is intended: they power the sign-in screen and the public leave form.
 - `015_crm_form.sql` — customer form fields (pincode, WhatsApp, family function) and form visits in the history. Applied.
 - `016_user_prefs.sql` — each person's own settings (the owner's dashboard layout). Applied.
 - `017_designs.sql` — design library: designs table and the private `designs` photo bucket (2 MB images; the app sees and adds, only the owner deletes). Applied.
+- `018_designs_requests.sql` — the design library becomes a list of jewels to buy: customer enquiries and restock items, Needed → Ordered → Arrived → Done; the person who took an enquiry is notified when it arrives. Applied.
+- `018a_comment_user_prefs.sql` — a description on the settings table. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

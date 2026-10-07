@@ -17,7 +17,7 @@ const APPS = {
   expenses: {name: 'Expenses', path: 'expenses/', desc: 'Money paid out of the shop: enter it as it happens, see the month by category.'},
   banking: {name: 'Banking', path: 'banking/', desc: 'Deposits, withdrawals and transfers for each bank account, with statements and balances.'},
   crm: {name: 'Customers', path: 'crm/', desc: 'Customer details, follow-ups to call back, and birthdays and anniversaries coming up.'},
-  designs: {name: 'Design library', path: 'designs/', desc: 'Photos and details of gold and silver designs: search, filter and share on WhatsApp.', short: 'Designs'}
+  designs: {name: 'Design library', path: 'designs/', desc: 'What customers asked for and what to restock, with photos: order it, track it, tell the customer when it arrives.', short: 'Designs'}
 };
 
 /* Line icons for the app tiles (24×24, drawn with the current text colour). New apps add one here. */

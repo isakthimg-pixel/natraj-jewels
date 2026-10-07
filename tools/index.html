@@ -82,10 +82,11 @@ async function render(me){
   if(!apps.length && !me.is_owner) h += '<div class="form panel"><h3>No apps yet</h3><p>Ask the owner to give you access to the apps you need.</p></div>';
   h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.', '', 'leave');
   box.className = '';
-  box.innerHTML = '<p class="notice" id="due" hidden></p><p class="notice" id="taskDue" hidden></p><p class="notice" id="fuDue" hidden></p><div class="tiles">' + h + '</div>';
+  box.innerHTML = '<p class="notice" id="due" hidden></p><p class="notice" id="taskDue" hidden></p><p class="notice" id="fuDue" hidden></p><p class="notice" id="desDue" hidden></p><div class="tiles">' + h + '</div>';
   rateReminder(me).catch(() => {});
   taskReminder(me).catch(() => {});
   followReminder(me).catch(() => {});
+  designReminder(me).catch(() => {});
 }
 
 /* The person who updates the gold & silver rate sees a reminder until today's rate is in. */
@@ -131,6 +132,18 @@ async function followReminder(me){
   if(late) box.style.cssText = 'border-color:var(--a);background:var(--a-bg);color:var(--a);font-weight:600';
   box.innerHTML = mine.length + ' customer follow-up' + (mine.length > 1 ? 's' : '') + ' due' + (late ? ', ' + late + ' overdue' : ' today') + '.' +
     ' <a href="' + NJ.APPS.crm.path + '#follow" style="color:inherit;font-weight:600">Open follow-ups ›</a>';
+}
+
+/* People who use the design library see customer pieces that have arrived (the ones they took; the owner sees all). */
+async function designReminder(me){
+  if(!NJ.canUse('designs')) return;
+  const {data} = await NJ.sb.from('designs').select('created_by').eq('kind', 'enquiry').eq('status', 'received');
+  const mine = (data || []).filter(d => me.is_owner || d.created_by === me.user_id);
+  const box = document.getElementById('desDue');
+  if(!box || !mine.length) return;
+  box.hidden = false;
+  box.innerHTML = mine.length + ' customer ' + (mine.length > 1 ? 'pieces have' : 'piece has') + ' arrived. Tell the customer' + (mine.length > 1 ? 's' : '') + '.' +
+    ' <a href="' + NJ.APPS.designs.path + '#arrived" style="color:inherit;font-weight:600">Open the list ›</a>';
 }
 
 NJ.start({home: true, onReady: render});
