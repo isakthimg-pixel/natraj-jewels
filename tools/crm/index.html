@@ -63,6 +63,37 @@
 .axisnote{font-size:.78rem;color:var(--muted);margin:0}
 .cust-link{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .cust-link:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* the form page: same order as the paper form */
+.cform{max-width:760px}
+.cform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:520px){.cform .two{grid-template-columns:1fr}}
+.cform .field > span{font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.dmy{display:grid;grid-template-columns:90px minmax(0,1fr) 110px;gap:8px}
+.dmy .input{height:46px;padding:0 10px}
+.match{margin:-4px 0 0;padding:10px 14px;border-radius:4px;font-size:.9rem;background:var(--hm-bg);color:var(--hm);font-weight:600}
+.match.new{background:var(--p-bg);color:var(--p)}
+.stars{display:flex;gap:6px}
+.stars button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:1.3rem;line-height:1;cursor:pointer;color:var(--line);transition:color .15s,border-color .15s}
+.stars button.on{color:#C8890E;border-color:#E7C77A}
+.staffbox{display:grid;gap:8px;padding:12px 14px;border:1px dashed var(--line);border-radius:4px;background:var(--paper)}
+.staffbox > span{font:600 .66rem/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.vis{margin-top:4px;font-size:.88rem;color:var(--ink);display:grid;gap:2px}
+.vis b{font-weight:600}
+/* insights */
+.icards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:860px){.icards{grid-template-columns:1fr}}
+.icard{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:clamp(18px,3vw,24px);display:grid;gap:12px;align-content:start;min-width:0}
+.icard h3{font-size:1.3rem;color:var(--maroon)}
+.hb{display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) 3.4em;gap:10px;align-items:center;font-size:.9rem}
+.hb .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .tr{height:11px;position:relative}
+.hb .tr i{position:absolute;inset:0 auto 0 0;background:var(--maroon);border-radius:0 3px 3px 0;min-width:2px}
+.hb b{text-align:right;font-variant-numeric:tabular-nums}
+.wants{display:grid}
+.wants div{padding:9px 0;border-top:1px solid var(--line);font-size:.92rem}
+.wants div:first-child{border-top:0}
+.wants small{display:block;color:var(--muted);font-size:.78rem}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -76,8 +107,10 @@
     <div class="access" id="access"></div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="list" aria-selected="true">Customers</button>
+      <button role="tab" data-tab="form" aria-selected="false">Enter a form</button>
       <button role="tab" data-tab="follow" aria-selected="false">Follow-ups<span class="count" id="fuCount" hidden></span></button>
       <button role="tab" data-tab="occ" aria-selected="false">Birthdays &amp; anniversaries</button>
+      <button role="tab" data-tab="ins" aria-selected="false" class="owner-only">Insights</button>
     </nav>
   </div>
 </header>
@@ -92,7 +125,7 @@
       <div class="heading"><span class="eyebrow">Customers</span><h2 id="lTitle">All customers</h2></div>
       <div class="bar">
         <input class="input search" id="q" type="search" placeholder="Search name, phone or area" aria-label="Search customers" autocomplete="off">
-        <button class="btn btn-maroon" id="addCust">Add customer</button>
+        <button class="btn btn-maroon" id="addCust">Enter a form</button>
       </div>
       <div class="bubbles" id="tagFilter" role="group" aria-label="Filter by tag"></div>
     </div></div>
@@ -123,6 +156,79 @@
     </div>
   </section>
 
+  <!-- ENTER A FORM -->
+  <section id="tab-form" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Customer information form</span><h2>Enter a form</h2></div>
+      <p class="axisnote" style="font-size:.88rem">Same order as the paper form. Type the mobile number first: if the customer is already saved, this form is added to their history and fills in what we know.</p>
+    </div></div>
+    <div class="wrap content">
+      <form class="form cform" id="cf" autocomplete="off" novalidate>
+        <div class="two">
+          <label>Date on the form<input class="input" type="date" id="cfDay"></label>
+          <label>Served by<select class="input" id="cfServed"></select></label>
+        </div>
+        <label>Mobile number<input class="input" id="cfPhone" type="tel" inputmode="numeric" maxlength="20" placeholder="10 digits"></label>
+        <p class="match" id="cfMatch" hidden></p>
+        <label class="check"><input type="checkbox" id="cfWaOn" checked> WhatsApp on this number</label>
+        <label>Name<input class="input" id="cfName" maxlength="80"></label>
+        <div class="two">
+          <label>Area<input class="input" id="cfArea" maxlength="60" placeholder="e.g. Avinashi Road"></label>
+          <label>Pincode<input class="input" id="cfPin" inputmode="numeric" maxlength="6" placeholder="6 digits"></label>
+        </div>
+        <div class="field"><span>Birthday (year if given)</span><div class="dmy" id="cfBday"></div></div>
+        <div class="field"><span>Wedding anniversary (year if given)</span><div class="dmy" id="cfAnn"></div></div>
+        <div class="field"><span>Came for</span><div class="bubbles" id="cfFor" role="group" aria-label="Came for"></div></div>
+        <div class="field"><span>Bought today?</span><div class="bubbles" id="cfBought" role="group" aria-label="Bought today">
+          <button type="button" class="bubble" data-b="yes" aria-pressed="false">Yes, bought</button>
+          <button type="button" class="bubble" data-b="no" aria-pressed="false">Just looking</button></div></div>
+        <label>Looking for<input class="input" id="cfLook" maxlength="200" placeholder="e.g. Light-weight bridal necklace"></label>
+        <div class="two">
+          <label>Family function in the next 12 months<input class="input" type="month" id="cfFnMonth"></label>
+          <label>What function<input class="input" id="cfFnNote" maxlength="80" placeholder="e.g. Daughter’s wedding"></label>
+        </div>
+        <div class="field"><span>How did they hear about us? (one)</span><div class="bubbles" id="cfHeard" role="group" aria-label="How they heard about us"></div></div>
+        <div class="field"><span>Service today</span><div class="stars" id="cfStars" role="group" aria-label="Service rating"></div></div>
+        <label>Anything they wanted that we didn’t have?<input class="input" id="cfMissing" maxlength="200" placeholder="e.g. 22K kids’ chain under 4 g"></label>
+        <label class="check"><input type="checkbox" id="cfWaOk"> Customer ticked: send offers and wishes on WhatsApp</label>
+        <div class="staffbox"><span>For staff</span>
+          <label class="check"><input type="checkbox" id="cfChit"> Chit member</label>
+          <label class="check"><input type="checkbox" id="cfFu" checked> Just looking: add a follow-up call in 7 days</label>
+        </div>
+        <p class="err" id="cfErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="submit" id="cfSave">Save form</button><button class="btn" type="button" id="cfClear">Clear</button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- INSIGHTS (owner) -->
+  <section id="tab-ins" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="iEyebrow">Insights</span><h2>What the forms tell us</h2></div>
+      <div class="bubbles" id="iRange" role="group" aria-label="Period">
+        <button type="button" class="bubble" data-d="30" aria-pressed="true">30 days</button>
+        <button type="button" class="bubble" data-d="90" aria-pressed="false">90 days</button>
+        <button type="button" class="bubble" data-d="365" aria-pressed="false">1 year</button>
+      </div>
+      <div class="tally tally4">
+        <div><b id="iForms">–</b><span>Forms</span></div>
+        <div><b id="iBought">–</b><span>Bought</span></div>
+        <div><b id="iRating">–</b><span>Average service</span></div>
+        <div><b id="iWa">–</b><span>WhatsApp OK</span></div>
+      </div>
+    </div></div>
+    <div class="wrap content">
+      <div class="icards">
+        <div class="icard"><h3>How they heard about us</h3><div class="hbars" id="iHeard"></div></div>
+        <div class="icard"><h3>Forms by staff</h3><div class="hbars" id="iStaff"></div></div>
+        <div class="icard"><h3>Came for</h3><div class="hbars" id="iFor"></div></div>
+        <div class="icard"><h3>Service rating</h3><div class="hbars" id="iStars"></div></div>
+        <div class="icard" style="grid-column:1/-1"><h3>Wanted, but we didn’t have</h3><div class="wants" id="iWants"></div></div>
+        <div class="icard" style="grid-column:1/-1"><h3>Just looking: still to win</h3><div class="wants" id="iLooking"></div></div>
+      </div>
+    </div>
+  </section>
+
   <!-- FOLLOW-UPS -->
   <section id="tab-follow" hidden>
     <div class="band"><div class="wrap">
@@ -147,7 +253,7 @@
   <section id="tab-occ" hidden>
     <div class="band"><div class="wrap">
       <div class="heading"><span class="eyebrow">Next 30 days</span><h2>Birthdays &amp; anniversaries</h2></div>
-      <p class="axisnote" style="font-size:.88rem">Send a greeting on WhatsApp on the day. Customers without a phone number show without the button.</p>
+      <p class="axisnote" style="font-size:.88rem">Send a greeting on WhatsApp on the day. The button shows only for customers who agreed to WhatsApp messages. Family functions coming up in the next 3 months are listed too: a good reason to call.</p>
     </div></div>
     <div class="wrap content">
       <div class="ledger" id="occList"><div class="loading">Loading…</div></div>
@@ -171,13 +277,27 @@
 const {sb, esc, must, toast, ask, dialog, iso, parse, todayIso} = NJ;
 const $ = id => document.getElementById(id);
 const TAGS = ['Regular', 'VIP', 'Bridal', 'Gold', 'Silver', 'Diamond', 'Chit member', 'Old gold exchange', 'Wholesale'];
-const SOURCES = ['Walk-in', 'Referral', 'Old customer', 'Instagram / Facebook', 'WhatsApp', 'Wedding enquiry', 'Other'];
+// "How did you hear about us?" on the customer information form
+const SOURCES = ['Instagram', 'Facebook', 'Google', 'Radio', 'Wall painting', 'Pamphlet', 'Newspaper', 'WhatsApp', 'Call', 'Family / friend', 'Passing by', 'Other'];
+const CAME = ['Gold', 'Silver', 'Diamond', 'Wedding', 'Gift', 'Investment', 'Daily wear'];
+const NOYEAR = '1904';   // birthdays and anniversaries saved without a year use this (a leap year)
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const SHOW = 200;     // rows shown before asking to search
 let customers = [], follows = [], people = [], curTab = 'list', tagF = '', fuWho = 'all', cur = null, activity = [];
 
 const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
 const fmtD = d => parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
-const fmtDM = d => parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'long'});
+const fmtDM = d => parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'long'}) + (d.slice(0, 4) === NOYEAR ? '' : ' ' + d.slice(0, 4));
+const fmtMonth = m => m ? MONTHS[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(0, 4) : '';
+// "12/3", "12-03-1985" or "12 3 1985" → 1904-03-12 / 1985-03-12; '' for empty; null when it is not a real date
+function parseDMY(t){
+  t = String(t || '').trim(); if(!t) return '';
+  const m = t.match(/^(\d{1,2})\s*[\/.\- ]\s*(\d{1,2})(?:\s*[\/.\- ]\s*(\d{4}))?$/); if(!m) return null;
+  const y = m[3] || NOYEAR, d = new Date(Number(y), Number(m[2]) - 1, Number(m[1]));
+  if(d.getMonth() !== Number(m[2]) - 1 || Number(y) < 1900 || Number(y) > new Date().getFullYear()) return null;
+  return iso(d);
+}
+const toDMY = d => d ? Number(d.slice(8)) + '/' + Number(d.slice(5, 7)) + (d.slice(0, 4) === NOYEAR ? '' : '/' + d.slice(0, 4)) : '';
 const fmtStamp = t => new Date(t).toLocaleString('en-IN', {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'});
 const digits = s => String(s || '').replace(/\D/g, '');
 const cleanPhone = s => String(s || '').trim().replace(/[^\d+ ]/g, '').replace(/\s+/g, ' ');
@@ -210,12 +330,14 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
 function show(name){
   curTab = name; badge();
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name || (name === 'cust' && b.dataset.tab === 'list')));
-  ['list', 'cust', 'follow', 'occ'].forEach(t => $('tab-' + t).hidden = t !== name);
+  ['list', 'cust', 'form', 'follow', 'occ', 'ins'].forEach(t => $('tab-' + t).hidden = t !== name);
 }
 async function route(){
   const h = location.hash.slice(1);
   if(h.startsWith('c=')){ await openCustomer(decodeURIComponent(h.slice(2))); return; }
-  show(['follow', 'occ'].includes(h) ? h : 'list');
+  show(['form', 'follow', 'occ'].includes(h) || (h === 'ins' && NJ.me.is_owner) ? h : 'list');
+  if(curTab === 'form') formReady();
+  if(curTab === 'ins') loadInsights().catch(e => toast(e.message));
   if(curTab === 'list') renderList();
   if(curTab === 'follow') renderFollows();
   if(curTab === 'occ') renderOccasions();
@@ -269,11 +391,16 @@ async function customerDialog(c){
       {id: 'name', label: 'Name', type: 'text', value: c ? c.name : '', maxlength: 80},
       {id: 'phone', label: 'Mobile number', type: 'tel', value: c ? c.phone : '', maxlength: 20, placeholder: 'e.g. 98765 43210'},
       {id: 'alt', label: 'Other number (optional)', type: 'tel', value: c ? c.alt_phone : '', maxlength: 20},
+      {id: 'waOn', label: 'WhatsApp on the mobile number', type: 'checkbox', value: c ? c.whatsapp_on_phone : true},
+      {id: 'waOk', label: 'Agreed to get offers and wishes on WhatsApp', type: 'checkbox', value: c ? c.whatsapp_ok : false},
       {id: 'area', label: 'Area or town (optional)', type: 'text', value: c ? c.area : '', maxlength: 60, placeholder: 'e.g. Avinashi Road'},
+      {id: 'pincode', label: 'Pincode (optional)', type: 'text', value: c ? c.pincode : '', maxlength: 6},
       {id: 'address', label: 'Address (optional)', type: 'textarea', value: c ? c.address : '', maxlength: 300},
-      {id: 'birthday', label: 'Birthday (optional)', type: 'date', value: c ? c.birthday : ''},
-      {id: 'anniversary', label: 'Wedding anniversary (optional)', type: 'date', value: c ? c.anniversary : ''},
-      {id: 'source', label: 'How they came to us', type: 'select', value: c ? c.source : '', options: [['', 'Not known'], ...SOURCES.map(s => [s, s]), ...(c && c.source && !SOURCES.includes(c.source) ? [[c.source, c.source]] : [])]},
+      {id: 'birthday', label: 'Birthday: day/month, with the year if known', type: 'text', value: c ? toDMY(c.birthday) : '', maxlength: 10, placeholder: 'e.g. 12/3 or 12/3/1985'},
+      {id: 'anniversary', label: 'Wedding anniversary: day/month, with the year if known', type: 'text', value: c ? toDMY(c.anniversary) : '', maxlength: 10, placeholder: 'e.g. 5/6 or 5/6/2010'},
+      {id: 'fnMonth', label: 'Family function coming up: month (optional)', type: 'month', value: c ? c.function_month : ''},
+      {id: 'fnNote', label: 'What function (optional)', type: 'text', value: c ? c.function_note : '', maxlength: 80},
+      {id: 'source', label: 'How they heard about us', type: 'select', value: c ? c.source : '', options: [['', 'Not known'], ...SOURCES.map(s => [s, s]), ...(c && c.source && !SOURCES.includes(c.source) ? [[c.source, c.source]] : [])]},
       {id: 'tags', label: 'Tags', type: 'chips', value: c ? c.tags : [], options: TAGS.map(t => [t, t])},
       {id: 'notes', label: 'Notes (optional)', type: 'textarea', value: c ? c.notes : '', maxlength: 1000, placeholder: 'e.g. Ring size 14, prefers antique finish'}
     ],
@@ -285,7 +412,12 @@ async function customerDialog(c){
         const same = customers.find(x => x.id !== (c && c.id) && digits(x.phone) === digits(ph));
         if(same && dupWarned !== ph){ dupWarned = ph; return 'This number is already saved for ' + same.name + '. Press ' + (c ? 'Save' : 'Add customer') + ' again to save it anyway.'; }
       }
-      const data = {name: v.name.replace(/\s+/g, ' '), phone: ph, alt_phone: alt, area: v.area, address: v.address, birthday: v.birthday || null, anniversary: v.anniversary || null, source: v.source, tags: v.tags, notes: v.notes};
+      const bd = parseDMY(v.birthday), an = parseDMY(v.anniversary);
+      if(bd === null) return 'Write the birthday as day/month, e.g. 12/3 or 12/3/1985.';
+      if(an === null) return 'Write the anniversary as day/month, e.g. 5/6 or 5/6/2010.';
+      if(!/^\d{0,6}$/.test(v.pincode)) return 'The pincode is 6 digits.';
+      const data = {name: v.name.replace(/\s+/g, ' '), phone: ph, alt_phone: alt, area: v.area, pincode: v.pincode, address: v.address, birthday: bd || null, anniversary: an || null,
+        whatsapp_on_phone: v.waOn, whatsapp_ok: v.waOk, function_month: v.fnMonth || '', function_note: v.fnNote, source: v.source, tags: v.tags, notes: v.notes};
       const row = must(c ? await sb.from('customers').update(data).eq('id', c.id).select().single() : await sb.from('customers').insert(data).select().single());
       if(c) Object.assign(c, row); else { customers.push(row); customers.sort((a, b) => a.name.localeCompare(b.name)); }
       v.row = row;
@@ -294,12 +426,12 @@ async function customerDialog(c){
   });
   return v && v.row;
 }
-$('addCust').onclick = async () => { const r = await customerDialog(null); if(r){ toast('Customer added'); location.hash = 'c=' + r.id; } };
+$('addCust').onclick = () => { location.hash = 'form'; };
 
 /* ---------- one customer ---------- */
 async function openCustomer(id){
   if(curTab !== 'cust') backTo = curTab;
-  $('backBtn').textContent = '‹ ' + ({list: 'All customers', follow: 'Follow-ups', occ: 'Birthdays & anniversaries'}[backTo]);
+  $('backBtn').textContent = '‹ ' + ({list: 'All customers', form: 'Enter a form', follow: 'Follow-ups', occ: 'Birthdays & anniversaries', ins: 'Insights'}[backTo]);
   show('cust');
   cur = custById(id);
   if(!cur){ cur = must(await sb.from('customers').select('*').eq('id', id).maybeSingle()); if(cur) customers.push(cur); }
@@ -314,8 +446,10 @@ function renderCustomer(){
   $('cEyebrow').textContent = (c.tags || []).join(' · ') || 'Customer';
   $('cActions').innerHTML = c.phone ? '<a class="btn" href="tel:' + esc(digits(c.phone)) + '">Call ' + esc(fmtPhone(c.phone)) + '</a><a class="btn btn-wa" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '';
   const occ = (d, w) => { if(!d) return ''; const n = nextOccur(d); return fmtDM(d) + (n.days === 0 ? ' · today!' : n.days <= 30 ? ' · in ' + n.days + ' day' + (n.days === 1 ? '' : 's') : ''); };
-  const rows = [['Mobile', c.phone && fmtPhone(c.phone)], ['Other number', c.alt_phone && fmtPhone(c.alt_phone)], ['Area', c.area], ['Address', c.address], ['Birthday', occ(c.birthday)], ['Anniversary', occ(c.anniversary)],
-    ['Came to us', c.source], ['Notes', c.notes], ['Added', (c.created_by_name ? c.created_by_name + ', ' : '') + fmtStamp(c.created_at)]].filter(r => r[1]);
+  const wa = c.phone ? (c.whatsapp_on_phone ? 'On the mobile number' : 'Not on this number') + ' · ' + (c.whatsapp_ok ? 'agreed to offers and wishes' : 'no permission for offers yet') : '';
+  const rows = [['Mobile', c.phone && fmtPhone(c.phone)], ['WhatsApp', wa], ['Other number', c.alt_phone && fmtPhone(c.alt_phone)], ['Area', [c.area, c.pincode].filter(Boolean).join(' · ')], ['Address', c.address],
+    ['Birthday', occ(c.birthday)], ['Anniversary', occ(c.anniversary)], ['Family function', [fmtMonth(c.function_month), c.function_note].filter(Boolean).join(' · ')],
+    ['Heard about us', c.source], ['Notes', c.notes], ['Added', (c.created_by_name ? c.created_by_name + ', ' : '') + fmtStamp(c.created_at)]].filter(r => r[1]);
   $('cInfo').innerHTML = rows.map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div>').join('');
 }
 function renderActivity(){
@@ -324,6 +458,11 @@ function renderActivity(){
   const row = a => {
     const fu = a.kind === 'followup', done = fu && a.status === 'done';
     const canDel = NJ.me.is_owner || a.created_by === NJ.me.user_id;
+    if(a.kind === 'visit') return '<div class="arow" data-id="' + esc(a.id) + '"><span class="dot" aria-hidden="true">✦</span><div>' +
+      '<div class="ttl">Visit · customer form</div>' +
+      '<div class="sub">' + esc(fmtD(a.visit_day) + (a.served_by ? ' · served by ' + a.served_by : '') + ' · entered by ' + (a.created_by_name || 'someone')) + '</div>' +
+      '<div class="vis">' + visitLines(a).map(l => '<span>' + l + '</span>').join('') + '</div></div>' +
+      '<div class="acts">' + (canDel ? '<button class="btn mini btn-danger" data-aact="del">Delete</button>' : '') + '</div></div>';
     return '<div class="arow' + (done ? ' done' : '') + '" data-id="' + esc(a.id) + '">' +
       (fu ? '<button type="button" class="tick" data-tick aria-pressed="' + done + '" aria-label="' + (done ? 'Mark not done' : 'Mark done') + '">✓</button>' : '<span class="dot" aria-hidden="true">✎</span>') +
       '<div><div class="ttl">' + esc(a.body) + '</div>' +
@@ -336,6 +475,16 @@ function renderActivity(){
   $('cActivity').innerHTML = (open.length ? '<div class="lhead">Follow-ups to do</div>' + open.map(row).join('') : '') +
     (past.length ? '<div class="lhead">History</div>' + past.map(row).join('') : '') +
     (!open.length && !past.length ? '<div class="empty" style="padding:28px 20px">No notes or follow-ups yet.</div>' : '');
+}
+function visitLines(a){
+  const out = [];
+  if((a.came_for || []).length) out.push('<b>Came for</b> ' + esc(a.came_for.join(', ')));
+  if(a.bought === true) out.push('<b>Bought</b>' + (a.looking_for ? ' · ' + esc(a.looking_for) : ''));
+  else if(a.bought === false) out.push('<b>Just looking</b>' + (a.looking_for ? ' for ' + esc(a.looking_for) : ''));
+  else if(a.looking_for) out.push('<b>Looking for</b> ' + esc(a.looking_for));
+  if(a.rating) out.push('<b>Service</b> ' + '★'.repeat(a.rating) + '☆'.repeat(5 - a.rating));
+  if(a.missing) out.push('<b>Wanted, we didn’t have</b> ' + esc(a.missing));
+  return out;
 }
 $('editCust').onclick = async () => { if(cur && await customerDialog(cur)){ toast('Saved'); renderCustomer(); } };
 $('delCust').onclick = async () => {
@@ -455,10 +604,145 @@ function renderOccasions(){
     '<div class="arow"><span class="dot" aria-hidden="true">' + (it.k === 'birthday' ? '🎂' : '💍') + '</span>' +
     '<div><button type="button" class="cust-link ttl" data-cust="' + esc(it.c.id) + '">' + esc(it.c.name) + '</button>' +
     '<div class="sub">' + esc(it.label + ' · ' + fmtD(it.n.date)) + '</div><div style="margin-top:6px"><span class="tag' + (it.n.days === 0 ? ' today' : it.n.days <= 7 ? ' soon' : '') + '">' + when(it.n.days) + '</span></div></div>' +
-    '<div class="acts">' + (it.c.phone ? '<a class="btn mini btn-wa" href="' + esc(waLink(it.c.phone, greet(it))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') + '</div></div>').join('')
+    '<div class="acts">' + (it.c.phone && it.c.whatsapp_ok ? '<a class="btn mini btn-wa" href="' + esc(waLink(it.c.phone, greet(it))) + '" target="_blank" rel="noopener">Send wishes</a>'
+      : it.c.phone ? '<span class="axisnote">No WhatsApp permission</span>' : '') + '</div></div>').join('')
     : '<div class="empty"><h3>None in the next 30 days</h3><p>Add birthdays and anniversaries on each customer’s details.</p></div>';
+  // family functions this month and the next 3
+  const m0 = todayIso().slice(0, 7), mEnd = (() => { const d = parse(m0 + '-01'); d.setMonth(d.getMonth() + 3); return iso(d).slice(0, 7); })();
+  const fns = customers.filter(c => c.function_month && c.function_month >= m0 && c.function_month <= mEnd).sort((a, b) => a.function_month.localeCompare(b.function_month) || a.name.localeCompare(b.name));
+  if(fns.length) $('occList').innerHTML += '<div class="lhead">Family functions coming up</div>' + fns.map(c =>
+    '<div class="arow"><span class="dot" aria-hidden="true">✦</span><div><button type="button" class="cust-link ttl" data-cust="' + esc(c.id) + '">' + esc(c.name) + '</button>' +
+    '<div class="sub">' + esc([fmtMonth(c.function_month), c.function_note].filter(Boolean).join(' · ')) + '</div></div>' +
+    '<div class="acts">' + (c.phone ? '<a class="btn mini" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') + '</div></div>').join('');
 }
 $('occList').addEventListener('click', e => { const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust); });
+
+/* ---------- enter a form ---------- */
+let staffNames = [], cfMatch = null, cfBought = null, cfRating = 0;
+function dmyHtml(id){
+  return '<select class="input" id="' + id + 'D" aria-label="Day"><option value="">Day</option>' + Array.from({length: 31}, (_, i) => '<option>' + (i + 1) + '</option>').join('') + '</select>' +
+    '<select class="input" id="' + id + 'M" aria-label="Month"><option value="">Month</option>' + MONTHS.map((m, i) => '<option value="' + (i + 1) + '">' + m + '</option>').join('') + '</select>' +
+    '<input class="input" id="' + id + 'Y" inputmode="numeric" maxlength="4" placeholder="Year" aria-label="Year (optional)">';
+}
+$('cfBday').innerHTML = dmyHtml('cfB'); $('cfAnn').innerHTML = dmyHtml('cfA');
+const getDMY = id => { const d = $(id + 'D').value, m = $(id + 'M').value, y = $(id + 'Y').value.trim(); if(!d && !m && !y) return ''; if(!d || !m) return null; return parseDMY(d + '/' + m + (y ? '/' + y : '')); };
+const setDMY = (id, v) => { $(id + 'D').value = v ? String(Number(v.slice(8))) : ''; $(id + 'M').value = v ? String(Number(v.slice(5, 7))) : ''; $(id + 'Y').value = v && v.slice(0, 4) !== NOYEAR ? v.slice(0, 4) : ''; };
+$('cfFor').innerHTML = CAME.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
+$('cfHeard').innerHTML = SOURCES.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
+$('cfStars').innerHTML = [1, 2, 3, 4, 5].map(n => '<button type="button" data-r="' + n + '" aria-label="' + n + ' star' + (n > 1 ? 's' : '') + '">★</button>').join('');
+const pressed = id => [...$(id).querySelectorAll('[aria-pressed="true"]')].map(b => b.dataset.v);
+$('cfFor').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
+$('cfHeard').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(!b) return; const on = b.getAttribute('aria-pressed') !== 'true'; $('cfHeard').querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', on && x === b)); });
+$('cfBought').addEventListener('click', e => { const b = e.target.closest('[data-b]'); if(!b) return; cfBought = cfBought === b.dataset.b ? null : b.dataset.b; $('cfBought').querySelectorAll('[data-b]').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === cfBought)); });
+$('cfStars').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if(!b) return; cfRating = cfRating === Number(b.dataset.r) ? 0 : Number(b.dataset.r); paintStars(); });
+function paintStars(){ $('cfStars').querySelectorAll('[data-r]').forEach(b => b.classList.toggle('on', Number(b.dataset.r) <= cfRating)); }
+async function formReady(){
+  if(!$('cfDay').value) $('cfDay').value = todayIso();
+  $('cfDay').max = todayIso();
+  if(!staffNames.length){
+    const s = (await sb.rpc('leave_staff')).data || [];
+    staffNames = [...new Set([...s.map(x => x.name), ...people.map(p => p.name)])].sort((a, b) => a.localeCompare(b));
+    const keep = $('cfServed').value;
+    $('cfServed').innerHTML = '<option value="">Choose who served</option>' + staffNames.map(n => '<option>' + esc(n) + '</option>').join('');
+    $('cfServed').value = keep || (staffNames.includes(NJ.me.name) ? NJ.me.name : '');
+  }
+}
+// a known mobile number: say whose it is and fill in what we already have
+$('cfPhone').addEventListener('input', () => {
+  const d = digits($('cfPhone').value);
+  const c = d.length >= 10 ? customers.find(x => digits(x.phone).slice(-10) === d.slice(-10)) : null;
+  if(c === cfMatch) return;
+  cfMatch = c;
+  $('cfMatch').hidden = d.length < 10;
+  $('cfMatch').className = 'match' + (c ? '' : ' new');
+  $('cfMatch').textContent = c ? 'Returning customer: ' + c.name + (c.area ? ', ' + c.area : '') + '. This form is added to their history.' : 'New customer.';
+  if(c){
+    const fill = (id, v) => { if(!$(id).value && v) $(id).value = v; };
+    fill('cfName', c.name); fill('cfArea', c.area); fill('cfPin', c.pincode); fill('cfFnMonth', c.function_month); fill('cfFnNote', c.function_note);
+    if(!getDMY('cfB') && c.birthday) setDMY('cfB', c.birthday);
+    if(!getDMY('cfA') && c.anniversary) setDMY('cfA', c.anniversary);
+    $('cfWaOn').checked = c.whatsapp_on_phone !== false;
+    if(c.whatsapp_ok) $('cfWaOk').checked = true;
+    $('cfChit').checked = (c.tags || []).includes('Chit member');
+    if(c.source && !pressed('cfHeard').length) $('cfHeard').querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === c.source));
+  }
+});
+function clearForm(){
+  ['cfPhone', 'cfName', 'cfArea', 'cfPin', 'cfLook', 'cfFnMonth', 'cfFnNote', 'cfMissing'].forEach(id => $(id).value = '');
+  setDMY('cfB', ''); setDMY('cfA', '');
+  ['cfFor', 'cfHeard', 'cfBought'].forEach(id => $(id).querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')));
+  $('cfWaOn').checked = true; $('cfWaOk').checked = false; $('cfChit').checked = false; $('cfFu').checked = true;
+  cfMatch = null; cfBought = null; cfRating = 0; paintStars(); $('cfMatch').hidden = true; $('cfErr').textContent = '';
+}
+$('cfClear').onclick = clearForm;
+$('cf').addEventListener('submit', async e => {
+  e.preventDefault(); const err = m => { $('cfErr').textContent = m; };
+  err('');
+  const name = $('cfName').value.trim().replace(/\s+/g, ' '), phone = cleanPhone($('cfPhone').value), day = $('cfDay').value;
+  if(!name) return err('Type the customer’s name.');
+  if(phone && (digits(phone).length < 10 || digits(phone).length > 13)) return err('Check the mobile number: it should be 10 digits.');
+  if(!day || day > todayIso()) return err('Choose the date on the form (not in the future).');
+  const bd = getDMY('cfB'), an = getDMY('cfA');
+  if(bd === null) return err('Check the birthday: choose both the day and the month.');
+  if(an === null) return err('Check the anniversary: choose both the day and the month.');
+  const pin = $('cfPin').value.trim();
+  if(pin && !/^\d{6}$/.test(pin)) return err('The pincode is 6 digits.');
+  const heard = pressed('cfHeard')[0] || '', came = pressed('cfFor');
+  $('cfSave').setAttribute('aria-busy', 'true');
+  try{
+    const c = cfMatch;
+    const tags = new Set(c ? c.tags || [] : []);
+    if($('cfChit').checked) tags.add('Chit member'); else tags.delete('Chit member');
+    // a returning customer keeps what we know unless the form gives something new
+    const data = {name, phone: phone || (c ? c.phone : ''), area: $('cfArea').value.trim() || (c ? c.area : ''), pincode: pin || (c ? c.pincode : ''),
+      birthday: bd || (c ? c.birthday : null), anniversary: an || (c ? c.anniversary : null),
+      function_month: $('cfFnMonth').value || (c ? c.function_month : ''), function_note: $('cfFnNote').value.trim() || (c ? c.function_note : ''),
+      source: heard || (c ? c.source : ''), whatsapp_on_phone: $('cfWaOn').checked, whatsapp_ok: $('cfWaOk').checked || !!(c && c.whatsapp_ok), tags: [...tags]};
+    const row = must(c ? await sb.from('customers').update(data).eq('id', c.id).select().single() : await sb.from('customers').insert(data).select().single());
+    if(c) Object.assign(c, row); else { customers.push(row); customers.sort((a, b) => a.name.localeCompare(b.name)); }
+    const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
+    const summary = ['Form' + (came.length ? ': came for ' + came.join(', ') : ''), cfBought === 'yes' ? 'bought' : cfBought === 'no' ? 'just looking' : '', look].filter(Boolean).join(' · ');
+    must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'visit', body: summary.slice(0, 500), visit_day: day, came_for: came,
+      bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, rating: cfRating || null, missing, served_by: $('cfServed').value}).select());
+    if(cfBought === 'no' && $('cfFu').checked){
+      const f = must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'followup', body: 'Call back' + (look ? ' about ' + look : ' after their visit'), due: addDays(todayIso(), 7), assigned_to: NJ.me.user_id}).select().single());
+      follows.push(f); follows.sort((a, b) => a.due.localeCompare(b.due)); badge();
+    }
+    toast('Saved: ' + row.name + (c ? ' (returning)' : ' (new customer)'));
+    clearForm(); $('cfPhone').focus();
+  }catch(x){ err(x.message); }
+  $('cfSave').removeAttribute('aria-busy');
+});
+
+/* ---------- insights (owner) ---------- */
+let insDays = 30;
+$('iRange').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if(!b) return; insDays = Number(b.dataset.d); $('iRange').querySelectorAll('[data-d]').forEach(x => x.setAttribute('aria-pressed', x === b)); loadInsights().catch(x => toast(x.message)); });
+function hbars(el, pairs, unit){
+  const max = Math.max(1, ...pairs.map(p => p[1]));
+  el.innerHTML = pairs.length ? pairs.map(([k, v]) => '<div class="hb"><span class="nm" title="' + esc(k) + '">' + esc(k) + '</span><span class="tr">' + (v ? '<i style="width:' + (v / max * 100).toFixed(1) + '%"></i>' : '') + '</span><b>' + v + (unit || '') + '</b></div>').join('')
+    : '<p class="axisnote">Nothing yet.</p>';
+}
+const tally = (list, key) => { const m = {}; list.forEach(x => { const k = key(x); (Array.isArray(k) ? k : [k]).forEach(v => { if(v) m[v] = (m[v] || 0) + 1; }); }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+async function loadInsights(){
+  const from = addDays(todayIso(), -(insDays - 1));
+  const visits = must(await sb.from('customer_activity').select('*').eq('kind', 'visit').gte('visit_day', from).order('visit_day', {ascending: false})) || [];
+  $('iEyebrow').textContent = 'Insights · ' + fmtD(from) + ' to today';
+  const known = visits.filter(v => v.bought !== null), rated = visits.filter(v => v.rating);
+  const custs = [...new Set(visits.map(v => v.customer_id))].map(custById).filter(Boolean);
+  $('iForms').textContent = visits.length;
+  $('iBought').textContent = known.length ? Math.round(known.filter(v => v.bought).length / known.length * 100) + '%' : '–';
+  $('iRating').textContent = rated.length ? (rated.reduce((s, v) => s + v.rating, 0) / rated.length).toFixed(1) + ' ★' : '–';
+  $('iWa').textContent = custs.length ? Math.round(custs.filter(c => c.whatsapp_ok).length / custs.length * 100) + '%' : '–';
+  hbars($('iHeard'), tally(custs, c => c.source || 'Not asked'));
+  hbars($('iStaff'), tally(visits, v => v.served_by || 'Not filled'));
+  hbars($('iFor'), tally(visits, v => v.came_for));
+  hbars($('iStars'), [5, 4, 3, 2, 1].map(n => ['★'.repeat(n), rated.filter(v => v.rating === n).length]));
+  const line = (v, text) => { const c = custById(v.customer_id); return '<div>' + esc(text) + '<small>' + esc((c ? c.name + ' · ' : '') + fmtD(v.visit_day) + (v.served_by ? ' · ' + v.served_by : '')) + '</small></div>'; };
+  const wants = visits.filter(v => v.missing);
+  $('iWants').innerHTML = wants.length ? wants.map(v => line(v, v.missing)).join('') : '<p class="axisnote">Nothing noted. Ask every customer this question: it tells you what to stock.</p>';
+  const looking = visits.filter(v => v.bought === false);
+  $('iLooking').innerHTML = looking.length ? looking.map(v => line(v, v.looking_for || 'Just looking')).join('') : '<p class="axisnote">No “just looking” forms in this period.</p>';
+}
 
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('crm') && !document.querySelector('dialog[open]'))

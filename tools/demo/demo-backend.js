@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v12';
+const KEY = 'natraj-demo-db-v13';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -112,13 +112,13 @@ function seed(){
   const cust = (name, phone, area, tags, source, extra) => { const c = Object.assign({id: uid(), name, phone, alt_phone: '', area, address: '', birthday: null, anniversary: null, tags, source, notes: '',
     created_by: manager.user_id, created_by_name: manager.name, created_at: addDays(today, -Math.floor(rnd() * 50)) + 'T11:00:00Z', updated_by_name: '', updated_at: null}, extra || {}); db.customers.push(c); return c; };
   const C = [
-    cust('Sample Customer Lakshmi', '98430 12345', 'Avinashi Road', ['Regular', 'Gold'], 'Old customer', {birthday: md(0, 1979), notes: 'Prefers antique finish. Ring size 14.'}),
-    cust('Sample Customer Karthik', '97890 22334', 'Kumaran Road', ['Bridal'], 'Wedding enquiry', {anniversary: md(3, 2015)}),
-    cust('Sample Customer Meena', '99440 55667', 'Palladam', ['Chit member', 'Silver'], 'Referral', {birthday: md(6, 1988)}),
-    cust('Sample Customer Ravi', '94430 77889', 'Dharapuram Road', ['VIP', 'Diamond'], 'Walk-in', {anniversary: md(12, 2002)}),
-    cust('Sample Customer Priya', '90030 11223', 'Kangeyam', ['Bridal', 'Gold'], 'Instagram / Facebook', {birthday: md(21, 1996)}),
-    cust('Sample Customer Selvam', '98940 99887', 'Uthukuli', ['Old gold exchange'], 'Walk-in'),
-    cust('Sample Customer Divya', '95660 44556', 'Perumanallur', ['Regular'], 'WhatsApp', {birthday: md(-3, 1990)}),
+    cust('Sample Customer Lakshmi', '9843012345', 'Avinashi Road', ['Regular', 'Gold'], 'Family / friend', {birthday: md(0, 1904), whatsapp_ok: true, pincode: '641603', notes: 'Prefers antique finish. Ring size 14.'}),
+    cust('Sample Customer Karthik', '9789022334', 'Kumaran Road', ['Bridal'], 'Instagram', {anniversary: md(3, 2015), whatsapp_ok: true, function_month: md(40, 2026).slice(0, 7), function_note: 'Sister’s wedding'}),
+    cust('Sample Customer Meena', '9944055667', 'Palladam', ['Chit member', 'Silver'], 'Radio', {birthday: md(6, 1988), whatsapp_ok: true}),
+    cust('Sample Customer Ravi', '9443077889', 'Dharapuram Road', ['VIP', 'Diamond'], 'Passing by', {anniversary: md(12, 2002)}),
+    cust('Sample Customer Priya', '9003011223', 'Kangeyam', ['Bridal', 'Gold'], 'Instagram', {birthday: md(21, 1904), whatsapp_ok: true, function_month: md(70, 2026).slice(0, 7), function_note: 'Her wedding'}),
+    cust('Sample Customer Selvam', '9894099887', 'Uthukuli', ['Old gold exchange'], 'Wall painting'),
+    cust('Sample Customer Divya', '9566044556', 'Perumanallur', ['Regular'], 'Pamphlet', {birthday: md(-3, 1990)}),
     cust('Sample Customer Anbu', '', 'Tiruppur town', ['Wholesale'], 'Referral')
   ];
   const act = (c, kind, body, due, status, by, extra) => db.customer_activity.push(Object.assign({id: uid(), customer_id: c.id, kind, body, due, status, outcome: '', assigned_to: by.user_id, assigned_name: by.name,
@@ -128,6 +128,15 @@ function seed(){
   act(C[0], 'followup', 'Tell her the new antique bangles have arrived', today, 'open', manager);
   act(C[3], 'followup', 'Diamond earrings: confirm the size and send photos', addDays(today, 2), 'open', owner);
   act(C[4], 'followup', 'Bridal trial visit with family', addDays(today, 9), 'open', manager);
+  const visit = (c, ago, came, bought, look, rating, missing, served) => act(c, 'visit', 'Form', null, 'done', manager,
+    {assigned_to: null, assigned_name: '', visit_day: addDays(today, -ago), came_for: came, bought, looking_for: look, rating, missing, served_by: served, outcome: ''});
+  visit(C[0], 2, ['Gold', 'Daily wear'], true, 'Antique bangles', 5, '', 'Sample Staff 2');
+  visit(C[1], 5, ['Gold', 'Wedding'], false, 'Temple bridal set', 4, 'Lighter bridal necklace under 40 g', 'Sample Manager');
+  visit(C[2], 8, ['Silver', 'Gift'], true, 'Silver pooja set', 5, '', 'Sample Staff 3');
+  visit(C[3], 11, ['Diamond'], false, 'Diamond studs', 3, 'Solitaire above 30 cents', 'Sample Manager');
+  visit(C[4], 14, ['Gold', 'Wedding'], false, 'Bridal set and kasu mala', 4, '', 'Sample Staff 2');
+  visit(C[5], 20, ['Gold', 'Investment'], true, 'Gold coins', 4, '', 'Sample Staff 3');
+  visit(C[6], 26, ['Gold', 'Gift'], false, 'Kids’ chain', 3, '22K kids’ chain under 4 g', 'Sample Staff 2');
   act(C[5], 'followup', 'Old gold exchange rate check', addDays(today, -6), 'done', manager, {outcome: 'Came in, exchanged 18 g.'});
   const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
   note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
@@ -459,7 +468,7 @@ function crmRest(table, method, params, body, single, wantRows, me){
   const fix = (r, old) => {
     if(table !== 'customer_activity') return r;
     r.assigned_name = nameOf(r.assigned_to);
-    if(r.kind === 'note'){ r.status = 'done'; r.due = null; }
+    if(r.kind === 'note' || r.kind === 'visit'){ r.status = 'done'; r.due = null; if(r.kind === 'visit' && !r.visit_day) r.visit_day = nowIso.slice(0, 10); }
     else if(r.status === 'done' && (!old || old.status !== 'done')){ r.done_at = nowIso; r.done_by_name = me.name; }
     else if(r.status === 'open'){ r.done_at = null; r.done_by_name = ''; r.outcome = ''; }
     return r;
@@ -468,8 +477,8 @@ function crmRest(table, method, params, body, single, wantRows, me){
   if(method === 'GET') sortBy(out, params.get('order'));
   else if(method === 'POST'){
     const base = table === 'customers'
-      ? {phone: '', alt_phone: '', area: '', address: '', birthday: null, anniversary: null, tags: [], source: '', notes: '', updated_by_name: '', updated_at: null}
-      : {due: null, status: 'open', outcome: '', assigned_to: null, assigned_name: '', done_at: null, done_by_name: ''};
+      ? {phone: '', alt_phone: '', area: '', address: '', birthday: null, anniversary: null, tags: [], source: '', notes: '', pincode: '', whatsapp_on_phone: true, whatsapp_ok: false, function_month: '', function_note: '', updated_by_name: '', updated_at: null}
+      : {due: null, status: 'open', outcome: '', assigned_to: null, assigned_name: '', done_at: null, done_by_name: '', came_for: [], bought: null, looking_for: '', rating: null, missing: '', served_by: '', visit_day: null};
     out = (Array.isArray(body) ? body : [body]).map(b => fix(Object.assign({id: uid()}, base, b, {created_by: me.user_id, created_by_name: me.name, created_at: nowIso})));
     db[table].push(...out);
   } else if(method === 'PATCH'){
