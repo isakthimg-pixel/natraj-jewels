@@ -303,7 +303,7 @@ async function loadMe(session){
 
 function renderAccess(opts){
   const a = $('access'); if(!a) return;
-  const home = opts.home ? '' : '<a class="btn btn-on-dark" href="' + ROOT + '">All apps</a>';
+  const home = opts.home ? '' : '<a class="btn btn-on-dark bell" href="' + ROOT + '" aria-label="All apps" title="All apps">' + HOME + '</a>';
   a.innerHTML = me
     ? '<button class="btn btn-on-dark bell" id="nj-bell" type="button" data-nj-notes aria-label="Notifications">' + BELL + '<span class="count" hidden></span></button>' +
       '<span>Signed in as <b>' + esc(me.name) + '</b></span>' + home + '<button class="btn btn-on-dark" type="button" data-nj-out>Sign out</button>'
@@ -322,6 +322,7 @@ document.addEventListener('click', e => {
 
 /* ---------- notifications: a bell in the header and a bar under it with the newest unread one.
    Rows are written by the database (e.g. when a task is ticked done); each person sees only their own. */
+const HOME = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9"/><path d="M10 20v-6h4v6"/></svg>';
 const BELL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 let notes = [];
 const ago = t => {
