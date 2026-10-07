@@ -31,6 +31,10 @@
 .devrow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:.93rem}
 .devrow span{font-size:.82rem;color:var(--muted)}
 .devok{color:var(--p);font-weight:700}
+.tsqr{display:block;width:180px;height:180px;margin:6px auto 10px;background:#fff;padding:8px;border-radius:4px;border:1px solid var(--line)}
+.tskey{font-size:.85rem;color:var(--muted)} .tskey code{word-break:break-all;color:var(--ink);font-size:.95rem}
+.tssteps{margin:0 0 6px;padding-left:20px} .tsstate{margin:0}
+.who .ts-on{color:var(--p);font-weight:600}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -111,9 +115,15 @@
         </label>
         <div class="bar"><button class="btn btn-maroon" type="button" id="rateSave">Save</button></div>
       </div>
+      <div class="form panel" id="tsPanel">
+        <h3>Two-step sign-in</h3>
+        <p>Protects your owner account even if someone guesses your PIN: after the PIN, you also type a 6-digit code from an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, or similar; all free). The code changes every 30 seconds.</p>
+        <p class="tsstate" id="tsState"></p>
+        <div class="bar" id="tsBar"></div>
+      </div>
       <div class="form panel">
         <h3>Recovery code</h3>
-        <p>If you forget your owner PIN, the recovery code lets you choose a new one. Make a new code if the old one is lost or someone else has seen it.</p>
+        <p>If you forget your owner PIN or lose the phone with your authenticator app, the recovery code lets you choose a new PIN (and switches two-step sign-in off until you set it up again). Make a new code if the old one is lost or someone else has seen it.</p>
         <div class="bar"><button class="btn" id="newCode">Make a new recovery code</button></div>
         <h3 style="margin-top:12px">Backup</h3>
         <p>Records are saved online in your Supabase database. Download a copy of everything once a week and keep it safe.</p>
@@ -146,7 +156,7 @@
 'use strict';
 const {sb, esc, must, toast, ask, dialog, people, parse, PIN_RE, APPS} = NJ;
 const $ = id => document.getElementById(id);
-let staff = [], profiles = [], presence = [];
+let staff = [], profiles = [], presence = [], twoStep = [];
 
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -158,13 +168,14 @@ function showTab(name){
   render();
 }
 async function load(){
-  const [s, p, st, pr] = await Promise.all([
+  const [s, p, st, pr, ts] = await Promise.all([
     sb.from('staff').select('*').order('name'),
     sb.from('profiles').select('*').order('name'),
     sb.from('settings').select('*').eq('id', 1).maybeSingle(),
-    sb.from('presence').select('*')
+    sb.from('presence').select('*'),
+    sb.rpc('two_step_people')
   ]);
-  staff = must(s) || []; profiles = must(p) || []; presence = pr.data || [];
+  staff = must(s) || []; profiles = must(p) || []; presence = pr.data || []; twoStep = (ts.data || []).map(x => x.user_id);
   const set = shop = must(st) || {weekly_off: 0};
   $('setOff').value = String(set.weekly_off);
   $('rateDue').value = String(set.rate_due || '10:30').slice(0, 5);
@@ -172,7 +183,7 @@ async function load(){
 function render(){
   if(curTab === 'people') renderPeople();
   if(curTab === 'staff') renderStaff();
-  if(curTab === 'settings') loadDevices().catch(e => toast(e.message));
+  if(curTab === 'settings'){ loadDevices().catch(e => toast(e.message)); loadTwoStep().catch(e => toast(e.message)); }
 }
 
 /* ---------- people who can sign in ---------- */
@@ -192,10 +203,11 @@ function renderPeople(){
       ? '<span class="bubble fixed">Owner · everything</span>'
       : Object.entries(APPS).map(([k, a]) => '<button type="button" class="bubble" data-app="' + k + '" aria-pressed="' + u.apps.includes(k) + '">' + esc(appLabel(a)) + '</button>').join('');
     return '<div class="prow" data-uid="' + esc(u.user_id) + '"><div class="who"><b>' + esc(u.name) + (NJ.me && NJ.me.user_id === u.user_id ? ' (you)' : '') + '</b>' +
-      (st ? '<span>Staff: ' + esc(st.name) + '</span>' : '') + (() => { const ps = NJ.presenceText(presence.find(x => x.user_id === u.user_id));
+      (st ? '<span>Staff: ' + esc(st.name) + '</span>' : '') + (twoStep.includes(u.user_id) ? '<span class="ts-on">Two-step sign-in on</span>' : '') + (() => { const ps = NJ.presenceText(presence.find(x => x.user_id === u.user_id));
         return '<span class="seen"' + (ps.online ? ' style="color:var(--p);font-weight:600"' : '') + '><i class="dot' + (ps.online ? ' on' : '') + '" aria-hidden="true"></i>' + esc(ps.text) + '</span>'; })() + '</div>' +
       '<div class="bubbles" role="group" aria-label="Apps for ' + esc(u.name) + '">' + bubbles + '</div>' +
-      '<div class="acts"><button class="btn mini" data-uact="edit">Edit</button><button class="btn mini" data-uact="pin">Change PIN</button><button class="btn mini btn-danger" data-uact="del">Remove</button></div></div>';
+      '<div class="acts"><button class="btn mini" data-uact="edit">Edit</button><button class="btn mini" data-uact="pin">Change PIN</button>' +
+      (twoStep.includes(u.user_id) && !(NJ.me && NJ.me.user_id === u.user_id) ? '<button class="btn mini" data-uact="2off">Two-step off</button>' : '') + '<button class="btn mini btn-danger" data-uact="del">Remove</button></div></div>';
   }).join('');
 }
 /* tap an app bubble: switches it for that person and saves straight away */
@@ -240,6 +252,11 @@ $('peopleList').addEventListener('click', async e => {
   const u = profiles.find(x => x.user_id === b.closest('[data-uid]').dataset.uid);
   if(!u) return;
   const act = b.dataset.uact;
+  if(act === '2off'){
+    if(!await ask('Switch off two-step sign-in for ' + u.name + '?', 'Do this if they lost their phone. They can sign in with the PIN alone until they set it up again in People & settings.', 'Switch off', true)) return;
+    try{ await people('update', {user_id: u.user_id, two_step_off: true}); toast('Two-step sign-in is off for ' + u.name); await load(); renderPeople(); }catch(x){ toast(x.message); }
+    return;
+  }
   if(act === 'edit'){
     const v = await dialog({
       title: 'Edit ' + u.name, ok: 'Save',
@@ -383,6 +400,57 @@ $('rateSave').onclick = async () => {
   try{ must(await sb.from('settings').update({rate_due: $('rateDue').value || '10:30'}).eq('id', 1)); toast('The daily rate is due by ' + $('rateDue').value); }
   catch(x){ toast(x.message); }
 };
+/* ---------- two-step sign-in for the person signed in ---------- */
+let myFactor = null;
+async function loadTwoStep(){
+  const f = await sb.auth.mfa.listFactors();
+  if(f.error) throw f.error;
+  myFactor = (f.data.totp || [])[0] || null;
+  $('tsState').innerHTML = myFactor
+    ? '<b class="devok">✓ Two-step sign-in is on</b> for your account (since ' + esc(new Date(myFactor.created_at).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'})) + ').'
+    : '<b>Off.</b> Anyone who learns or guesses your PIN can open everything. Setting it up takes two minutes.';
+  $('tsBar').innerHTML = myFactor ? '<button class="btn" type="button" id="tsOff">Switch off</button>' : '<button class="btn btn-maroon" type="button" id="tsOn">Set up two-step sign-in</button>';
+}
+$('tsPanel').addEventListener('click', async e => {
+  if(e.target.closest('#tsOn')) setUpTwoStep();
+  if(e.target.closest('#tsOff')){
+    if(!await ask('Switch off two-step sign-in?', 'Your PIN alone will open your owner account again.', 'Switch off', true)) return;
+    const r = await sb.auth.mfa.unenroll({factorId: myFactor.id});
+    if(r.error) return toast(NJ.friendly(r.error));
+    await sb.auth.refreshSession();
+    toast('Two-step sign-in is off'); loadTwoStep(); load().then(renderPeople);
+  }
+});
+async function setUpTwoStep(){
+  try{
+    const all = await sb.auth.mfa.listFactors();     // clear any half-finished set-up first
+    for(const f of (all.data && all.data.all) || []) if(f.status !== 'verified') await sb.auth.mfa.unenroll({factorId: f.id});
+    const en = await sb.auth.mfa.enroll({factorType: 'totp', issuer: 'Natraj Jewels', friendlyName: 'Phone ' + new Date().toISOString().slice(0, 16)});
+    if(en.error) throw en.error;
+    const qr = en.data.totp.qr_code, svg = qr.replace(/^data:image\/svg\+xml;utf-8,/, '');   // the raw picture, made safe for an image link
+    const src = /^data:/.test(svg) ? svg : 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    const secret = en.data.totp.secret.replace(/(.{4})/g, '$1 ').trim();
+    const v = await dialog({
+      title: 'Set up two-step sign-in', ok: 'Switch on',
+      html: '<ol class="tssteps"><li>Install <b>Google Authenticator</b> (or Microsoft Authenticator) on your phone.</li>' +
+        '<li>In the app, tap <b>+</b> and scan this code:</li></ol>' +
+        '<img class="tsqr" alt="QR code to scan with the authenticator app" src="' + esc(src) + '">' +
+        '<p class="tskey">Can’t scan? Choose “Enter a setup key” and type: <code>' + esc(secret) + '</code></p>' +
+        '<ol class="tssteps" start="3"><li>Type the 6-digit code the app now shows for Natraj Jewels.</li></ol>',
+      fields: [{id: 'code', label: '6-digit code', type: 'otp'}],
+      validate: async v => {
+        if(!/^[0-9]{6}$/.test(v.code)) return 'The code is 6 digits.';
+        const r = await sb.auth.mfa.challengeAndVerify({factorId: en.data.id, code: v.code});
+        if(r.error) return /invalid|expired/i.test(r.error.message) ? 'That code is not right. Type the code the app shows now.' : NJ.friendly(r.error);
+        return '';
+      }
+    });
+    if(!v){ await sb.auth.mfa.unenroll({factorId: en.data.id}); return; }
+    await ask('Two-step sign-in is on', 'From now on, after your PIN you will type the code from the app. Keep your recovery code safe: if your phone is lost, it lets you back in (and switches two-step off until you set it up again).', null);
+    loadTwoStep(); load().then(renderPeople);
+  }catch(x){ toast(NJ.friendly(x)); }
+}
+
 $('newCode').onclick = async () => {
   if(!await ask('Make a new recovery code?', 'The old recovery code will stop working.', 'Make new code')) return;
   try{ const r = await people('new_recovery'); NJ.showRecoveryCode(r.recovery); }catch(x){ toast(x.message); }

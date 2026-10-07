@@ -109,6 +109,7 @@ function dialog(o){
     if(x.type === 'select') h += '<select class="input" id="' + id + '">' + x.options.map(([v, l]) => '<option value="' + esc(v) + '"' + (v === x.value ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>';
     else if(x.type === 'textarea') h += '<textarea class="input" id="' + id + '" maxlength="' + (x.maxlength || 200) + '"' + ph + '>' + esc(x.value || '') + '</textarea>';
     else if(x.type === 'pin') h += '<input class="input" id="' + id + '" type="password" inputmode="numeric" autocomplete="off" maxlength="6"' + ph + '>';
+    else if(x.type === 'otp') h += '<input class="input" id="' + id + '" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"' + ph + '>';
     else if(x.type === 'code') h += '<input class="input" id="' + id + '" type="text" autocomplete="off" autocapitalize="characters" maxlength="9" style="text-transform:uppercase"' + ph + '>';
     else h += '<input class="input" id="' + id + '" type="' + (x.type || 'text') + '" autocomplete="off" maxlength="' + (x.maxlength || 60) + '" value="' + esc(x.value || '') + '"' + ph + '>';
     h += '</label>';
@@ -242,7 +243,7 @@ function showRecoveryCode(code){
 async function recoverFlow(){
   await dialog({
     title: 'Forgot your PIN?', ok: 'Save new PIN',
-    msg: 'Owners: enter the recovery code you wrote down, and choose a new PIN. Everyone else: ask the owner to set a new PIN for you.',
+    msg: 'Owners: enter the recovery code you wrote down, and choose a new PIN. This also switches off two-step sign-in, in case your phone is lost; set it up again afterwards. Everyone else: ask the owner to set a new PIN for you.',
     fields: [
       {id: 'code', label: 'Recovery code', type: 'code', placeholder: 'XXXX-XXXX'},
       {id: 'pin', label: 'New PIN (6 digits)', type: 'pin'},
@@ -256,6 +257,34 @@ async function recoverFlow(){
       return signInWith(r.username, v.pin);
     }
   });
+}
+
+/* Two-step sign-in: someone who has set up an authenticator app types its 6-digit code after the PIN.
+   Until they do, the database gives their session nothing, so the page treats them as signed out. */
+let needCode = false, askingCode = false;
+async function askCode(){
+  if(askingCode) return; askingCode = true;
+  try{
+    const f = await sb.auth.mfa.listFactors();
+    const factor = f.data && f.data.totp && f.data.totp[0];
+    if(!factor) return;
+    const v = await dialog({
+      title: 'Enter the code from your phone', ok: 'Continue', cancel: 'Sign out',
+      msg: 'Open your authenticator app (for example Google Authenticator) and type the 6-digit code shown for Natraj Jewels.',
+      fields: [{id: 'code', label: '6-digit code', type: 'otp'}],
+      extra: {label: 'Lost your phone?', value: 'lost'},
+      validate: async v => {
+        if(!/^[0-9]{6}$/.test(v.code)) return 'The code is 6 digits.';
+        const r = await sb.auth.mfa.challengeAndVerify({factorId: factor.id, code: v.code});
+        if(!r.error) return '';
+        if(r.error.status === 429) return 'Too many tries. Wait a few minutes and try again.';
+        if(/invalid|expired/i.test(r.error.message)) return 'That code is not right. Type the code the app shows now.';
+        return friendly(r.error);
+      }
+    });
+    if(v === 'lost'){ await signOut(true); return recoverFlow(); }
+    if(!v) await signOut();
+  } finally { askingCode = false; }
 }
 
 async function signOut(quiet){
@@ -320,7 +349,10 @@ function showBlocked(){
   return true;
 }
 async function loadMe(session){
+  needCode = false;
   if(!session){ me = null; return; }
+  const a = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(a.data && a.data.currentLevel === 'aal1' && a.data.nextLevel === 'aal2'){ needCode = true; me = null; blocked = false; return; }
   const r = await sb.from('profiles').select('*').eq('user_id', session.user.id).maybeSingle();
   me = r.data || null;
   if(!me && !r.error){ await sb.auth.signOut(); }   // account was removed
@@ -442,6 +474,7 @@ async function start(opts){
   const {data} = await sb.auth.getSession();
   await loadMe(data.session);
   renderAccess(opts); touch(); loadNotes(); heartbeat(true);
+  if(needCode) askCode();
   if(showBlocked()) return;
   await onChange(me);
   let lastUser = me && me.user_id;
@@ -450,9 +483,10 @@ async function start(opts){
     setTimeout(async () => {          // run outside the auth callback, as supabase-js recommends
       await loadMe(session);
       const uid = me && me.user_id;
-      if(uid === lastUser && event !== 'USER_UPDATED') return;
+      if(uid === lastUser && event !== 'USER_UPDATED' && !needCode) return;
       lastUser = uid;
       renderAccess(opts); touch(); loadNotes(); heartbeat(true);
+      if(needCode) askCode();
       if(showBlocked()) return;
       if(me && event === 'SIGNED_IN') toast('Signed in as ' + me.name);
       await onChange(me);

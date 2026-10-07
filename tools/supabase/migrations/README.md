@@ -37,4 +37,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `024_report_cards.sql` — staff report cards: one per staff member per month; the owner rates and shares; staff see only their own shared cards. Applied.
 - `025_campaigns.sql` — marketing campaigns, their contact lists (sent, came, bought) and costs. Applied.
 - `026_device_lock.sql` — staff only on approved devices: the owner approves the shop computer and switches the lock on; owners are never limited. Applied.
+- `027_two_step.sql` — two-step sign-in: someone who has set up an authenticator app gets nothing from the database until they type its code. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

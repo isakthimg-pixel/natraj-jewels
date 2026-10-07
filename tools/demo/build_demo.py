@@ -40,7 +40,13 @@ s = s.replace("link.href = ROOT || './';", "link.href = ROOT + 'index.html';")
 s = s.replace("new URL(ROOT + n.link, location.href)", "new URL(ROOT + n.link.replace(/\\/(#|$)/, '/index.html$1'), location.href)")
 s = re.sub(r"path: '(" + NAMES + r")/'", lambda m: "path: '" + m.group(1) + "/index.html'", s)
 s = s.replace("ROOT + 'attendance/#leave", "ROOT + 'attendance/index.html#leave")
+s = s.replace("type the 6-digit code shown for Natraj Jewels.'", "type the 6-digit code shown for Natraj Jewels. (In this demo, any 6 digits work.)'")
 open(js, 'w').write(s)
+
+pp = os.path.join(APP, 'people', 'index.html')
+s = open(pp).read()
+s = s.replace("Type the 6-digit code the app now shows for Natraj Jewels.", "Type the 6-digit code the app now shows for Natraj Jewels. (In this demo there is nothing to scan: any 6 digits work.)")
+open(pp, 'w').write(s)
 
 open(os.path.join(OUT, 'demo.html'), 'w').write('''<title>Natraj Jewels Demo</title>
 <style>

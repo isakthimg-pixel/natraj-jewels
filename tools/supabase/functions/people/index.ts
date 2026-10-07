@@ -9,7 +9,10 @@
 //   update       {user_id, name?, pin?, is_owner?, apps?, staff_id?}  owner only
 //   remove       {user_id}                           owner only
 //   new_recovery {}                                  owner only: new recovery code for the caller
-//   recover      {code, pin}                         owner who forgot their PIN sets a new one
+//   recover      {code, pin}                         owner who forgot their PIN (or lost their phone) sets a new
+//                                                    PIN; this also switches off their two-step sign-in
+//   update also takes {two_step_off: true} to switch off someone's two-step sign-in (lost phone)
+// Someone who has set up two-step sign-in must have typed its code in this session (aal2) to use these.
 import { createClient } from "npm:@supabase/supabase-js@2.117.2";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
@@ -61,10 +64,19 @@ async function uniqueUsername(name: string) {
 async function callerProfile(req: Request) {
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) return null;
-  const { data } = await admin.auth.getUser(token);
+  const { data } = await admin.auth.getUser(token);   // checks the token is real
   if (!data?.user) return null;
   const { data: p } = await admin.from("profiles").select("*").eq("user_id", data.user.id).maybeSingle();
-  return p;
+  if (!p) return null;
+  let aal = "";
+  try { aal = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).aal || ""; } catch { /* no claim */ }
+  const twoStep = (data.user.factors || []).some((f) => f.status === "verified");
+  return { ...p, second_step_missing: twoStep && aal !== "aal2" };
+}
+
+async function twoStepOff(userId: string) {
+  const { data } = await admin.auth.admin.mfa.listFactors({ userId });
+  for (const f of data?.factors || []) await admin.auth.admin.mfa.deleteFactor({ id: f.id, userId });
 }
 
 async function ownerCount() {
@@ -125,6 +137,7 @@ Deno.serve(async (req) => {
         const { data } = await admin.auth.admin.getUserById(o.user_id);
         if (data?.user?.app_metadata?.recovery === hash) {
           await admin.auth.admin.updateUserById(o.user_id, { password: passwordFor(String(body.pin)) });
+          await twoStepOff(o.user_id);
           return json({ username: o.username });
         }
       }
@@ -133,6 +146,7 @@ Deno.serve(async (req) => {
 
     const me = await callerProfile(req);
     if (!me) return fail("Sign in first.", 401);
+    if (me.second_step_missing) return fail("Type the code from your authenticator app first.", 403);
     if (!me.is_owner) return fail("Only the owner can do this.", 403);
 
     if (action === "add") {
@@ -172,6 +186,7 @@ Deno.serve(async (req) => {
         if (!PIN.test(String(body.pin))) return fail("The PIN must be 6 digits.");
         await admin.auth.admin.updateUserById(id, { password: passwordFor(String(body.pin)) });
       }
+      if (body.two_step_off === true) await twoStepOff(id);
       return json({ ok: true });
     }
 

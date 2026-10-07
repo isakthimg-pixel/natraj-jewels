@@ -262,6 +262,7 @@ function seed(){
 }
 let db;
 try{ db = JSON.parse(localStorage.getItem(KEY)) || seed(); }catch(e){ db = seed(); }
+db.tokenAal = db.tokenAal || {};
 const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){} };
 save();
 /* sample photos are drawn here; photos added in the demo are kept in this browser */
@@ -310,13 +311,44 @@ window.NJ_DEMO = {
 };
 
 const b64 = o => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
-function session(username){
-  const u = db.users[username];
+function session(username, aal){
+  const u = db.users[username]; aal = aal === 'aal2' ? 'aal2' : 'aal1';
   const exp = Math.floor(Date.now() / 1000) + 3600;
-  const t = b64({alg: 'HS256', typ: 'JWT'}) + '.' + b64({sub: u.id, exp, role: 'authenticated', aud: 'authenticated'}) + '.demo';
-  db.tokens[t] = u.id; save();
-  return {access_token: t, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'demo-' + username,
-    user: {id: u.id, aud: 'authenticated', role: 'authenticated', email: username + '@staff.natraj-tools.app', app_metadata: {}, user_metadata: {}, created_at: now()}};
+  const t = b64({alg: 'HS256', typ: 'JWT'}) + '.' + b64({sub: u.id, exp, role: 'authenticated', aud: 'authenticated', aal, n: Math.random()}) + '.demo';
+  db.tokens[t] = u.id; db.tokenAal[t] = aal; save();
+  return {access_token: t, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'demo-' + username + '~' + aal,
+    user: {id: u.id, aud: 'authenticated', role: 'authenticated', email: username + '@staff.natraj-tools.app', app_metadata: {}, user_metadata: {}, created_at: now(),
+      factors: (u.factors || []).map(f => ({id: f.id, factor_type: 'totp', status: f.status, friendly_name: f.friendly_name, created_at: f.created_at, updated_at: f.created_at}))}};
+}
+// two-step sign-in: someone with a verified authenticator must have typed its code (aal2). In the demo any 6 digits work.
+const tokenOf = h => ((h && h.get && h.get('authorization')) || '').replace(/^Bearer /, '');
+const userNameOf = t => Object.keys(db.users).find(k => db.users[k].id === db.tokens[t]);
+const aalOk = h => { const t = tokenOf(h), n = userNameOf(t);
+  return !n || !(db.users[n].factors || []).some(f => f.status === 'verified') || db.tokenAal[t] === 'aal2'; };
+const DEMO_QR = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><rect width="29" height="29" fill="white"/>' +
+  [[0,0],[22,0],[0,22]].map(([x, y]) => '<rect x="' + (x + 0.5) + '" y="' + (y + 0.5) + '" width="6" height="6" fill="none" stroke="black"/><rect x="' + (x + 2) + '" y="' + (y + 2) + '" width="3" height="3" fill="black"/>').join('') +
+  Array.from({length: 120}, (_, i) => { const x = 8 + (i * 7) % 13, y = (i * 11) % 29; return (x > 21 && y < 8) || (y > 21 && x < 8) ? '' : '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="black"/>'; }).join('') + '</svg>';
+function factors(method, p, body, token){
+  const n = userNameOf(token); if(!n) return {status: 401, body: {message: 'invalid JWT'}};
+  const u = db.users[n]; u.factors = u.factors || [];
+  const m = /^\/auth\/v1\/factors(?:\/([^/]+))?(?:\/(challenge|verify))?$/.exec(p), f = m[1] && u.factors.find(x => x.id === m[1]);
+  const aal2 = db.tokenAal[token] === 'aal2', hasVerified = u.factors.some(x => x.status === 'verified');
+  if(!m[1] && method === 'POST'){
+    if(hasVerified && !aal2) return {status: 422, body: {code: 'insufficient_aal', message: 'AAL2 required to enroll a new factor'}};
+    const nf = {id: uid(), status: 'unverified', friendly_name: body.friendly_name || 'Phone', created_at: now()}; u.factors.push(nf);
+    return {status: 200, body: {id: nf.id, type: 'totp', friendly_name: nf.friendly_name, totp: {qr_code: DEMO_QR, secret: 'DEMOKEY2026NATRAJJEWELSDEMO', uri: 'otpauth://totp/Natraj%20Jewels:demo'}}};
+  }
+  if(!f) return {status: 404, body: {message: 'Factor not found'}};
+  if(m[2] === 'challenge') return {status: 200, body: {id: uid(), type: 'totp', expires_at: Math.floor(Date.now() / 1000) + 300}};
+  if(m[2] === 'verify'){
+    if(!/^[0-9]{6}$/.test(String(body.code || ''))) return {status: 422, body: {code: 'mfa_verification_failed', message: 'Invalid TOTP code entered'}};
+    f.status = 'verified'; return {status: 200, body: session(n, 'aal2')};
+  }
+  if(method === 'DELETE'){
+    if(f.status === 'verified' && !aal2) return {status: 422, body: {code: 'insufficient_aal', message: 'AAL2 required to unenroll verified factor'}};
+    u.factors = u.factors.filter(x => x !== f); return {status: 200, body: {id: f.id}};
+  }
+  return {status: 404, body: {message: 'Not found'}};
 }
 const meOf = token => db.profiles.find(p => p.user_id === db.tokens[token]);
 const canUse = (p, app) => !!p && (p.is_owner || p.apps.includes(app));
@@ -348,7 +380,7 @@ function matches(row, params){
 function stamp(row, me){ row.marked_by = me.user_id; row.marked_by_name = me.name; row.marked_at = now(); return row; }
 
 /* the "people" edge function */
-function people(body, me){
+function people(body, me, headers){
   const err = (error, status) => ({status: status || 400, body: {error}});
   const pinOk = p => /^\d{6}$/.test(String(p || ''));
   const create = (name, pin, isOwner, apps, staffId) => {
@@ -369,11 +401,12 @@ function people(body, me){
       const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       const name = Object.keys(db.users).find(k => (db.users[k].recovery || '').replace('-', '') === code);
       if(!name) return err('That recovery code is not right. (Demo code: DEMO-2026)', 403);
-      db.users[name].pin = body.pin;
+      db.users[name].pin = body.pin; db.users[name].factors = [];
       return {status: 200, body: {username: name}};
     }
   }
   if(!me) return err('Sign in first.', 401);
+  if(!aalOk(headers)) return err('Type the code from your authenticator app first.', 403);
   if(!me.is_owner) return err('Only the owner can do this.', 403);
   const t = db.profiles.find(p => p.user_id === body.user_id);
   switch(body.action){
@@ -387,6 +420,7 @@ function people(body, me){
       ['name', 'is_owner', 'apps', 'staff_id'].forEach(k => { if(body[k] !== undefined) t[k] = body[k]; });
       if(t.is_owner) t.apps = APPS;
       if(body.pin !== undefined){ if(!pinOk(body.pin)) return err('The PIN must be 6 digits.'); db.users[t.username].pin = body.pin; }
+      if(body.two_step_off === true) db.users[t.username].factors = [];
       return {status: 200, body: {ok: true}};
     case 'remove':
       if(!t) return err('That person no longer exists.', 404);
@@ -403,19 +437,21 @@ function people(body, me){
 /* database functions */
 /* migration 026: devices staff can use (the demo keeps the key itself; the real database keeps only a hash) */
 const devKey = h => { const k = (h && h.get && h.get('x-natraj-device')) || ''; return k.length >= 32 ? k : null; };
-const deviceOk = (me, h) => !db.settings[0].device_lock || (me && me.is_owner) || db.approved_devices.some(d => d.key_hash === devKey(h));
+const deviceOk = (me, h) => aalOk(h) && (!db.settings[0].device_lock || (me && me.is_owner) || db.approved_devices.some(d => d.key_hash === devKey(h)));
 function rpc(name, a, me, headers){
   if(name === 'device_status'){ const k = devKey(headers), d = db.approved_devices.find(x => x.key_hash === k);
     return {status: 200, body: {locked: !!db.settings[0].device_lock, approved: !!d, name: d ? d.name : null, has_key: !!k, ok: deviceOk(me, headers)}}; }
+  if(name === 'two_step_people') return {status: 200, body: me && me.is_owner && aalOk(headers)
+    ? Object.values(db.users).filter(u => (u.factors || []).some(f => f.status === 'verified')).map(u => ({user_id: u.id, since: u.factors[0].created_at})) : []};
   if(name === 'approve_this_device'){
-    if(!me || !me.is_owner) return {status: 403, body: {code: '42501', message: 'Only the owner can approve a device.'}};
+    if(!me || !me.is_owner || !aalOk(headers)) return {status: 403, body: {code: '42501', message: 'Only the owner can approve a device.'}};
     const k = devKey(headers), nm = String(a.p_name || '').trim();
     if(!k) return {status: 400, body: {code: '22023', message: 'This browser did not send its device key. Reload the page and try again.'}};
     if(!nm) return {status: 400, body: {code: '22023', message: 'Give the device a name, e.g. Counter computer.'}};
     const d = db.approved_devices.find(x => x.key_hash === k); if(d) d.name = nm; else db.approved_devices.push({id: uid(), name: nm, key_hash: k, approved_by_name: me.name, created_at: now(), last_seen_at: null});
     return rpc('device_status', {}, me, headers);
   }
-  if(me && !me.is_owner && !deviceOk(me, headers) && !['login_names', 'setup_needed', 'leave_staff', 'request_leave', 'presence_out', 'heartbeat'].includes(name)) return {status: 403, body: {code: '42501', message: 'permission denied'}};
+  if(me && !deviceOk(me, headers) && !['login_names', 'setup_needed', 'leave_staff', 'request_leave', 'presence_out', 'heartbeat'].includes(name)) return {status: 403, body: {code: '42501', message: 'permission denied'}};
   if(name === 'heartbeat' && me && !deviceOk(me, headers)) a = Object.assign({}, a, {p_page: 'Not approved device'});
   if(name === 'heartbeat' && me){ const d = db.approved_devices.find(x => x.key_hash === devKey(headers)); if(d) d.last_seen_at = now(); }
   const pg = message => ({status: 400, body: {code: '22023', message, details: null, hint: null}});
@@ -918,18 +954,19 @@ async function answer(url, init){
   let res;
   if(p === '/auth/v1/token'){
     if(u.searchParams.get('grant_type') === 'refresh_token'){
-      const name = String(body.refresh_token || '').replace(/^demo-/, '');
-      res = db.users[name] ? {status: 200, body: session(name)} : {status: 400, body: {error_code: 'refresh_token_not_found', message: 'Invalid Refresh Token'}};
+      const [name, aal] = String(body.refresh_token || '').replace(/^demo-/, '').split('~');
+      res = db.users[name] ? {status: 200, body: session(name, aal)} : {status: 400, body: {error_code: 'refresh_token_not_found', message: 'Invalid Refresh Token'}};
     } else {
       const name = String(body.email || '').split('@')[0], user = db.users[name];
       res = user && 'natraj-' + user.pin === body.password ? {status: 200, body: session(name)}
         : {status: 400, body: {code: 400, error_code: 'invalid_credentials', msg: 'Invalid login credentials', message: 'Invalid login credentials'}};
     }
   } else if(p === '/auth/v1/user'){
-    res = me ? {status: 200, body: session(me.username).user} : {status: 401, body: {message: 'invalid JWT'}};
+    res = me ? {status: 200, body: session(me.username, db.tokenAal[token]).user} : {status: 401, body: {message: 'invalid JWT'}};
   } else if(p === '/auth/v1/logout'){
     delete db.tokens[token]; res = {status: 204, body: null};
-  } else if(p === '/functions/v1/people') res = people(body || {}, me);
+  } else if(p.startsWith('/auth/v1/factors')) res = factors(method, p, body || {}, token);
+  else if(p === '/functions/v1/people') res = people(body || {}, me, headers);
   else if(p.startsWith('/storage/v1/')) res = storage(method, p, body, me);
   else if(p.startsWith('/rest/v1/rpc/')) res = rpc(p.split('/').pop(), body || {}, me, headers);
   else if(p.startsWith('/rest/v1/')) res = rest(method, p.split('/').pop(), u.searchParams, body, headers, me);
