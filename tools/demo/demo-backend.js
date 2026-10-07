@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v21';
+const KEY = 'natraj-demo-db-v22';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -96,6 +96,8 @@ function seed(){
   // banking: two accounts, daily cash deposits, card settlements, supplier payments, a transfer each month
   const acc = (name, bank, last4) => { const a = {id: uid(), name, bank, last4, active: true, created_at: now()}; db.bank_accounts.push(a); return a; };
   const sbi = acc('SBI Current', 'SBI, Tiruppur main', '4821'), hdfc = acc('HDFC Savings', 'HDFC, Kumaran Road', '0937');
+  // expenses not paid in cash came out of one of the two accounts
+  db.expenses.forEach((e, i) => { e.account_id = null; e.account_name = ''; if(e.mode !== 'Cash'){ const a = i % 3 ? sbi : hdfc; e.account_id = a.id; e.account_name = a.name + ' ··' + a.last4; } });
   const be = (a, day, direction, amount, method, party, reference, by, tid) => db.bank_entries.push({id: uid(), account_id: a.id, day, direction, amount, method, party: party || '', reference: reference || '', note: '', transfer_id: tid || null, for_chit: false,
     created_by: by.user_id, created_by_name: by.name, created_at: day + 'T11:30:00Z', updated_by_name: '', updated_at: null});
   be(sbi, start, 'in', 845000, 'Opening balance', '', '', owner); be(hdfc, start, 'in', 312500, 'Opening balance', '', '', owner);
@@ -364,6 +366,7 @@ function rpc(name, a, me){
       return {status: 200, body: null};
     }
     case 'presence_out': { const r = me && db.presence.find(x => x.user_id === me.user_id); if(r){ r.signed_out_at = now(); r.demo_live = false; } return {status: 200, body: null}; }
+    case 'bank_account_choices': return {status: 200, body: (canUse(me, 'expenses') || canUse(me, 'banking')) ? db.bank_accounts.filter(x => x.active).map(x => ({id: x.id, name: x.name, last4: x.last4})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'rate_updaters': return {status: 200, body: db.profiles.filter(p => !p.is_owner && p.apps.includes('rates')).map(p => ({name: p.name})).sort((x, y) => x.name.localeCompare(y.name))};
@@ -500,6 +503,12 @@ function sortBy(out, ord){
 }
 
 /* expenses: the owner sees all; others see their own and change them on the day they entered them */
+/* migration 022: the account an expense was paid from keeps its name on the expense; cash has none */
+function expenseAccount(r, old){
+  if(r.mode === 'Cash') r.account_id = null;
+  if(!r.account_id){ if(!old || old.account_id || r.mode === 'Cash') r.account_name = ''; }
+  else if(!old || r.account_id !== old.account_id){ const a = db.bank_accounts.find(x => x.id === r.account_id); r.account_name = a ? a.name + (a.last4 ? ' ··' + a.last4 : '') : ''; }
+}
 function expensesRest(method, params, body, single, wantRows, me){
   const owner = me.is_owner, may = canUse(me, 'expenses');
   const ownToday = r => r.created_by === me.user_id && iso(new Date(r.created_at)) === iso(new Date());
@@ -508,10 +517,11 @@ function expensesRest(method, params, body, single, wantRows, me){
   else if(method === 'POST'){
     const r = Object.assign({id: uid(), mode: 'Cash', paid_to: '', note: ''}, body, {created_by: me.user_id, created_by_name: me.name, created_at: now(), updated_by_name: '', updated_at: null});
     if(!r.period_from || !r.period_to){ r.period_from = r.day; r.period_to = r.day; }
-      db.expenses.push(r); out = [r];
+    expenseAccount(r, null);
+    db.expenses.push(r); out = [r];
   } else if(method === 'PATCH'){
     out = out.filter(r => owner || (may && ownToday(r)));
-    out.forEach(r => Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}));
+    out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}); expenseAccount(r, old); });
   } else if(method === 'DELETE'){
     out = out.filter(r => owner || (may && ownToday(r)));
     db.expenses = db.expenses.filter(r => !out.includes(r));

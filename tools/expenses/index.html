@@ -129,6 +129,7 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
         <label>Category<select class="input" id="fCat"></select></label>
         <label id="fNewWrap" hidden>New category<input class="input" id="fNewCat" maxlength="40" placeholder="e.g. Gold polish"></label>
         <div class="field"><span>Paid by</span><div class="bubbles" id="fMode" role="group" aria-label="Paid by"></div></div>
+        <label id="fAccL" hidden>From account<select class="input" id="fAcc"></select></label>
         <div class="two">
           <label>Date<input class="input" type="date" id="fDay"></label>
           <label>Paid to<input class="input" id="fTo" maxlength="80" placeholder="optional"></label>
@@ -228,7 +229,16 @@ const {sb, esc, must, toast, ask, dialog, iso, parse, todayIso} = NJ;
 const $ = id => document.getElementById(id);
 const MODES = ['Cash', 'UPI', 'Card', 'Bank transfer', 'Cheque'];
 const BIG = 50000;   // ask before saving more than this, to catch an extra zero
-let cats = [], recent = [], monthRows = [], curTab = 'add', curMonth = todayIso().slice(0, 7), catFilter = '', mode = 'Cash';
+let cats = [], recent = [], monthRows = [], curTab = 'add', curMonth = todayIso().slice(0, 7), catFilter = '', mode = 'Cash', accounts = [];
+// the bank accounts in use, for "From account" on anything not paid in cash
+async function loadAccounts(){
+  accounts = must(await sb.rpc('bank_account_choices')) || [];
+  const keep = $('fAcc').value;
+  $('fAcc').innerHTML = '<option value="">Choose the account</option>' + accounts.map(a => '<option value="' + esc(a.id) + '">' + esc(a.name + (a.last4 ? ' ··' + a.last4 : '')) + '</option>').join('');
+  $('fAcc').value = accounts.some(a => a.id === keep) ? keep : accounts.length === 1 ? accounts[0].id : '';
+  syncAcc();
+}
+function syncAcc(){ $('fAccL').hidden = mode === 'Cash' || !accounts.length; }
 
 const inr = v => { const n = Math.round(Number(v) * 100) / 100; return '₹' + n.toLocaleString('en-IN', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2}); };
 const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
@@ -281,7 +291,7 @@ async function loadRecent(){
 
 /* ---------- add tab ---------- */
 function row(r, showDay){
-  const sub = [showDay ? fmtDay(r.day) : '', r.mode, r.paid_to && ('to ' + r.paid_to), covers(r), r.note].filter(Boolean).join(' · ');
+  const sub = [showDay ? fmtDay(r.day) : '', r.mode + (r.mode !== 'Cash' && r.account_name ? ' from ' + r.account_name : ''), r.paid_to && ('to ' + r.paid_to), covers(r), r.note].filter(Boolean).join(' · ');
   const by = NJ.me.is_owner ? 'Entered by ' + (r.created_by_name || 'someone') + (r.updated_by_name ? ' · changed by ' + r.updated_by_name : '') : '';
   return '<div class="erow" data-id="' + esc(r.id) + '"><div><div class="cat">' + esc(r.category) + '</div>' +
     (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
@@ -310,6 +320,7 @@ $('fMode').addEventListener('click', e => {
   const b = e.target.closest('[data-mode]'); if(!b) return;
   mode = b.dataset.mode;
   $('fMode').querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  syncAcc();
 });
 $('fDay').value = todayIso(); $('fDay').max = todayIso();
 
@@ -353,6 +364,8 @@ $('eForm').addEventListener('submit', async e => {
   if(cat === NEW && !newCat) return $('fErr').textContent = 'Type the new category’s name.';
   if(cat === NEW && newCat.length > 40) return $('fErr').textContent = 'A category name is 40 letters at most.';
   if(!day) return $('fErr').textContent = 'Choose the date.';
+  const acc = mode !== 'Cash' && accounts.length ? $('fAcc').value : '';
+  if(mode !== 'Cash' && accounts.length && !acc) return $('fErr').textContent = 'Choose the bank account it was paid from.';
   if(day > todayIso()) return $('fErr').textContent = 'The date can’t be in the future.';
   const ranged = $('fCover').value !== 'day';
   const from = ranged ? $('fFrom').value : day, until = ranged ? $('fUntil').value : day;
@@ -363,7 +376,7 @@ $('eForm').addEventListener('submit', async e => {
   $('fSave').setAttribute('aria-busy', 'true');
   try{
     if(cat === NEW) cat = await ensureCategory(newCat);
-    const r = must(await sb.from('expenses').insert({day, amount: a, category: cat, mode, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim(), period_from: from, period_to: until}).select().single());
+    const r = must(await sb.from('expenses').insert({day, amount: a, category: cat, mode, account_id: acc || null, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim(), period_from: from, period_to: until}).select().single());
     recent.unshift(r); recent.sort((x, y) => y.day.localeCompare(x.day) || y.created_at.localeCompare(x.created_at));
     renderRecent();
     toast('Saved ' + inr(a) + ' for ' + cat);
@@ -395,6 +408,8 @@ async function onListClick(e){
       {id: 'amount', label: 'Amount (₹)', type: 'text', value: String(Number(r.amount)), maxlength: 12},
       {id: 'category', label: 'Category', type: 'select', value: r.category, options: catOptions(r.category)},
       {id: 'mode', label: 'Paid by', type: 'select', value: r.mode, options: MODES.map(m => [m, m])},
+      ...(accounts.length ? [{id: 'account', label: 'From account (not for cash)', type: 'select', value: r.account_id || '',
+        options: [['', r.account_id || !r.account_name ? 'Choose the account' : r.account_name + ' (removed)'], ...accounts.map(a => [a.id, a.name + (a.last4 ? ' ··' + a.last4 : '')])]}] : []),
       {id: 'day', label: 'Date', type: 'date', value: r.day},
       {id: 'from', label: 'Covers from', type: 'date', value: r.period_from || r.day},
       {id: 'to', label: 'Covers to (same as “from” for a one-day expense)', type: 'date', value: r.period_to || r.day},
@@ -411,7 +426,8 @@ async function onListClick(e){
       if(!v.from || !v.to) return 'Choose the days the expense covers.';
       if(v.to < v.from) return 'The last day it covers is before the first day.';
       if(span(v.from, v.to) > 1100) return 'An expense can cover 3 years at most.';
-      const row = must(await sb.from('expenses').update({amount: a, category: v.category, mode: v.mode, day: v.day, period_from: v.from, period_to: v.to, paid_to: v.paid_to, note: v.note}).eq('id', r.id).select().single());
+      if(v.mode !== 'Cash' && accounts.length && !v.account && !r.account_name) return 'Choose the bank account it was paid from.';
+      const row = must(await sb.from('expenses').update({amount: a, category: v.category, mode: v.mode, ...(accounts.length && (v.account || v.mode === 'Cash') ? {account_id: v.mode === 'Cash' ? null : v.account} : {}), day: v.day, period_from: v.from, period_to: v.to, paid_to: v.paid_to, note: v.note}).eq('id', r.id).select().single());
       [recent, monthRows].forEach(list => { const x = list.find(y => y.id === r.id); if(x) Object.assign(x, row); });
       return '';
     }
@@ -447,7 +463,10 @@ function renderMonth(){
     '<span class="nm">' + esc(c) + '</span><span class="track"><i style="width:' + (v / max * 100).toFixed(1) + '%"></i></span><b>' + esc(inr(v)) + '</b></button>').join('')
     : '<p class="axisnote">No expenses this month.</p>';
   const byMode = {}; monthRows.forEach(r => byMode[r.mode] = (byMode[r.mode] || 0) + Number(r.amount));
-  $('mModes').innerHTML = MODES.filter(m => byMode[m]).map(m => '<div><span>' + m + '</span><b>' + esc(inr(byMode[m])) + '</b></div>').join('') || '<p class="axisnote">Nothing yet.</p>';
+  const byAcc = {}; monthRows.filter(r => r.mode !== 'Cash').forEach(r => { const k = r.account_name || 'Account not given'; byAcc[k] = (byAcc[k] || 0) + Number(r.amount); });
+  $('mModes').innerHTML = (MODES.filter(m => byMode[m]).map(m => '<div><span>' + m + '</span><b>' + esc(inr(byMode[m])) + '</b></div>').join('') || '<p class="axisnote">Nothing yet.</p>') +
+    (Object.keys(byAcc).length ? '<div style="border-top:2px solid var(--line);font:600 .66rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);padding-top:14px">From bank accounts</div>' +
+      Object.entries(byAcc).sort((a, b) => b[1] - a[1]).map(([k, v]) => '<div><span>' + esc(k) + '</span><b>' + esc(inr(v)) + '</b></div>').join('') : '');
   const list = catFilter ? monthRows.filter(r => r.category === catFilter) : monthRows;
   $('mList').innerHTML = (catFilter ? '<div class="lhead dhead"><span>' + esc(catFilter) + ' only · <button type="button" class="linkish" id="clearCat">show all</button></span><b>' + esc(inr(sum(list))) + '</b></div>' : '') +
     (list.length ? list.map(r => row(r, true)).join('') : '<div class="empty" style="padding:32px 20px">No expenses in ' + esc(label) + '.</div>');
@@ -461,8 +480,8 @@ $('mMonth').onchange = () => { if($('mMonth').value){ curMonth = $('mMonth').val
 
 $('mCsv').onclick = () => {
   const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [['Date', 'Category', 'Amount', 'Paid by', 'Paid to', 'Covers from', 'Covers to', 'Note', 'Entered by']]
-    .concat(monthRows.slice().reverse().map(r => [r.day, r.category, Number(r.amount), r.mode, r.paid_to, r.period_from, r.period_to, r.note, r.created_by_name]));
+  const rows = [['Date', 'Category', 'Amount', 'Paid by', 'From account', 'Paid to', 'Covers from', 'Covers to', 'Note', 'Entered by']]
+    .concat(monthRows.slice().reverse().map(r => [r.day, r.category, Number(r.amount), r.mode, r.mode === 'Cash' ? '' : r.account_name, r.paid_to, r.period_from, r.period_to, r.note, r.created_by_name]));
   NJ.download('natraj-expenses-' + curMonth + '.csv', '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 };
 
@@ -591,7 +610,7 @@ NJ.start({onReady: async me => {
   const ok = !!me && NJ.canUse('expenses');
   document.body.classList.toggle('no-access', !!me && !ok);
   if(!ok) return;
-  try{ await Promise.all([loadSettings(), loadRecent()]); }catch(e){ toast(e.message); }
+  try{ await Promise.all([loadSettings(), loadRecent(), loadAccounts().catch(() => {})]); }catch(e){ toast(e.message); }
   showTab(location.hash === '#month' ? 'month' : location.hash === '#running' ? 'running' : curTab);
 }});
 })();
