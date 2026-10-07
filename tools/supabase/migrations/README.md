@@ -26,4 +26,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `014_crm.sql` — customers (shared list for later apps), customer notes and follow-ups, `crm_people()`. Applied.
 - `015_crm_form.sql` — customer form fields (pincode, WhatsApp, family function) and form visits in the history. Applied.
 - `016_user_prefs.sql` — each person's own settings (the owner's dashboard layout). Applied.
+- `017_designs.sql` — design library: designs table and the private `designs` photo bucket (2 MB images; the app sees and adds, only the owner deletes). Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

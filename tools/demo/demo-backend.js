@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v14';
-const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm'];
+const KEY = 'natraj-demo-db-v15';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
@@ -18,10 +18,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {},
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -138,6 +138,28 @@ function seed(){
   visit(C[5], 20, ['Gold', 'Investment'], true, 'Gold coins', 4, '', 'Sample Staff 3');
   visit(C[6], 26, ['Gold', 'Gift'], false, 'Kids’ chain', 3, '22K kids’ chain under 4 g', 'Sample Staff 2');
   act(C[5], 'followup', 'Old gold exchange rate check', addDays(today, -6), 'done', manager, {outcome: 'Came in, exchanged 18 g.'});
+  // design library: drawn sample photos (see samplePhoto below), gold and silver
+  const des = (code, metal, category, purity, weight_g, va_percent, supplier, tags, status, kinds, ago, notes) => db.designs.push({id: uid(), code, metal, category, purity, weight_g, va_percent, supplier, tags, status, notes: notes || '',
+    photos: kinds.map((k, i) => 'sample/' + k + '-' + metal.toLowerCase() + '-' + i + '-' + code + '.svg'), created_by: manager.user_id, created_by_name: manager.name,
+    created_at: addDays(today, -ago) + 'T12:00:00Z', updated_by_name: status === 'sold' ? manager.name : '', updated_at: status === 'sold' ? addDays(today, -Math.min(ago, 3)) + 'T17:00:00Z' : null});
+  des('G-NEC-0001', 'Gold', 'Necklace', '22K 916', 38.42, 14, 'Sri Murugan Works', ['Temple', 'Bridal', 'Antique'], 'in_shop', ['necklace', 'necklace'], 40, 'Comes with matching earrings (G-EAR-0002).');
+  des('G-NEC-0002', 'Gold', 'Necklace', '22K 916', 18.65, 12, 'Kerala Designs', ['Kerala', 'Light weight'], 'in_shop', ['necklace'], 25);
+  des('G-HAR-0001', 'Gold', 'Haram', '22K 916', 72.3, 16, 'Sri Murugan Works', ['Bridal', 'Nakshi', 'Handmade'], 'order', ['haram', 'haram'], 60, 'Made to order in 3 weeks. Length can change.');
+  des('G-BNG-0001', 'Gold', 'Bangle', '22K 916', 24.1, 11, 'Coimbatore Casting', ['Antique', 'Daily wear'], 'in_shop', ['bangle', 'bangle'], 18, 'Set of 2. Sizes 2.4 and 2.6.');
+  des('G-BNG-0002', 'Gold', 'Bangle', '22K 916', 15.8, 10, 'Coimbatore Casting', ['Plain', 'Daily wear'], 'sold', ['bangle'], 30);
+  des('G-RNG-0001', 'Gold', 'Ring', '22K 916', 4.25, 13, 'Sri Murugan Works', ['CZ stones', 'Gift'], 'in_shop', ['ring'], 6);
+  des('G-RNG-0002', 'Gold', 'Ring', '18K 750', 3.1, 15, 'Kerala Designs', ['Light weight'], 'in_shop', ['ring'], 3);
+  des('G-EAR-0001', 'Gold', 'Earrings', '22K 916', 8.6, 14, 'Sri Murugan Works', ['Temple', 'Antique'], 'in_shop', ['earrings', 'earrings'], 12, 'Jhumka with screw back.');
+  des('G-EAR-0002', 'Gold', 'Earrings', '22K 916', 6.2, 12, 'Kerala Designs', ['Bridal', 'Kundan'], 'sold', ['earrings'], 9);
+  des('G-CHN-0001', 'Gold', 'Chain', '22K 916', 12.0, 8, 'Coimbatore Casting', ['Daily wear', 'Plain'], 'in_shop', ['chain'], 15, '22 inch. Also in 20 and 24.');
+  des('G-PND-0001', 'Gold', 'Pendant', '22K 916', 2.9, 12, 'Sri Murugan Works', ['Temple', 'Gift'], 'in_shop', ['pendant'], 2);
+  des('G-THL-0001', 'Gold', 'Thali / Mangalsutra', '22K 916', 9.4, 10, 'Kerala Designs', ['Bridal', 'Handmade'], 'order', ['pendant'], 45);
+  des('S-ANK-0001', 'Silver', 'Anklet', '92.5 sterling', 42.5, 8, 'Salem Silver House', ['Daily wear', 'Light weight'], 'in_shop', ['chain', 'chain'], 20, 'Pair. Ghungroo bells.');
+  des('S-ANK-0002', 'Silver', 'Anklet', '80 silver', 65.0, 6, 'Salem Silver House', ['Bridal', 'Handmade'], 'in_shop', ['chain'], 7);
+  des('S-BNG-0001', 'Silver', 'Bangle', '92.5 sterling', 28.0, 9, 'Salem Silver House', ['Kids', 'Gift'], 'sold', ['bangle'], 14);
+  des('S-RNG-0001', 'Silver', 'Ring', '92.5 sterling', 5.5, 10, 'Salem Silver House', ['CZ stones'], 'in_shop', ['ring'], 4);
+  des('S-POO-0001', 'Silver', 'Pooja items', '92.5 sterling', 245.0, 5, 'Salem Silver House', ['Gift', 'Handmade'], 'in_shop', ['bowl', 'bowl'], 22, 'Kumkum bowl set with plate.');
+  des('S-NEC-0001', 'Silver', 'Necklace', '92.5 sterling', 34.0, 8, 'Salem Silver House', ['Antique', 'Temple'], 'in_shop', ['necklace'], 1);
   const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
   note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
   note(owner, 'tasks_all_done', 'Sample Staff 3 finished all their tasks', '3 done today. Last one: Arrange the silver anklets tray', 45);
@@ -147,7 +169,50 @@ let db;
 try{ db = JSON.parse(localStorage.getItem(KEY)) || seed(); }catch(e){ db = seed(); }
 const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){} };
 save();
-window.NJ_DEMO = {reset(){ try{ localStorage.removeItem(KEY); localStorage.removeItem('natraj-tools-auth'); }catch(e){} location.reload(); }};
+/* sample photos are drawn here; photos added in the demo are kept in this browser */
+function samplePhoto(path){
+  const m = /^sample\/([a-z]+)-([a-z]+)-(\d)/.exec(path); if(!m) return '';
+  const [, kind, metal, n] = m, gold = metal !== 'silver';
+  const c1 = gold ? '#F3D27A' : '#F2F4F7', c2 = gold ? '#B8860B' : '#8F98A3', c3 = gold ? '#7A5A12' : '#5E6670';
+  const bg = ['#F7F1E6', '#EFE6DA', '#E9EEF0'][Number(n) % 3], st = 'url(#g)';
+  let d = '';
+  const bead = (x, y, r) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + st + '" stroke="' + c3 + '" stroke-width="1.5"/>';
+  if(kind === 'necklace' || kind === 'haram'){
+    const big = kind === 'haram';
+    for(let i = 0; i <= 24; i++){ const a = Math.PI * (0.08 + 0.84 * i / 24), x = 200 - Math.cos(a) * 130, y = 70 + Math.sin(a) * (big ? 230 : 170); d += bead(x.toFixed(1), y.toFixed(1), i % 4 === 0 ? 11 : 7); }
+    d += '<path d="M200 ' + (big ? 300 : 240) + ' l-26 18 26 46 26-46z" fill="' + st + '" stroke="' + c3 + '" stroke-width="2"/><circle cx="200" cy="' + (big ? 330 : 270) + '" r="7" fill="#B0263A"/>';
+  } else if(kind === 'bangle'){
+    d = '<ellipse cx="200" cy="200" rx="128" ry="128" fill="none" stroke="' + c3 + '" stroke-width="34"/><ellipse cx="200" cy="200" rx="128" ry="128" fill="none" stroke="' + st + '" stroke-width="28"/>';
+    for(let i = 0; i < 24; i++){ const a = 2 * Math.PI * i / 24; d += '<circle cx="' + (200 + Math.cos(a) * 128).toFixed(1) + '" cy="' + (200 + Math.sin(a) * 128).toFixed(1) + '" r="4" fill="' + c3 + '"/>'; }
+  } else if(kind === 'ring'){
+    d = '<ellipse cx="200" cy="235" rx="95" ry="95" fill="none" stroke="' + c3 + '" stroke-width="26"/><ellipse cx="200" cy="235" rx="95" ry="95" fill="none" stroke="' + st + '" stroke-width="20"/>' +
+      '<path d="M160 140 l40-50 40 50 -40 30z" fill="' + (gold ? '#C8102E' : '#7FB3E6') + '" stroke="' + c3 + '" stroke-width="3"/>';
+  } else if(kind === 'earrings'){
+    [130, 270].forEach(x => { d += '<circle cx="' + x + '" cy="90" r="16" fill="' + st + '" stroke="' + c3 + '" stroke-width="2"/><path d="M' + (x - 55) + ' 230 Q' + x + ' 110 ' + (x + 55) + ' 230 Z" fill="' + st + '" stroke="' + c3 + '" stroke-width="2.5"/>';
+      for(let i = 0; i < 7; i++) d += bead(x - 48 + i * 16, 246, 6); });
+  } else if(kind === 'chain'){
+    for(let i = 0; i < 22; i++){ const a = Math.PI * (0.05 + 0.9 * i / 21), x = 200 - Math.cos(a) * 140, y = 80 + Math.sin(a) * 210;
+      d += '<ellipse cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" rx="13" ry="8" transform="rotate(' + (a * 180 / Math.PI - 90).toFixed(0) + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + ')" fill="none" stroke="' + st + '" stroke-width="5"/>'; }
+  } else if(kind === 'pendant'){
+    d = '<path d="M90 60 Q200 170 310 60" fill="none" stroke="' + c2 + '" stroke-width="4"/><path d="M200 120 C150 160 130 230 200 320 C270 230 250 160 200 120Z" fill="' + st + '" stroke="' + c3 + '" stroke-width="3"/>' +
+      '<circle cx="200" cy="215" r="20" fill="' + (gold ? '#1F7A4D' : '#7FB3E6') + '" stroke="' + c3 + '" stroke-width="2"/>';
+  } else {
+    d = '<ellipse cx="200" cy="260" rx="140" ry="34" fill="' + st + '" stroke="' + c3 + '" stroke-width="3"/><path d="M120 250 Q120 160 200 160 Q280 160 280 250 Z" fill="' + st + '" stroke="' + c3 + '" stroke-width="3"/><circle cx="200" cy="200" r="16" fill="#C8102E"/>';
+  }
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c1 + '"/><stop offset=".55" stop-color="' + c2 + '"/><stop offset="1" stop-color="' + c1 + '"/></linearGradient></defs>' +
+    '<rect width="400" height="400" fill="' + bg + '"/><ellipse cx="200" cy="370" rx="150" ry="14" fill="#000" opacity=".06"/>' + d + '</svg>';
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+const fresh = {};    // photos added in this visit, until they are saved as data
+window.NJ_DEMO = {
+  photo: p => p ? (p.startsWith('sample/') ? samplePhoto(p) : db.photos[p] || fresh[p] || '') : '',
+  keepPhoto(path, url){
+    fresh[path] = url;
+    fetch(url).then(r => r.blob()).then(b => new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b); }))
+      .then(data => { db.photos[path] = data; try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){ delete db.photos[path]; } }).catch(() => {});
+  },
+  reset(){ try{ localStorage.removeItem(KEY); localStorage.removeItem('natraj-tools-auth'); }catch(e){} location.reload(); }
+};
 
 const b64 = o => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
 function session(username){
@@ -303,6 +368,7 @@ function rest(method, table, params, body, headers, me){
     expenses: {read: canUse(me, 'expenses'), write: canUse(me, 'expenses')},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
     notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
+    designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
@@ -318,6 +384,7 @@ function rest(method, table, params, body, headers, me){
   if(table === 'bank_entries') return bankEntriesRest(method, params, body, single, wantRows, me);
   if(table === 'notifications') return notesRest(method, params, body, single, wantRows, me);
   if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
+  if(table === 'designs') return designsRest(method, params, body, single, wantRows, me);
   let out;
   if(method === 'GET'){
     out = rows.filter(r => matches(r, params));
@@ -510,6 +577,35 @@ function prefsRest(method, params, body, single, wantRows, me){
 }
 
 /* tasks: same rules as the stamp_task trigger and the row policies */
+/* design library (migration 017) */
+function designsRest(method, params, body, single, wantRows, me){
+  const nowIso = now(), dup = (code, id) => db.designs.some(d => d.code === code && d.id !== id);
+  const taken = {status: 409, body: {code: '23505', message: 'duplicate key value violates unique constraint "designs_code_key"'}};
+  let out = db.designs.filter(r => matches(r, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'POST'){
+    const r = Object.assign({id: uid(), metal: 'Gold', category: '', purity: '', weight_g: null, va_percent: null, supplier: '', tags: [], status: 'in_shop', notes: '', photos: []}, Array.isArray(body) ? body[0] : body,
+      {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null});
+    r.code = String(r.code || '').trim().toUpperCase();
+    if(dup(r.code)) return taken;
+    db.designs.push(r); out = [r];
+  } else if(method === 'PATCH'){
+    if(body.code !== undefined){ body.code = String(body.code).trim().toUpperCase(); if(out.some(r => dup(body.code, r.id))) return taken; }
+    out.forEach(r => Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}));
+  } else if(method === 'DELETE') db.designs = db.designs.filter(r => !out.includes(r));
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
+}
+/* the photo bucket: the demo keeps the pictures in NJ_DEMO.photo, so this only answers */
+function storage(method, p, body, me){
+  if(!me || !canUse(me, 'designs')) return {status: 403, body: {statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy'}};
+  if(p === '/storage/v1/object/sign/designs') return {status: 200, body: (body.paths || []).map(x => ({path: x, signedURL: '/object/sign/designs/' + x + '?token=demo', error: null}))};
+  if(p.startsWith('/storage/v1/object/designs/') && method === 'POST'){ const k = decodeURIComponent(p.slice(27)); return {status: 200, body: {Key: 'designs/' + k, Id: uid()}}; }
+  if(p === '/storage/v1/object/designs' && method === 'DELETE'){ (body.prefixes || []).forEach(k => delete db.photos[k]); return {status: 200, body: (body.prefixes || []).map(name => ({name}))}; }
+  return {status: 404, body: {message: 'Not found'}};
+}
+
 function tasksRest(method, params, body, single, wantRows, me){
   const assigner = canUse(me, 'todo');
   const nameOf = id => (db.profiles.find(p => p.user_id === id) || {}).name || '';
@@ -569,6 +665,7 @@ async function answer(url, init){
   } else if(p === '/auth/v1/logout'){
     delete db.tokens[token]; res = {status: 204, body: null};
   } else if(p === '/functions/v1/people') res = people(body || {}, me);
+  else if(p.startsWith('/storage/v1/')) res = storage(method, p, body, me);
   else if(p.startsWith('/rest/v1/rpc/')) res = rpc(p.split('/').pop(), body || {}, me);
   else if(p.startsWith('/rest/v1/')) res = rest(method, p.split('/').pop(), u.searchParams, body, headers, me);
   else res = {status: 404, body: {message: 'Not found'}};

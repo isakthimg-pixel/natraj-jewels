@@ -17,8 +17,10 @@ NAMES = '|'.join(map(re.escape, PAGES))
 
 def fix_links(text):
     # folder links ("attendance/", "../rates/#x") become explicit index.html files
-    return re.sub(r'(href=")((?:\.\./)?(?:' + NAMES + r')/)(#[a-z]*)?"',
+    text = re.sub(r'(href=")((?:\.\./)?(?:' + NAMES + r')/)(#[a-z]*)?"',
                   lambda m: m.group(1) + m.group(2) + 'index.html' + (m.group(3) or '') + '"', text)
+    # links built in script with a value after the hash ("../designs/#d=' + id")
+    return re.sub(r'(href=")((?:\.\./)?(?:' + NAMES + r')/)#(?=[a-z]+=)', r'\1\2index.html#', text)
 
 for root, _, files in os.walk(APP):
     for f in files:
