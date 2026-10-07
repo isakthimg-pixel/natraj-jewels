@@ -43,9 +43,18 @@ const ICONS = {
 const icon = k => ICONS[k] ? '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>' : '';
 
 const ROOT = (document.currentScript && document.currentScript.src || '').replace(/shared\/natraj\.js.*$/, '');
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+// each browser keeps a random device key and sends it with every request; the owner can approve the
+// shop's computer, and when "staff only on approved devices" is on, the database answers staff only there
+const DEVICE_KEY = (() => {
+  try{
+    let k = localStorage.getItem('natraj-device');
+    if(!k || k.length < 32){ k = [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('natraj-device', k); }
+    return k;
+  }catch(e){ return ''; }
+})();
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, Object.assign({
   auth: {persistSession: true, autoRefreshToken: true, storageKey: 'natraj-tools-auth'}
-});
+}, DEVICE_KEY ? {global: {headers: {'x-natraj-device': DEVICE_KEY}}} : {}));
 const $ = id => document.getElementById(id);
 
 /* ---------- small helpers ---------- */
@@ -294,11 +303,30 @@ function presenceText(p){
 }
 document.addEventListener('visibilitychange', () => heartbeat());
 
+let blocked = false;
+// the page in place of the app, for staff on a device that is not approved
+function showBlocked(){
+  document.body.classList.toggle('device-blocked', blocked);
+  let el = $('nj-blocked');
+  if(!blocked){ if(el) el.remove(); return false; }
+  if(!el){
+    el = document.createElement('div'); el.id = 'nj-blocked'; el.className = 'wrap content';
+    const h = document.querySelector('header'); if(h) h.after(el); else document.body.prepend(el);
+  }
+  el.innerHTML = '<div class="form panel" style="max-width:640px"><h3>This device is not approved</h3>' +
+    '<p>Staff can use the Natraj Jewels apps only on the shop’s approved computer. Please use the computer at the shop, or ask the owner to approve this device in People &amp; settings.</p>' +
+    '<p style="font-size:.9rem;color:var(--muted)">You can still apply for leave from any phone without signing in.</p>' +
+    '<div class="bar"><button class="btn btn-maroon" type="button" data-nj-out>Sign out</button><a class="btn" href="' + ROOT + 'attendance/#leave" data-nj-leave>Apply for leave</a></div></div>';
+  return true;
+}
 async function loadMe(session){
   if(!session){ me = null; return; }
   const r = await sb.from('profiles').select('*').eq('user_id', session.user.id).maybeSingle();
   me = r.data || null;
   if(!me && !r.error){ await sb.auth.signOut(); }   // account was removed
+  // staff on a device the owner has not approved, while the lock is on: the database gives them nothing
+  blocked = false;
+  if(me && !me.is_owner){ const d = await sb.rpc('device_status'); blocked = !!(d.data && d.data.ok === false); }
 }
 
 function renderAccess(opts){
@@ -315,6 +343,8 @@ function renderAccess(opts){
 document.addEventListener('click', e => {
   if(e.target.closest('[data-nj-in]')) signInFlow();
   if(e.target.closest('[data-nj-out]')) signOut();
+  const lv = e.target.closest('[data-nj-leave]');   // the leave form is for people who are not signed in
+  if(lv){ e.preventDefault(); signOut(true).finally(() => { location.href = lv.href; if(new URL(lv.href).pathname === location.pathname) location.reload(); }); }
   if(e.target.closest('[data-nj-notes]')) showNotes();
   const r = e.target.closest('[data-nj-read]'); if(r) markRead([r.dataset.njRead]);
   const g = e.target.closest('[data-nj-go]'); if(g) openNote(g.dataset.njGo);
@@ -412,6 +442,7 @@ async function start(opts){
   const {data} = await sb.auth.getSession();
   await loadMe(data.session);
   renderAccess(opts); touch(); loadNotes(); heartbeat(true);
+  if(showBlocked()) return;
   await onChange(me);
   let lastUser = me && me.user_id;
   sb.auth.onAuthStateChange((event, session) => {
@@ -422,6 +453,7 @@ async function start(opts){
       if(uid === lastUser && event !== 'USER_UPDATED') return;
       lastUser = uid;
       renderAccess(opts); touch(); loadNotes(); heartbeat(true);
+      if(showBlocked()) return;
       if(me && event === 'SIGNED_IN') toast('Signed in as ' + me.name);
       await onChange(me);
     }, 0);
@@ -512,5 +544,5 @@ async function exportAll(){
 }
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
-  pad, iso, parse, todayIso, canUse, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
+  pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
 })();

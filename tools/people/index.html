@@ -25,6 +25,12 @@
 .prow .who .seen .dot{flex:none;transform:translateY(-1px)}
 .prow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:760px){.prow{grid-template-columns:1fr}.prow .acts{justify-content:flex-start}}
+.devthis{border:1px solid var(--line);border-radius:4px;padding:14px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:var(--paper)}
+.devthis b{display:block}
+.devthis span{font-size:.85rem;color:var(--muted)}
+.devrow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:.93rem}
+.devrow span{font-size:.82rem;color:var(--muted)}
+.devok{color:var(--p);font-weight:700}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -113,6 +119,14 @@
         <p>Records are saved online in your Supabase database. Download a copy of everything once a week and keep it safe.</p>
         <div class="bar"><button class="btn btn-maroon" id="exportAll">Download everything</button></div>
       </div>
+      <div class="form panel" id="devPanel" style="grid-column:1/-1">
+        <h3>Devices staff can use</h3>
+        <p>Approve the shop’s computer here, on that computer. Then switch on the lock, and staff can use the apps only on approved devices; on their own phones or at home they see nothing. Owners can use any device. The “Apply for leave” page stays open on any phone.</p>
+        <div class="devthis" id="devThis"></div>
+        <div id="devList"></div>
+        <label class="field check" id="devLockL"><input type="checkbox" id="devLock"> Staff only on approved devices</label>
+        <p class="hint" id="devHint" style="margin:0;font-size:.85rem;color:var(--muted)"></p>
+      </div>
     </div>
   </section>
 </main>
@@ -158,6 +172,7 @@ async function load(){
 function render(){
   if(curTab === 'people') renderPeople();
   if(curTab === 'staff') renderStaff();
+  if(curTab === 'settings') loadDevices().catch(e => toast(e.message));
 }
 
 /* ---------- people who can sign in ---------- */
@@ -323,6 +338,43 @@ $('staffList').addEventListener('click', async e => {
 });
 
 /* ---------- settings ---------- */
+/* ---------- devices staff can use ---------- */
+let devices = [], devState = {}, lockOn = false;
+async function loadDevices(){
+  const [d, st, s] = await Promise.all([sb.from('approved_devices').select('*').order('created_at'), sb.rpc('device_status'), sb.from('settings').select('device_lock').eq('id', 1).maybeSingle()]);
+  devices = must(d) || []; devState = must(st) || {}; lockOn = !!((s.data || {}).device_lock);
+  const when = t => t ? new Date(t).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'}) : 'not used yet';
+  $('devThis').innerHTML = devState.approved
+    ? '<div><b class="devok">✓ This device is approved</b><span>as “' + esc(devState.name) + '”</span></div><button class="btn" type="button" id="devRename">Rename</button>'
+    : '<div><b>This device is not approved</b><span>' + (devState.has_key ? 'Approve it if it is the shop’s computer.' : 'This browser cannot keep a device key (private window or blocked storage).') + '</span></div>' +
+      (devState.has_key ? '<button class="btn btn-maroon" type="button" id="devApprove">Approve this device</button>' : '');
+  $('devList').innerHTML = devices.length ? '<h4 style="margin:6px 0 0;font:600 .7rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)">Approved devices</h4>' +
+    devices.map(x => '<div class="devrow"><div><b>' + esc(x.name) + '</b><br><span>Approved by ' + esc(x.approved_by_name || 'the owner') + ' · last used ' + esc(when(x.last_seen_at)) + '</span></div><button class="btn mini btn-danger" type="button" data-devdel="' + esc(x.id) + '">Remove</button></div>').join('')
+    : '<p style="margin:0;color:var(--muted);font-size:.9rem">No device approved yet.</p>';
+  $('devLock').checked = lockOn;
+  $('devLock').disabled = !lockOn && !devices.length;
+  $('devHint').textContent = lockOn ? 'The lock is on: staff can use the apps only on the devices above.' : devices.length ? 'The lock is off: staff can use any device until you switch it on.' : 'Approve the shop’s computer first; then you can switch the lock on.';
+}
+$('devPanel').addEventListener('click', async e => {
+  if(e.target.closest('#devApprove') || e.target.closest('#devRename')){
+    const v = await dialog({title: devState.approved ? 'Rename this device' : 'Approve this device for staff', ok: devState.approved ? 'Save' : 'Approve', fields: [{id: 'name', label: 'Name', value: devState.name || 'Shop computer', maxlength: 60, placeholder: 'e.g. Counter computer'}],
+      validate: async v => { if(!v.name) return 'Give the device a name.'; must(await sb.rpc('approve_this_device', {p_name: v.name})); return ''; }});
+    if(v){ toast(devState.approved ? 'Renamed' : 'This device is approved for staff'); loadDevices().catch(x => toast(x.message)); }
+  }
+  const d = e.target.closest('[data-devdel]');
+  if(d){
+    const x = devices.find(y => y.id === d.dataset.devdel);
+    if(!await ask('Remove ' + x.name + '?', lockOn ? 'Staff will no longer be able to use the apps on it.' : 'It will need approving again.', 'Remove', true)) return;
+    try{ must(await sb.from('approved_devices').delete().eq('id', x.id)); toast('Removed'); loadDevices(); }catch(err){ toast(err.message); }
+  }
+});
+$('devLock').addEventListener('change', async e => {
+  const on = e.target.checked;
+  if(on && !await ask('Allow staff only on approved devices?', 'Staff on any other phone or computer will see nothing until they use an approved device. Owners are not affected.', 'Switch on')){ e.target.checked = false; return; }
+  try{ must(await sb.from('settings').update({device_lock: on}).eq('id', 1)); toast(on ? 'Staff can now use only approved devices' : 'Staff can use any device'); }catch(err){ e.target.checked = !on; toast(err.message); }
+  loadDevices().catch(x => toast(x.message));
+});
+
 $('setOff').addEventListener('change', async e => {
   try{ must(await sb.from('settings').update({weekly_off: Number(e.target.value)}).eq('id', 1)); toast('Saved'); }
   catch(x){ toast(x.message); }

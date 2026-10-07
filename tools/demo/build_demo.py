@@ -39,6 +39,7 @@ s = s.replace("href=\"' + ROOT + '\" aria-label=\"All apps\"", "href=\"' + ROOT 
 s = s.replace("link.href = ROOT || './';", "link.href = ROOT + 'index.html';")
 s = s.replace("new URL(ROOT + n.link, location.href)", "new URL(ROOT + n.link.replace(/\\/(#|$)/, '/index.html$1'), location.href)")
 s = re.sub(r"path: '(" + NAMES + r")/'", lambda m: "path: '" + m.group(1) + "/index.html'", s)
+s = s.replace("ROOT + 'attendance/#leave", "ROOT + 'attendance/index.html#leave")
 open(js, 'w').write(s)
 
 open(os.path.join(OUT, 'demo.html'), 'w').write('''<title>Natraj Jewels Demo</title>

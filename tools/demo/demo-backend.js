@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v27';
+const KEY = 'natraj-demo-db-v28';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -21,7 +21,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -401,7 +401,23 @@ function people(body, me){
 }
 
 /* database functions */
-function rpc(name, a, me){
+/* migration 026: devices staff can use (the demo keeps the key itself; the real database keeps only a hash) */
+const devKey = h => { const k = (h && h.get && h.get('x-natraj-device')) || ''; return k.length >= 32 ? k : null; };
+const deviceOk = (me, h) => !db.settings[0].device_lock || (me && me.is_owner) || db.approved_devices.some(d => d.key_hash === devKey(h));
+function rpc(name, a, me, headers){
+  if(name === 'device_status'){ const k = devKey(headers), d = db.approved_devices.find(x => x.key_hash === k);
+    return {status: 200, body: {locked: !!db.settings[0].device_lock, approved: !!d, name: d ? d.name : null, has_key: !!k, ok: deviceOk(me, headers)}}; }
+  if(name === 'approve_this_device'){
+    if(!me || !me.is_owner) return {status: 403, body: {code: '42501', message: 'Only the owner can approve a device.'}};
+    const k = devKey(headers), nm = String(a.p_name || '').trim();
+    if(!k) return {status: 400, body: {code: '22023', message: 'This browser did not send its device key. Reload the page and try again.'}};
+    if(!nm) return {status: 400, body: {code: '22023', message: 'Give the device a name, e.g. Counter computer.'}};
+    const d = db.approved_devices.find(x => x.key_hash === k); if(d) d.name = nm; else db.approved_devices.push({id: uid(), name: nm, key_hash: k, approved_by_name: me.name, created_at: now(), last_seen_at: null});
+    return rpc('device_status', {}, me, headers);
+  }
+  if(me && !me.is_owner && !deviceOk(me, headers) && !['login_names', 'setup_needed', 'leave_staff', 'request_leave', 'presence_out', 'heartbeat'].includes(name)) return {status: 403, body: {code: '42501', message: 'permission denied'}};
+  if(name === 'heartbeat' && me && !deviceOk(me, headers)) a = Object.assign({}, a, {p_page: 'Not approved device'});
+  if(name === 'heartbeat' && me){ const d = db.approved_devices.find(x => x.key_hash === devKey(headers)); if(d) d.last_seen_at = now(); }
   const pg = message => ({status: 400, body: {code: '22023', message, details: null, hint: null}});
   switch(name){
     case 'heartbeat': {
@@ -477,13 +493,18 @@ function rest(method, table, params, body, headers, me){
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
     notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     chit_plans: {read: canUse(me, 'chits'), write: me.is_owner}, chit_members: {read: canUse(me, 'chits'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'chits')},
-    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, campaigns: {read: canUse(me, 'campaigns'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'campaigns')},
+    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, approved_devices: {read: me.is_owner, write: me.is_owner}, campaigns: {read: canUse(me, 'campaigns'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'campaigns')},
     campaign_contacts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_costs: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
   if(method === 'GET' ? !rule.read : !rule.write) return denied;
+  // a device the owner has not approved, while the lock is on: nothing but the person's own profile
+  if(!deviceOk(me, headers)){
+    if(table === 'profiles' && method === 'GET'){ const own = db.profiles.filter(p => p.user_id === me.user_id); return {status: 200, body: /vnd\.pgrst\.object/.test(headers.get('accept') || '') ? own[0] || null : own}; }
+    return method === 'GET' ? {status: 200, body: /vnd\.pgrst\.object/.test(headers.get('accept') || '') ? null : []} : denied;
+  }
   let rows = db[table];
   if(table === 'profiles' && !me.is_owner) rows = rows.filter(p => p.user_id === me.user_id);
   const single = /vnd\.pgrst\.object/.test(headers.get('accept') || '');
@@ -910,7 +931,7 @@ async function answer(url, init){
     delete db.tokens[token]; res = {status: 204, body: null};
   } else if(p === '/functions/v1/people') res = people(body || {}, me);
   else if(p.startsWith('/storage/v1/')) res = storage(method, p, body, me);
-  else if(p.startsWith('/rest/v1/rpc/')) res = rpc(p.split('/').pop(), body || {}, me);
+  else if(p.startsWith('/rest/v1/rpc/')) res = rpc(p.split('/').pop(), body || {}, me, headers);
   else if(p.startsWith('/rest/v1/')) res = rest(method, p.split('/').pop(), u.searchParams, body, headers, me);
   else res = {status: 404, body: {message: 'Not found'}};
   save();

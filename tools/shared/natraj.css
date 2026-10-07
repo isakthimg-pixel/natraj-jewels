@@ -243,6 +243,8 @@ table.reg{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:1
 .check{display:flex!important;align-items:center;gap:10px;font-size:.92rem!important;letter-spacing:0!important;color:var(--ink)!important;font-weight:500!important}
 .check input{width:20px;height:20px;accent-color:var(--maroon)}
 .check[hidden]{display:none!important}
+/* staff on a device the owner has not approved: only the message shows */
+.device-blocked main,.device-blocked .signin-msg,.device-blocked .no-access-msg{display:none!important}
 /* who is online */
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--line);margin-right:7px;vertical-align:middle;flex:none}
 .dot.on{background:var(--p);box-shadow:0 0 0 3px color-mix(in srgb,var(--p) 20%,transparent)}
