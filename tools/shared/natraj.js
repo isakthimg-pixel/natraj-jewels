@@ -246,6 +246,7 @@ async function recoverFlow(){
 
 async function signOut(quiet){
   clearTimeout(idleTimer);
+  if(me) try{ await sb.rpc('presence_out'); }catch(e){}   // tell the owner's "who is online" straight away
   await sb.auth.signOut();
   if(!quiet) toast('Signed out');
 }
@@ -259,6 +260,34 @@ function touch(){
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, touch, true));
 
 const canUse = app => !!me && (me.is_owner || (me.apps || []).includes(app));
+
+/* ---------- who is online: while a page is open and on screen, check in about once a minute ---------- */
+const PAGES = {dashboard: 'Dashboard', people: 'People & settings'};
+function pageName(){
+  const parts = location.pathname.split('/').filter(Boolean);
+  if(parts.length && /\.html?$/.test(parts[parts.length - 1])) parts.pop();
+  const k = parts[parts.length - 1] || '';
+  return (APPS[k] && APPS[k].name) || PAGES[k] || 'Home';
+}
+const deviceName = () => /iPad|Tablet/i.test(navigator.userAgent) ? 'Tablet' : /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'Phone' : 'Computer';
+let lastBeat = 0;
+async function heartbeat(force){
+  if(!me || document.visibilityState !== 'visible' || (!force && Date.now() - lastBeat < 20000)) return;
+  lastBeat = Date.now();
+  try{ await sb.rpc('heartbeat', {p_page: pageName(), p_device: deviceName()}); }catch(e){}
+}
+setInterval(() => heartbeat(), 60000);
+// a presence row as words: online now (checked in within the last 2½ minutes), or when last seen
+function presenceText(p){
+  const clock = t => new Date(t).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
+  const when = t => { const d = new Date(t), y = new Date(); y.setDate(y.getDate() - 1);
+    return d.toDateString() === new Date().toDateString() ? clock(t) : d.toDateString() === y.toDateString() ? 'yesterday ' + clock(t) : d.toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}); };
+  if(!p) return {online: false, text: 'Not signed in yet'};
+  if(!p.signed_out_at && Date.now() - new Date(p.last_seen) < 150000)
+    return {online: true, text: 'Online now · ' + (p.page || 'Home') + (p.device ? ' · ' + p.device : '') + ' · since ' + clock(p.signed_in_at)};
+  return {online: false, text: p.signed_out_at ? 'Signed out ' + when(p.signed_out_at) : 'Last seen ' + when(p.last_seen) + (p.page ? ' · ' + p.page : '')};
+}
+document.addEventListener('visibilitychange', () => heartbeat());
 
 async function loadMe(session){
   if(!session){ me = null; return; }
@@ -376,7 +405,7 @@ async function start(opts){
   }
   const {data} = await sb.auth.getSession();
   await loadMe(data.session);
-  renderAccess(opts); touch(); loadNotes();
+  renderAccess(opts); touch(); loadNotes(); heartbeat(true);
   await onChange(me);
   let lastUser = me && me.user_id;
   sb.auth.onAuthStateChange((event, session) => {
@@ -386,7 +415,7 @@ async function start(opts){
       const uid = me && me.user_id;
       if(uid === lastUser && event !== 'USER_UPDATED') return;
       lastUser = uid;
-      renderAccess(opts); touch(); loadNotes();
+      renderAccess(opts); touch(); loadNotes(); heartbeat(true);
       if(me && event === 'SIGNED_IN') toast('Signed in as ' + me.name);
       await onChange(me);
     }, 0);
@@ -450,5 +479,5 @@ async function exportAll(){
 }
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
-  pad, iso, parse, todayIso, canUse, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
+  pad, iso, parse, todayIso, canUse, presenceText, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
 })();

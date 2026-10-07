@@ -49,7 +49,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 - Notifications: a bell and a bar at the top of every page. Database triggers write them
   (`notifications` table); pages check every minute and when reopened. Tasks: managers hear about
   every finished task; the owner hears when a person's last open task is done.
-- Dashboard: modules (attendance today, rate, expenses, bank, customers, tasks, design library, chit scheme, days worked) that the
+- Dashboard: modules (attendance today, rate, who is online, expenses, bank, customers, tasks, design library, chit scheme, days worked) that the
   owner can move, size (half or full width) and hide with Customise; the layout is saved per person in
   `user_prefs`, so it follows them to every device. Only the modules showing are loaded.
 - Staff are added by the owner in People & settings (no staff are pre-loaded).

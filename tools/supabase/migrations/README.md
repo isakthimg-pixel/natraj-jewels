@@ -31,4 +31,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `018a_comment_user_prefs.sql` — a description on the settings table. Applied.
 - `019_chits.sql` — chit scheme: plans (owner), members with card numbers, payments with receipt numbers; staff fix their own payment on the day. Applied.
 - `020_bank_chit_flag.sql` — bank money-in entries can be marked as chit money, so the owner can check chit payments (not cash) against the bank. Applied.
+- `021_presence.sql` — who is online: each open page checks in once a minute (`heartbeat`), signing out calls `presence_out`; the owner sees everyone. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

@@ -21,6 +21,8 @@
 /* people with their app bubbles */
 .prow{display:grid;grid-template-columns:minmax(160px,240px) minmax(0,1fr) auto;gap:12px 20px;align-items:center;padding:16px 18px}
 .prow .who b{font-size:1.1rem}
+.prow .who .seen{font:500 .82rem/1.35 var(--body);letter-spacing:0;text-transform:none;color:var(--muted);display:flex;align-items:baseline;margin-top:4px}
+.prow .who .seen .dot{flex:none;transform:translateY(-1px)}
 .prow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:760px){.prow{grid-template-columns:1fr}.prow .acts{justify-content:flex-start}}
 </style>
@@ -130,7 +132,7 @@
 'use strict';
 const {sb, esc, must, toast, ask, dialog, people, parse, PIN_RE, APPS} = NJ;
 const $ = id => document.getElementById(id);
-let staff = [], profiles = [];
+let staff = [], profiles = [], presence = [];
 
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -142,12 +144,13 @@ function showTab(name){
   render();
 }
 async function load(){
-  const [s, p, st] = await Promise.all([
+  const [s, p, st, pr] = await Promise.all([
     sb.from('staff').select('*').order('name'),
     sb.from('profiles').select('*').order('name'),
-    sb.from('settings').select('*').eq('id', 1).maybeSingle()
+    sb.from('settings').select('*').eq('id', 1).maybeSingle(),
+    sb.from('presence').select('*')
   ]);
-  staff = must(s) || []; profiles = must(p) || [];
+  staff = must(s) || []; profiles = must(p) || []; presence = pr.data || [];
   const set = shop = must(st) || {weekly_off: 0};
   $('setOff').value = String(set.weekly_off);
   $('rateDue').value = String(set.rate_due || '10:30').slice(0, 5);
@@ -174,7 +177,8 @@ function renderPeople(){
       ? '<span class="bubble fixed">Owner · everything</span>'
       : Object.entries(APPS).map(([k, a]) => '<button type="button" class="bubble" data-app="' + k + '" aria-pressed="' + u.apps.includes(k) + '">' + esc(appLabel(a)) + '</button>').join('');
     return '<div class="prow" data-uid="' + esc(u.user_id) + '"><div class="who"><b>' + esc(u.name) + (NJ.me && NJ.me.user_id === u.user_id ? ' (you)' : '') + '</b>' +
-      (st ? '<span>Staff: ' + esc(st.name) + '</span>' : '') + '</div>' +
+      (st ? '<span>Staff: ' + esc(st.name) + '</span>' : '') + (() => { const ps = NJ.presenceText(presence.find(x => x.user_id === u.user_id));
+        return '<span class="seen"' + (ps.online ? ' style="color:var(--p);font-weight:600"' : '') + '><i class="dot' + (ps.online ? ' on' : '') + '" aria-hidden="true"></i>' + esc(ps.text) + '</span>'; })() + '</div>' +
       '<div class="bubbles" role="group" aria-label="Apps for ' + esc(u.name) + '">' + bubbles + '</div>' +
       '<div class="acts"><button class="btn mini" data-uact="edit">Edit</button><button class="btn mini" data-uact="pin">Change PIN</button><button class="btn mini btn-danger" data-uact="del">Remove</button></div></div>';
   }).join('');

@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v20';
+const KEY = 'natraj-demo-db-v21';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -21,7 +21,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1},
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -196,6 +196,10 @@ function seed(){
   member(P1, C[5].name, C[5].phone, C[5], 13, 11, {status: 'closed', closed_at: monthAgo(1) + 'T15:00:00Z', close_note: 'Bought a 22K chain, bill 1432'});
   // chit money in the bank: UPI and transfers the same day, cards the next day, one UPI payment left out so the check shows a gap
   db.chit_payments.filter(p => p.paid_on >= month0).forEach((p, i) => { p.mode = ['UPI', 'Cash', 'UPI', 'Card'][i % 4]; });
+  // who is online: Sample Staff 2 is always on the tasks page on a phone; the manager was here 40 minutes ago
+  const ago = m => new Date(Date.now() - m * 60000).toISOString();
+  db.presence.push({user_id: worker.user_id, page: 'Tasks', device: 'Phone', signed_in_at: ago(25), last_seen: ago(0), signed_out_at: null, demo_live: true},
+    {user_id: manager.user_id, page: 'Chit scheme', device: 'Computer', signed_in_at: ago(95), last_seen: ago(40), signed_out_at: null});
   const chitBank = {};
   let skipped = false;
   db.chit_payments.filter(p => p.mode !== 'Cash' && p.paid_on >= monthAgo(1)).forEach(p => {
@@ -351,6 +355,15 @@ function people(body, me){
 function rpc(name, a, me){
   const pg = message => ({status: 400, body: {code: '22023', message, details: null, hint: null}});
   switch(name){
+    case 'heartbeat': {
+      if(!me) return {status: 200, body: null};
+      let r = db.presence.find(x => x.user_id === me.user_id); const t = now();
+      if(!r){ r = {user_id: me.user_id, signed_in_at: t}; db.presence.push(r); }
+      else if(r.signed_out_at || Date.now() - new Date(r.last_seen) > 600000) r.signed_in_at = t;
+      Object.assign(r, {page: String(a.p_page || '').slice(0, 40), device: String(a.p_device || '').slice(0, 20), last_seen: t, signed_out_at: null, demo_live: false});
+      return {status: 200, body: null};
+    }
+    case 'presence_out': { const r = me && db.presence.find(x => x.user_id === me.user_id); if(r){ r.signed_out_at = now(); r.demo_live = false; } return {status: 200, body: null}; }
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'rate_updaters': return {status: 200, body: db.profiles.filter(p => !p.is_owner && p.apps.includes('rates')).map(p => ({name: p.name})).sort((x, y) => x.name.localeCompare(y.name))};
@@ -414,7 +427,7 @@ function rest(method, table, params, body, headers, me){
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
     notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     chit_plans: {read: canUse(me, 'chits'), write: me.is_owner}, chit_members: {read: canUse(me, 'chits'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'chits')},
-    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')},
+    chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
@@ -424,6 +437,11 @@ function rest(method, table, params, body, headers, me){
   if(table === 'profiles' && !me.is_owner) rows = rows.filter(p => p.user_id === me.user_id);
   const single = /vnd\.pgrst\.object/.test(headers.get('accept') || '');
   const wantRows = /return=representation/.test(headers.get('prefer') || '');
+  if(table === 'presence'){
+    if(method !== 'GET') return denied;
+    db.presence.forEach(r => { if(r.demo_live && !r.signed_out_at) r.last_seen = now(); });   // the sample person stays online in the demo
+    return {status: 200, body: db.presence.filter(r => me.is_owner || r.user_id === me.user_id).map(r => Object.assign({}, r))};
+  }
   if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
   if(table === 'user_prefs') return prefsRest(method, params, body, single, wantRows, me);
   if(table === 'customers' || table === 'customer_activity') return crmRest(table, method, params, body, single, wantRows, me);

@@ -243,6 +243,9 @@ table.reg{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:1
 .check{display:flex!important;align-items:center;gap:10px;font-size:.92rem!important;letter-spacing:0!important;color:var(--ink)!important;font-weight:500!important}
 .check input{width:20px;height:20px;accent-color:var(--maroon)}
 .check[hidden]{display:none!important}
+/* who is online */
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--line);margin-right:7px;vertical-align:middle;flex:none}
+.dot.on{background:var(--p);box-shadow:0 0 0 3px color-mix(in srgb,var(--p) 20%,transparent)}
 .lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;padding:16px 18px;align-items:start}
 .lrow .who b{font-size:1.1rem}
 .lrow .when{font-weight:600;color:var(--ink);font-size:.95rem}

@@ -125,6 +125,10 @@
           </div>
         </div>
       </section>
+      <section class="card mod" data-mod="online">
+        <div class="head"><h3 id="onTitle">Who is online</h3><a href="../people/">People ›</a></div>
+        <div class="body" id="onlineBox"><small>Loading…</small></div>
+      </section>
       <section class="card mod" data-mod="rate">
         <div class="head"><h3>Today’s rate</h3><a href="../rates/">Gold &amp; silver rate ›</a></div>
         <div class="body"><div class="rates" id="rateBox"><small>Loading…</small></div></div>
@@ -184,6 +188,7 @@ const fmtDays = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
 /* ---------- modules: what each one is, which box shows its errors, and how it loads ---------- */
 const MODS = {
   attendance: {name: 'Attendance today', box: 'notMarked', load: () => loadAttendance()},
+  online:     {name: 'Who is online', box: 'onlineBox', load: () => loadOnline()},
   rate:       {name: 'Today’s rate', box: 'rateBox', load: () => loadRates()},
   expenses:   {name: 'Expenses', box: 'expBox', load: () => loadExpenses()},
   bank:       {name: 'Bank balances', box: 'bankBox', load: () => loadBank()},
@@ -195,7 +200,7 @@ const MODS = {
 };
 // the starting layout: the essentials, with the longer lists hidden until wanted
 const DEFAULT = [
-  {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'},
+  {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'}, {k: 'online', w: 'half'},
   {k: 'expenses', w: 'half'}, {k: 'bank', w: 'half'},
   {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
   {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'},
@@ -509,6 +514,21 @@ async function loadChits(){
       return '<p style="margin:12px 0 0;font-size:.88rem;font-weight:600;color:' + (Math.abs(df) < 0.5 ? 'var(--p)' : 'var(--a)') + '">' + (!want && !have ? 'Bank check: no UPI, card or cheque chit payments this month.' : Math.abs(df) < 0.5 ? '✓ Bank check: chit money this month matches the bank.' :
         'Bank check: ' + inr(Math.abs(df)) + (df < 0 ? ' of chit money is not in the bank log.' : ' more in the bank than chit payments.')) + ' <a href="../chits/#insights">See the days ›</a></p>'; })();
 }
+
+/* who is online now (checked in within the last 2½ minutes), then when everyone else was last seen */
+async function loadOnline(){
+  const [a, b] = await Promise.all([sb.from('profiles').select('user_id,name'), sb.from('presence').select('*')]);
+  const people = must(a) || [], pres = must(b) || [];
+  const rows = people.map(p => { const r = pres.find(x => x.user_id === p.user_id); return {p, r, s: NJ.presenceText(r)}; })
+    .sort((x, y) => (y.s.online - x.s.online) || ((y.r ? new Date(y.r.last_seen) : 0) - (x.r ? new Date(x.r.last_seen) : 0)) || x.p.name.localeCompare(y.p.name));
+  const n = rows.filter(x => x.s.online).length;
+  $('onTitle').textContent = n ? n + ' online now' : 'Who is online';
+  $('onlineBox').innerHTML = '<div class="list">' + rows.map(({p, s}) => '<div><span><i class="dot' + (s.online ? ' on' : '') + '" aria-hidden="true"></i>' + esc(p.name) + (p.user_id === NJ.me.user_id ? ' (you)' : '') + '</span>' +
+    '<small' + (s.online ? ' style="color:var(--p);font-weight:600"' : '') + '>' + esc(s.text) + '</small></div>').join('') + '</div>' +
+    '<p class="axisnote" style="margin:10px 0 0">Updates every 30 seconds. People are signed out after 5 minutes without use.</p>';
+}
+// keep "who is online" current while the dashboard is open
+setInterval(() => { if(document.visibilityState === 'visible' && NJ.me && NJ.me.is_owner && !customising && layout.some(x => x.k === 'online' && !x.hidden)) loadOnline().catch(() => {}); }, 30000);
 
 /* open tasks per person: how many, how many overdue, the next one due */
 async function loadTasks(){
