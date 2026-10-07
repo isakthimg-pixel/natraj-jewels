@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v13';
+const KEY = 'natraj-demo-db-v14';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -21,7 +21,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -302,7 +302,7 @@ function rest(method, table, params, body, headers, me){
     rates: {read: true, write: method === 'POST' ? canUse(me, 'rates') : me.is_owner},
     expenses: {read: canUse(me, 'expenses'), write: canUse(me, 'expenses')},
     leave_requests: {read: canUse(me, 'attendance'), write: me.is_owner},
-    notifications: {read: true, write: true}, customers: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
+    notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
@@ -312,6 +312,7 @@ function rest(method, table, params, body, headers, me){
   const single = /vnd\.pgrst\.object/.test(headers.get('accept') || '');
   const wantRows = /return=representation/.test(headers.get('prefer') || '');
   if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
+  if(table === 'user_prefs') return prefsRest(method, params, body, single, wantRows, me);
   if(table === 'customers' || table === 'customer_activity') return crmRest(table, method, params, body, single, wantRows, me);
   if(table === 'bank_accounts') return bankAccountsRest(method, params, body, single, wantRows, me);
   if(table === 'bank_entries') return bankEntriesRest(method, params, body, single, wantRows, me);
@@ -490,6 +491,21 @@ function crmRest(table, method, params, body, single, wantRows, me){
   }
   if(method !== 'GET' && !wantRows) return {status: 204, body: null};
   if(single){ if(!out.length) return method === 'GET' && /maybe/.test('') ? {status: 200, body: null} : {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
+}
+
+
+/* each person's own settings (migration 016) */
+function prefsRest(method, params, body, single, wantRows, me){
+  let out = db.user_prefs.filter(r => r.user_id === me.user_id).filter(r => matches(r, params));
+  if(method === 'POST'){
+    const b = Array.isArray(body) ? body[0] : body;
+    if(b.user_id !== me.user_id || db.user_prefs.some(r => r.user_id === me.user_id)) return {status: 409, body: {code: '23505', message: 'duplicate key'}};
+    out = [Object.assign({dashboard: {}, updated_at: new Date().toISOString()}, b)]; db.user_prefs.push(...out);
+  } else if(method === 'PATCH') out.forEach(r => Object.assign(r, body));
+  else if(method === 'DELETE') return {status: 403, body: {message: 'permission denied'}};
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
   return {status: 200, body: out};
 }
 

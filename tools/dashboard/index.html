@@ -20,6 +20,35 @@
 .dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
 .dash .wide{grid-column:1/-1}
 @media (max-width:860px){.dash{grid-template-columns:1fr}}
+/* customising: each module shows its controls; drag or use the arrows */
+.ctrls{display:none;gap:6px;flex-wrap:wrap;align-items:center;padding-bottom:12px;margin-bottom:-2px;border-bottom:1px dashed var(--line)}
+.customising .ctrls{display:flex}
+.customising .mod{outline:2px dashed color-mix(in srgb,var(--gold) 55%,transparent);outline-offset:3px}
+.customising .mod.dragging{opacity:.4}
+.customising .mod.over{outline-color:var(--maroon)}
+.customising .mod .body{pointer-events:none;opacity:.55;max-height:180px;overflow:hidden}
+.ctrls .grip{margin-right:auto;cursor:grab;user-select:none;touch-action:none;font:600 .82rem/1 var(--body);color:var(--muted);padding:8px 12px;border:1px dashed var(--line);border-radius:999px;background:var(--paper)}
+.ctrls .grip:active{cursor:grabbing}
+.customising .mod.dragging{opacity:.45}
+@media (max-width:860px){.ctrls [data-c=size]{display:none}}  /* one column on phones: width does not apply */
+.custbar{display:none;align-items:center;gap:10px;flex-wrap:wrap;background:color-mix(in srgb,var(--gold) 12%,var(--card));border:1px solid var(--gold);border-radius:4px;padding:12px 16px;font-size:.92rem}
+.customising .custbar{display:flex}
+.custbar p{margin:0;flex:1 1 260px}
+.tray{display:none;gap:8px;flex-wrap:wrap;align-items:center}
+.customising .tray{display:flex}
+.tray > span{font-size:.82rem;color:var(--muted);font-weight:600}
+.customising .hide-in-custom{display:none!important}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:640px){.split{grid-template-columns:1fr}}
+.split h4{margin:0 0 4px;font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.split h4 a{float:right;letter-spacing:0;text-transform:none;font-size:.78rem;color:var(--gold);text-decoration:none}
+.card .tally{border-top:0;padding:0}
+.card .tally b{font-size:1.7rem}
+.mod.half .rates{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rates > small{grid-column:1/-1}
+.card .body a{color:var(--maroon)}
+.names{display:flex;flex-wrap:wrap;gap:6px;padding-top:6px}
+.names span{padding:5px 11px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-size:.88rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:clamp(18px,3vw,26px);display:grid;gap:14px;min-width:0}
 .card h3{font-size:1.45rem;color:var(--maroon)}
 .card .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -66,59 +95,60 @@
 <main>
   <div class="band"><div class="wrap">
     <div class="heading"><span class="eyebrow">Today</span><h2 id="dTitle"></h2></div>
-    <div class="tally" aria-label="Attendance today">
-      <div class="p"><b id="sP">–</b><span>Present</span></div>
-      <div class="hm"><b id="sHM">–</b><span>Home</span></div>
-      <div class="t"><b id="sT">–</b><span>Thottam</span></div>
-      <div class="h"><b id="sH">–</b><span>Half day</span></div>
-      <div class="lv"><b id="sLV">–</b><span>Leave</span></div>
-      <div class="u"><b id="sU">–</b><span>Not marked</span></div>
+    <div class="bar">
+      <button class="btn" id="custBtn">Customise</button>
+      <span class="grow"></span>
+      <span class="axisnote" id="updated"></span>
+      <button class="btn" id="exportAll" title="Download a copy of every record. Do this once a week and keep it safe.">Download backup</button>
     </div>
   </div></div>
 
-  <div class="wrap content dash">
-    <div class="card wide">
-      <div class="head"><h3>Today’s rate</h3><a href="../rates/">Gold &amp; silver rate ›</a></div>
-      <div class="rates" id="rateBox"><small>Loading…</small></div>
-    </div>
-    <div class="card">
-      <div class="head"><h3>Not marked yet</h3><a href="../attendance/">Open attendance ›</a></div>
-      <div class="list" id="notMarked"><small>Loading…</small></div>
-    </div>
-    <div class="card">
-      <div class="head"><h3>Leave waiting</h3><a href="../attendance/#leave">Review ›</a></div>
-      <div class="list" id="leaveWaiting"><small>Loading…</small></div>
-    </div>
-    <div class="card wide">
-      <div class="head"><h3 id="xTitle">Expenses this month</h3><a href="../expenses/#month">Expenses ›</a></div>
-      <div id="expBox"><small>Loading…</small></div>
-    </div>
-    <div class="card wide">
-      <div class="head"><h3>Bank balances</h3><a href="../banking/#accounts">Banking ›</a></div>
-      <div id="bankBox"><small>Loading…</small></div>
-    </div>
-    <div class="card wide">
-      <div class="head"><h3>Customers</h3><a href="../crm/#follow">Follow-ups ›</a></div>
-      <div id="crmBox"><small>Loading…</small></div>
-    </div>
-    <div class="card wide">
-      <div class="head"><h3>Open tasks</h3><a href="../todo/#all">All tasks ›</a></div>
-      <div class="list" id="taskBox"><small>Loading…</small></div>
-    </div>
-    <div class="card wide">
-      <div class="head"><h3 id="mTitle">Days worked this month</h3><a href="../attendance/">Monthly register ›</a></div>
-      <div class="bars" id="bars"><small>Loading…</small></div>
-      <p class="axisnote" id="barNote"></p>
-    </div>
-    <div class="card wide">
-      <div class="head"><h3>Coming next</h3></div>
-      <p style="margin:0;color:var(--muted)">Each new app adds its figures here as it is built.</p>
-      <div class="soon"><span class="tag">Design library</span><span class="tag">Stock to buy</span><span class="tag">Chit schemes</span><span class="tag">Silver sales</span><span class="tag">Report cards</span></div>
-    </div>
-    <div class="card wide">
-      <div class="head"><h3>Backup</h3></div>
-      <p style="margin:0;color:var(--muted)">Download a copy of every record once a week and keep it safe.</p>
-      <div class="bar"><button class="btn btn-maroon" id="exportAll">Download everything</button><span class="axisnote" id="updated"></span></div>
+  <div class="wrap content" style="display:grid;gap:16px">
+    <div class="custbar"><p><b>Customise your dashboard.</b> Drag a module to move it (or use the arrows), choose half or full width, and hide what you don’t need.</p>
+      <button class="btn" id="custReset">Reset to default</button><button class="btn btn-maroon" id="custDone">Done</button></div>
+    <div class="tray" id="tray"></div>
+    <div class="dash" id="dash">
+      <section class="card mod" data-mod="attendance">
+        <div class="head"><h3>Attendance today</h3><a href="../attendance/">Open attendance ›</a></div>
+        <div class="body" style="display:grid;gap:16px">
+          <div class="tally" aria-label="Attendance today">
+            <div class="p"><b id="sP">–</b><span>Present</span></div>
+            <div class="hm"><b id="sHM">–</b><span>Home</span></div>
+            <div class="t"><b id="sT">–</b><span>Thottam</span></div>
+            <div class="h"><b id="sH">–</b><span>Half day</span></div>
+            <div class="lv"><b id="sLV">–</b><span>Leave</span></div>
+            <div class="u"><b id="sU">–</b><span>Not marked</span></div>
+          </div>
+          <div class="split">
+            <div><h4>Not marked yet</h4><div class="names" id="notMarked"><small>Loading…</small></div></div>
+            <div><h4>Leave waiting <a href="../attendance/#leave">Review ›</a></h4><div class="list" id="leaveWaiting"><small>Loading…</small></div></div>
+          </div>
+        </div>
+      </section>
+      <section class="card mod" data-mod="rate">
+        <div class="head"><h3>Today’s rate</h3><a href="../rates/">Gold &amp; silver rate ›</a></div>
+        <div class="body"><div class="rates" id="rateBox"><small>Loading…</small></div></div>
+      </section>
+      <section class="card mod" data-mod="expenses">
+        <div class="head"><h3 id="xTitle">Expenses this month</h3><a href="../expenses/#month">Expenses ›</a></div>
+        <div class="body" id="expBox"><small>Loading…</small></div>
+      </section>
+      <section class="card mod" data-mod="bank">
+        <div class="head"><h3>Bank balances</h3><a href="../banking/#accounts">Banking ›</a></div>
+        <div class="body" id="bankBox"><small>Loading…</small></div>
+      </section>
+      <section class="card mod" data-mod="customers">
+        <div class="head"><h3>Customers</h3><a href="../crm/#follow">Follow-ups ›</a></div>
+        <div class="body" id="crmBox"><small>Loading…</small></div>
+      </section>
+      <section class="card mod" data-mod="tasks">
+        <div class="head"><h3>Open tasks</h3><a href="../todo/#all">All tasks ›</a></div>
+        <div class="body"><div class="list" id="taskBox"><small>Loading…</small></div></div>
+      </section>
+      <section class="card mod" data-mod="worked">
+        <div class="head"><h3 id="mTitle">Days worked this month</h3><a href="../attendance/">Monthly register ›</a></div>
+        <div class="body" style="display:grid;gap:12px"><div class="bars" id="bars"><small>Loading…</small></div><p class="axisnote" id="barNote" style="margin:0"></p></div>
+      </section>
     </div>
   </div>
 </main>
@@ -143,14 +173,147 @@ const LEAVE = ['A','LA','WO'];
 const fmtD = d => parse(d).toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short'});
 const fmtDays = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
 
-async function load(){
+/* ---------- modules: what each one is, which box shows its errors, and how it loads ---------- */
+const MODS = {
+  attendance: {name: 'Attendance today', box: 'notMarked', load: () => loadAttendance()},
+  rate:       {name: 'Today’s rate', box: 'rateBox', load: () => loadRates()},
+  expenses:   {name: 'Expenses', box: 'expBox', load: () => loadExpenses()},
+  bank:       {name: 'Bank balances', box: 'bankBox', load: () => loadBank()},
+  customers:  {name: 'Customers', box: 'crmBox', load: () => loadCrm()},
+  tasks:      {name: 'Open tasks', box: 'taskBox', load: () => loadTasks()},
+  worked:     {name: 'Days worked', box: 'bars', load: () => loadAttendance()}
+};
+// the starting layout: the essentials, with the longer lists hidden until wanted
+const DEFAULT = [
+  {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'},
+  {k: 'expenses', w: 'half'}, {k: 'bank', w: 'half'},
+  {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
+  {k: 'worked', w: 'full', hidden: true}
+];
+const PREF_KEY = 'natraj-dashboard-layout';
+let layout = DEFAULT.map(x => Object.assign({}, x)), customising = false;
+
+// keep every known module once, in the saved order, adding any new module at the end
+function normalise(saved){
+  const out = [], seen = new Set();
+  (Array.isArray(saved) ? saved : []).forEach(x => { if(x && MODS[x.k] && !seen.has(x.k)){ seen.add(x.k); out.push({k: x.k, w: x.w === 'half' ? 'half' : 'full', hidden: !!x.hidden}); } });
+  DEFAULT.forEach(x => { if(!seen.has(x.k)) out.push(Object.assign({}, x)); });
+  return out;
+}
+async function loadLayout(){
+  try{ const local = JSON.parse(localStorage.getItem(PREF_KEY) || 'null'); if(local) layout = normalise(local); }catch(e){}
+  const r = await sb.from('user_prefs').select('dashboard').eq('user_id', NJ.me.user_id).maybeSingle();
+  if(!r.error && r.data && r.data.dashboard && r.data.dashboard.modules) layout = normalise(r.data.dashboard.modules);
+}
+async function saveLayout(){
+  try{ localStorage.setItem(PREF_KEY, JSON.stringify(layout)); }catch(e){}
+  const dashboard = {modules: layout};
+  const u = await sb.from('user_prefs').update({dashboard, updated_at: new Date().toISOString()}).eq('user_id', NJ.me.user_id).select();
+  if(u.error) throw u.error;
+  if(!(u.data || []).length) must(await sb.from('user_prefs').insert({user_id: NJ.me.user_id, dashboard}).select());
+}
+function applyLayout(){
+  const dash = $('dash');
+  layout.forEach(x => {
+    const el = dash.querySelector('[data-mod="' + x.k + '"]');
+    dash.appendChild(el);
+    el.hidden = !!x.hidden;
+    el.classList.toggle('wide', x.w === 'full'); el.classList.toggle('half', x.w !== 'full');
+    let c = el.querySelector('.ctrls');
+    if(!c){ c = document.createElement('div'); c.className = 'ctrls'; el.prepend(c); }
+    c.innerHTML = '<span class="grip" title="Hold and drag to move">⠿ Drag</span>' +
+      '<button type="button" class="btn mini" data-c="up" aria-label="Move ' + esc(MODS[x.k].name) + ' up">↑</button>' +
+      '<button type="button" class="btn mini" data-c="down" aria-label="Move ' + esc(MODS[x.k].name) + ' down">↓</button>' +
+      '<button type="button" class="btn mini" data-c="size">' + (x.w === 'full' ? 'Make half width' : 'Make full width') + '</button>' +
+      '<button type="button" class="btn mini btn-danger" data-c="hide">Hide</button>';
+  });
+  const hidden = layout.filter(x => x.hidden);
+  $('tray').innerHTML = hidden.length ? '<span>Hidden modules:</span>' + hidden.map(x => '<button type="button" class="bubble" data-show="' + x.k + '">+ ' + esc(MODS[x.k].name) + '</button>').join('')
+    : '<span>All modules are showing.</span>';
+}
+// load only the modules that are showing
+let loaded = new Set();
+function loadVisible(force){
+  if(force) loaded = new Set();
+  const want = new Set(layout.filter(x => !x.hidden).map(x => x.k));
+  const fns = new Set();
+  want.forEach(k => { if(!loaded.has(k)){ loaded.add(k); fns.add(k === 'worked' || k === 'attendance' ? 'att' : k); } });
+  fns.forEach(f => {
+    const k = f === 'att' ? 'attendance' : f;
+    MODS[k].load().catch(e => { const b = $(MODS[k].box); if(b) b.innerHTML = '<small>' + esc(e.message) + '</small>'; });
+  });
+}
+function setCustomising(on){
+  customising = on;
+  document.body.classList.toggle('customising', on);
+  $('custBtn').hidden = on;
+  applyLayout();
+}
+$('custBtn').onclick = () => setCustomising(true);
+$('custDone').onclick = async () => {
+  setCustomising(false);
+  try{ await saveLayout(); toast('Dashboard layout saved'); }catch(e){ toast('Saved on this device only: ' + e.message); }
+  loadVisible();
+};
+$('custReset').onclick = () => { layout = DEFAULT.map(x => Object.assign({}, x)); applyLayout(); };
+$('dash').addEventListener('click', e => {
+  const b = e.target.closest('[data-c]'); if(!b || !customising) return;
+  const k = b.closest('.mod').dataset.mod, i = layout.findIndex(x => x.k === k);
+  const vis = layout.map((x, j) => j).filter(j => !layout[j].hidden);
+  const pos = vis.indexOf(i);
+  if(b.dataset.c === 'up' && pos > 0){ const j = vis[pos - 1]; [layout[i], layout[j]] = [layout[j], layout[i]]; }
+  if(b.dataset.c === 'down' && pos < vis.length - 1){ const j = vis[pos + 1]; [layout[i], layout[j]] = [layout[j], layout[i]]; }
+  if(b.dataset.c === 'size') layout[i].w = layout[i].w === 'full' ? 'half' : 'full';
+  if(b.dataset.c === 'hide') layout[i].hidden = true;
+  applyLayout();
+});
+$('tray').addEventListener('click', e => {
+  const b = e.target.closest('[data-show]'); if(!b) return;
+  const x = layout.find(y => y.k === b.dataset.show); x.hidden = false;
+  layout = layout.filter(y => y !== x).concat(x);    // a module brought back goes to the end
+  applyLayout();
+});
+// drag a module by its handle onto another to put it there (mouse or finger)
+let drag = null;
+$('dash').addEventListener('pointerdown', e => {
+  const g = e.target.closest('.grip'); if(!g || !customising) return;
+  e.preventDefault();
+  const m = g.closest('.mod');
+  drag = {k: m.dataset.mod, el: m, id: e.pointerId, target: null, after: false};
+  m.classList.add('dragging');
+  try{ g.setPointerCapture(e.pointerId); }catch(x){}
+});
+$('dash').addEventListener('pointermove', e => {
+  if(!drag || e.pointerId !== drag.id) return;
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const m = under && under.closest('.mod');
+  document.querySelectorAll('.mod.over').forEach(x => x.classList.remove('over'));
+  if(m && m !== drag.el && !m.hidden){
+    const r = m.getBoundingClientRect();
+    drag.target = m.dataset.mod; drag.after = e.clientY > r.top + r.height / 2;
+    m.classList.add('over');
+  } else drag.target = null;
+  // scroll the page when dragging near the top or bottom edge
+  if(e.clientY < 60) window.scrollBy(0, -12); else if(e.clientY > innerHeight - 60) window.scrollBy(0, 12);
+});
+function endDrag(){
+  if(!drag) return;
+  const d = drag; drag = null;
+  document.querySelectorAll('.mod.dragging,.mod.over').forEach(x => x.classList.remove('dragging', 'over'));
+  if(!d.target) return;
+  const from = layout.findIndex(x => x.k === d.k), item = layout[from];
+  layout.splice(from, 1);
+  const to = layout.findIndex(x => x.k === d.target);
+  layout.splice(to + (d.after ? 1 : 0), 0, item);
+  applyLayout();
+}
+$('dash').addEventListener('pointerup', endDrag);
+$('dash').addEventListener('pointercancel', () => { if(drag){ drag.target = null; endDrag(); } });
+
+/* attendance today, and days worked this month (one set of queries for both) */
+async function loadAttendance(){
   const today = todayIso(), month = today.slice(0,7);
   const first = month + '-01';
-  loadRates().catch(e => { $('rateBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
-  loadExpenses().catch(e => { $('expBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
-  loadBank().catch(e => { $('bankBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
-  loadCrm().catch(e => { $('crmBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
-  loadTasks().catch(e => { $('taskBox').innerHTML = '<small>' + esc(e.message) + '</small>'; });
   const [s, a, l] = await Promise.all([
     sb.from('staff').select('id,name,active,joined').order('name'),
     sb.from('attendance').select('staff_id,day,status').gte('day', first).lte('day', today),
@@ -161,13 +324,12 @@ async function load(){
   const name = id => (staff.find(x => x.id === id) || {}).name || '';
 
   // today
-  $('dTitle').textContent = parse(today).toLocaleDateString('en-IN',{weekday:'long', day:'numeric', month:'long', year:'numeric'});
   const todays = {}; att.filter(r => r.day === today && r.status).forEach(r => todays[r.staff_id] = r.status);
   const c = {P:0,HM:0,T:0,H:0,LV:0,U:0};
   active.forEach(x => { const k = todays[x.id]; c[!k ? 'U' : LEAVE.includes(k) ? 'LV' : k]++; });
   Object.keys(c).forEach(k => $('s'+k).textContent = c[k]);
   const missing = active.filter(x => !todays[x.id]);
-  $('notMarked').innerHTML = missing.length ? missing.map(x => '<div><span>'+esc(x.name)+'</span></div>').join('') : '<small>Everyone is marked for today.</small>';
+  $('notMarked').innerHTML = missing.length ? missing.map(x => '<span>'+esc(x.name)+'</span>').join('') : '<small>Everyone is marked for today.</small>';
 
   // leave waiting
   $('leaveWaiting').innerHTML = pending.length ? pending.map(r =>
@@ -319,11 +481,14 @@ async function loadRates(){
 }
 
 $('exportAll').onclick = async () => { try{ await NJ.exportAll(); }catch(x){ toast(x.message); } };
-document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && NJ.me && NJ.me.is_owner) load().catch(e => toast(e.message)); });
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && NJ.me && NJ.me.is_owner && !customising) loadVisible(true); });
 
 NJ.start({onReady: async me => {
   if(!me || !me.is_owner) return;
-  try{ await load(); }catch(e){ toast(e.message); }
+  $('dTitle').textContent = parse(todayIso()).toLocaleDateString('en-IN',{weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  try{ await loadLayout(); }catch(e){}
+  applyLayout();
+  loadVisible(true);
 }});
 })();
 </script>
