@@ -473,6 +473,33 @@ function meterHtml(m, label){
     meterBar(m) + '<div class="mfoot">' + foot + (m.later ? '<span>' + m.later + ' due later</span>' : '') + '</div></div>';
 }
 
+/* Expenses against the bank. Each expense paid by UPI, card, transfer or cheque from an account is matched
+   to a money-out entry on that account for the same amount, dated the same day or up to 3 days later
+   (one day earlier is allowed too), closest date first. Each bank entry matches one expense at most.
+   bank: money-out rows {id, account_id, day, amount, method}. Returns matched pairs, expenses not found
+   (and those under 3 days old, still waiting),
+   expenses with no account given, and the bank money-out with no expense (from the days given). */
+function matchExpenses(expenses, bank, from, to){
+  const dayN = d => Math.round(parse(d).getTime() / 864e5);
+  const used = new Set(), matched = [], missing = [], waiting = [], noAccount = [], soon = dayN(todayIso()) - 3;
+  const outs = bank.filter(b => b.method !== 'Transfer' && b.method !== 'Opening balance');
+  expenses.filter(e => e.mode !== 'Cash').slice().sort((a, b) => a.day.localeCompare(b.day) || b.amount - a.amount).forEach(e => {
+    if(!e.account_id){ noAccount.push(e); return; }
+    let best = null, bestGap = 99;
+    outs.forEach(b => {
+      if(used.has(b.id) || b.account_id !== e.account_id || Math.abs(Number(b.amount) - Number(e.amount)) > 0.009) return;
+      const gap = dayN(b.day) - dayN(e.day);
+      if(gap < -1 || gap > 3) return;
+      const score = gap < 0 ? 0.5 : gap;     // same day best, then the next days, then the day before
+      if(score < bestGap){ best = b; bestGap = score; }
+    });
+    if(best){ used.add(best.id); matched.push({e, b: best, gap: dayN(best.day) - dayN(e.day)}); }
+    else (dayN(e.day) > soon ? waiting : missing).push(e);     // under 3 days old: the bank entry may not be in yet
+  });
+  const extra = outs.filter(b => !used.has(b.id) && (!from || b.day >= from) && (!to || b.day <= to));
+  return {matched, missing, waiting, noAccount, extra};
+}
+
 const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
@@ -481,5 +508,5 @@ async function exportAll(){
 }
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
-  pad, iso, parse, todayIso, canUse, presenceText, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
+  pad, iso, parse, todayIso, canUse, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
 })();

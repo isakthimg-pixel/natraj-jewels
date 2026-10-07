@@ -89,6 +89,16 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
 .rc tfoot td{font-weight:600;border-bottom:0}
 .rc .share{display:inline-block;height:8px;background:var(--maroon);border-radius:0 3px 3px 0;vertical-align:middle;margin-right:8px;min-width:2px}
 @media (max-width:640px){.rc .hide-sm{display:none}}
+.btiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border-top:1px solid var(--line);padding-top:16px;margin-top:14px}
+@media (max-width:640px){.btiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.btiles div{display:grid;gap:4px}
+.btiles b{font:700 1.4rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
+.btiles span{font-size:.8rem;font-weight:600;color:var(--muted)}
+.btiles .good b{color:var(--p)} .btiles .bad b{color:var(--a)} .btiles .warn b{color:var(--h)}
+.bresult{margin:14px 0 0;border-radius:4px;padding:12px 14px;font-weight:600;font-size:.94rem}
+.bresult.ok{background:var(--p-bg);color:var(--p);border:1px solid var(--p)}
+.bresult.bad{background:var(--a-bg);color:var(--a);border:1px solid var(--a)}
+.bfound summary{cursor:pointer;font:600 .7rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);padding:12px 0}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -104,6 +114,7 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
       <button role="tab" data-tab="add" aria-selected="true">Add</button>
       <button role="tab" data-tab="month" aria-selected="false">Month</button>
       <button role="tab" data-tab="running" aria-selected="false" class="owner-only">Running cost</button>
+      <button role="tab" data-tab="bank" aria-selected="false" class="owner-only">Bank check</button>
     </nav>
   </div>
 </header>
@@ -187,6 +198,25 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
     </div>
   </section>
 
+  <!-- BANK CHECK (owner): expenses paid from a bank account, against money out in Banking -->
+  <section id="tab-bank" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Expenses against the bank</span><h2 id="bTitle">–</h2></div>
+      <div class="bar"><button class="btn mini" id="bPrev" aria-label="Previous month">‹</button><input class="input" type="month" id="bMonth" style="height:40px;width:auto"><button class="btn mini" id="bNext" aria-label="Next month">›</button></div>
+      <div class="btiles" id="bTiles"></div>
+      <p id="bResult" class="bresult" hidden></p>
+    </div></div>
+    <div class="wrap content" style="display:grid;gap:20px">
+      <div><div class="lhead dhead"><span>Not found in the bank</span><b id="bMissSum"></b></div><div class="ledger" id="bMissing"></div></div>
+      <div id="bWaitWrap"><div class="lhead dhead"><span>Waiting: paid in the last 3 days, not in the bank log yet</span><b id="bWaitSum"></b></div><div class="ledger" id="bWait"></div></div>
+      <div id="bNoAccWrap"><div class="lhead dhead"><span>Bank account not given</span><b id="bNoAccSum"></b></div><div class="ledger" id="bNoAcc"></div></div>
+      <details class="bfound"><summary><span id="bFoundT">Found in the bank</span></summary><div class="ledger" id="bFound"></div></details>
+      <div><div class="lhead dhead"><span>Bank money out with no expense</span><b id="bExtraSum"></b></div><div class="ledger" id="bExtra"></div>
+        <p class="axisnote" style="margin-top:10px">Supplier payments, silver purchases, cash withdrawals and bank charges show here too; they are not mistakes. Look for anything that should have been entered as an expense.</p></div>
+      <p class="axisnote">An expense is found when Banking has money out of the same account for the same amount, on the expense date or up to 3 days later (a day earlier also counts). In Banking, enter each payment on its own so it can be matched.</p>
+    </div>
+  </section>
+
   <!-- RUNNING COST (owner) -->
   <section id="tab-running" hidden>
     <div class="band"><div class="wrap">
@@ -266,11 +296,12 @@ const covers = r => r.period_from && r.period_to && r.period_from !== r.period_t
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 function showTab(name){
-  if(name === 'running' && !NJ.me.is_owner) name = 'add';
+  if((name === 'running' || name === 'bank') && !NJ.me.is_owner) name = 'add';
   curTab = name;
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
   $('tab-add').hidden = name !== 'add'; $('tab-month').hidden = name !== 'month';
-  $('tab-running').hidden = name !== 'running';
+  $('tab-running').hidden = name !== 'running'; $('tab-bank').hidden = name !== 'bank';
+  if(name === 'bank') loadBank().catch(e => toast(e.message));
   if(name === 'month') loadMonth().catch(e => toast(e.message));
   if(name === 'running') loadRunning().catch(e => toast(e.message));
 }
@@ -391,14 +422,14 @@ $('eForm').addEventListener('submit', async e => {
 async function onListClick(e){
   const el = e.target.closest('.erow'); const act = e.target.closest('[data-act]');
   if(!el || !act) return;
-  const r = recent.find(x => x.id === el.dataset.id) || monthRows.find(x => x.id === el.dataset.id);
+  const r = recent.find(x => x.id === el.dataset.id) || monthRows.find(x => x.id === el.dataset.id) || bankExp.find(x => x.id === el.dataset.id);
   if(!r) return;
   if(act.dataset.act === 'del'){
     if(!await ask('Delete this expense?', r.category + ' · ' + inr(r.amount) + ' · ' + fmtDay(r.day), 'Delete', true)) return;
     try{
       must(await sb.from('expenses').delete().eq('id', r.id));
       recent = recent.filter(x => x.id !== r.id); monthRows = monthRows.filter(x => x.id !== r.id);
-      toast('Expense deleted'); renderRecent(); if(curTab === 'month') renderMonth();
+      toast('Expense deleted'); renderRecent(); if(curTab === 'month') renderMonth(); if(curTab === 'bank') loadBank().catch(x => toast(x.message));
     }catch(x){ toast(x.message); }
     return;
   }
@@ -432,7 +463,7 @@ async function onListClick(e){
       return '';
     }
   });
-  if(v){ toast('Saved'); await loadRecent(); if(curTab === 'month') renderMonth(); if(curTab === 'running') loadRunning().catch(x => toast(x.message)); }
+  if(v){ toast('Saved'); await loadRecent(); if(curTab === 'month') renderMonth(); if(curTab === 'bank') loadBank().catch(x => toast(x.message)); if(curTab === 'running') loadRunning().catch(x => toast(x.message)); }
 }
 $('recent').addEventListener('click', onListClick);
 $('mList').addEventListener('click', onListClick);
@@ -601,6 +632,51 @@ $('rRange').addEventListener('click', e => {
   loadRunning().catch(x => toast(x.message));
 });
 
+/* ---------- bank check (owner) ---------- */
+let bankMonth = todayIso().slice(0, 7), bankExp = [];
+async function loadBank(){
+  $('bMonth').value = bankMonth; $('bMonth').max = todayIso().slice(0, 7); $('bNext').disabled = bankMonth >= todayIso().slice(0, 7);
+  $('bTitle').textContent = parse(bankMonth + '-01').toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
+  const first = bankMonth + '-01', last = monthEnd(bankMonth);
+  const [a, b, c] = await Promise.all([
+    sb.from('expenses').select('*').gte('day', first).lte('day', last).neq('mode', 'Cash').order('day'),
+    sb.from('bank_entries').select('id,account_id,day,amount,method,party,reference,note').eq('direction', 'out').gte('day', addDays(first, -1)).lte('day', addDays(last, 3)),
+    sb.from('bank_accounts').select('id,name,last4')
+  ]);
+  bankExp = must(a) || []; const bank = must(b) || [], accs = must(c) || [];
+  const accName = id => { const x = accs.find(y => y.id === id); return x ? x.name + (x.last4 ? ' ··' + x.last4 : '') : 'Removed account'; };
+  const m = NJ.matchExpenses(bankExp, bank, first, last);
+  const tot = list => sum(list.map(x => x.e || x));
+  const ok = !m.missing.length && !m.noAccount.length;
+  $('bTiles').innerHTML = '<div><b>' + esc(inr(sum(bankExp))) + '</b><span>' + bankExp.length + ' paid from banks' + (m.waiting.length ? ' · ' + m.waiting.length + ' waiting' : '') + '</span></div>' +
+    '<div class="good"><b>' + esc(inr(tot(m.matched))) + '</b><span>' + m.matched.length + ' found</span></div>' +
+    '<div' + (m.missing.length ? ' class="bad"' : '') + '><b>' + esc(inr(sum(m.missing))) + '</b><span>' + m.missing.length + ' not found</span></div>' +
+    '<div' + (m.noAccount.length ? ' class="warn"' : '') + '><b>' + esc(inr(sum(m.noAccount))) + '</b><span>' + m.noAccount.length + ' account not given</span></div>';
+  $('bResult').hidden = !bankExp.length;
+  $('bResult').className = 'bresult ' + (ok ? 'ok' : 'bad');
+  $('bResult').textContent = ok ? '✓ Every expense paid by UPI, card, transfer or cheque is in the bank log.'
+    : [m.missing.length && m.missing.length + ' expense' + (m.missing.length > 1 ? 's' : '') + ' (' + inr(sum(m.missing)) + ') not found in the bank', m.noAccount.length && m.noAccount.length + ' without a bank account'].filter(Boolean).join(' · ') + '.';
+  $('bMissSum').textContent = m.missing.length ? inr(sum(m.missing)) : '';
+  $('bMissing').innerHTML = m.missing.length ? m.missing.map(r => row(r, true)).join('') : '<div class="empty" style="padding:24px 20px">' + (bankExp.length ? 'Nothing missing.' : 'No expenses paid from a bank account this month.') + '</div>';
+  $('bWaitWrap').hidden = !m.waiting.length; $('bWaitSum').textContent = inr(sum(m.waiting));
+  $('bWait').innerHTML = m.waiting.map(r => row(r, true)).join('');
+  $('bNoAccWrap').hidden = !m.noAccount.length; $('bNoAccSum').textContent = inr(sum(m.noAccount));
+  $('bNoAcc').innerHTML = m.noAccount.map(r => row(r, true)).join('');
+  $('bFoundT').textContent = 'Found in the bank (' + m.matched.length + ')';
+  $('bFound').innerHTML = m.matched.map(({e, b, gap}) => '<div class="erow"><div><div class="cat">' + esc(e.category) + '</div><div class="sub">' + esc([fmtDay(e.day), e.mode + ' from ' + (e.account_name || accName(e.account_id)), e.paid_to && 'to ' + e.paid_to].filter(Boolean).join(' · ')) + '</div>' +
+    '<div class="sub" style="color:var(--p)">✓ In the bank ' + esc(gap === 0 ? 'the same day' : gap > 0 ? gap + ' day' + (gap > 1 ? 's' : '') + ' later (' + fmtDay(b.day) + ')' : 'the day before') + (b.reference ? ' · ref ' + esc(b.reference) : '') + '</div></div><div class="amt">' + esc(inr(e.amount)) + '</div><div class="acts"></div></div>').join('') || '<div class="empty" style="padding:24px 20px">None yet.</div>';
+  $('bExtraSum').textContent = m.extra.length ? inr(sum(m.extra)) : '';
+  $('bExtra').innerHTML = m.extra.length ? m.extra.sort((x, y) => x.day.localeCompare(y.day)).map(b => '<div class="erow"><div><div class="cat">' + esc(b.method || 'Money out') + (b.party ? ' to ' + esc(b.party) : '') + '</div><div class="sub">' + esc([fmtDay(b.day), accName(b.account_id), b.reference && 'ref ' + b.reference, b.note].filter(Boolean).join(' · ')) + '</div></div><div class="amt">' + esc(inr(b.amount)) + '</div><div class="acts"></div></div>').join('')
+    : '<div class="empty" style="padding:24px 20px">None.</div>';
+}
+const shiftBank = n => { const d = parse(bankMonth + '-01'); d.setMonth(d.getMonth() + n); bankMonth = iso(d).slice(0, 7); loadBank().catch(e => toast(e.message)); };
+$('bPrev').onclick = () => shiftBank(-1);
+$('bNext').onclick = () => { if(bankMonth < todayIso().slice(0, 7)) shiftBank(1); };
+$('bMonth').onchange = () => { if($('bMonth').value){ bankMonth = $('bMonth').value > todayIso().slice(0, 7) ? todayIso().slice(0, 7) : $('bMonth').value; loadBank().catch(e => toast(e.message)); } };
+$('bMissing').addEventListener('click', onListClick);
+$('bNoAcc').addEventListener('click', onListClick);
+$('bWait').addEventListener('click', onListClick);
+
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('expenses') && !document.querySelector('dialog[open]'))
     loadRecent().then(() => curTab === 'month' && loadMonth()).catch(e => toast(e.message));
@@ -611,7 +687,7 @@ NJ.start({onReady: async me => {
   document.body.classList.toggle('no-access', !!me && !ok);
   if(!ok) return;
   try{ await Promise.all([loadSettings(), loadRecent(), loadAccounts().catch(() => {})]); }catch(e){ toast(e.message); }
-  showTab(location.hash === '#month' ? 'month' : location.hash === '#running' ? 'running' : curTab);
+  showTab(location.hash === '#month' ? 'month' : location.hash === '#running' ? 'running' : location.hash === '#bank' ? 'bank' : curTab);
 }});
 })();
 </script>

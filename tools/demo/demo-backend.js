@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v23';
+const KEY = 'natraj-demo-db-v25';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -100,6 +100,13 @@ function seed(){
   db.expenses.forEach((e, i) => { e.account_id = null; e.account_name = ''; if(e.mode !== 'Cash'){ const a = i % 3 ? sbi : hdfc; e.account_id = a.id; e.account_name = a.name + ' ··' + a.last4; } });
   const be = (a, day, direction, amount, method, party, reference, by, tid) => db.bank_entries.push({id: uid(), account_id: a.id, day, direction, amount, method, party: party || '', reference: reference || '', note: '', transfer_id: tid || null, for_chit: false,
     created_by: by.user_id, created_by_name: by.name, created_at: day + 'T11:30:00Z', updated_by_name: '', updated_at: null});
+  // bank-paid expenses are in the bank log the same day (cheques two days later), except one left out to show the check
+  let leftOut = false;
+  db.expenses.filter(e => e.account_id).sort((x, y) => x.day.localeCompare(y.day)).forEach(e => {
+    if(!leftOut && e.day < addDays(today, -5) && e.day >= addDays(today, -40)){ leftOut = true; return; }
+    const d = e.mode === 'Cheque' ? addDays(e.day, 2) : e.day;
+    if(d <= today) be(e.account_id === sbi.id ? sbi : hdfc, d, 'out', Number(e.amount), e.mode === 'Card' ? 'Other' : e.mode === 'Cheque' ? 'Cheque' : e.mode === 'Bank transfer' ? 'NEFT / RTGS / IMPS' : 'UPI', e.paid_to || e.category, '', manager);
+  });
   be(sbi, start, 'in', 845000, 'Opening balance', '', '', owner); be(hdfc, start, 'in', 312500, 'Opening balance', '', '', owner);
   for(let d = start; d <= today; d = addDays(d, 1)){
     if(dow(d) === 0) continue;
@@ -295,6 +302,7 @@ const isOff = day => db.settings[0].weekly_off === dow(day);
 function cmp(a, op, b){
   a = a === null || a === undefined ? (op === 'is' ? 'null' : '') : String(a);
   if(op === 'eq' || op === 'is') return a === b;
+  if(op === 'neq') return a !== b;
   if(op === 'in') return b.replace(/^\(|\)$/g, '').split(',').map(x => x.replace(/^"|"$/g, '')).includes(a);
   if(op === 'gte') return a >= b;
   if(op === 'lte') return a <= b;

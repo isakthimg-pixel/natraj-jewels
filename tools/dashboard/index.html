@@ -373,6 +373,7 @@ async function loadAttendance(){
 }
 
 /* expenses: this month's total against last month's same days, and the biggest categories */
+const addDaysIso = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
 async function loadExpenses(){
   const today = todayIso(), month = today.slice(0, 7);
   const lm = parse(month + '-01'); lm.setMonth(lm.getMonth() - 1);
@@ -412,6 +413,14 @@ async function loadExpenses(){
       '<div><span>Running cost a day</span><b>' + inr(running) + '</b><em>' + (days(d30, today) < 30 ? 'since ' + esc(parse(d30).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) : 'last 30 days') + ' · <a href="../expenses/#running" style="color:inherit">details</a></em></div></div>' +
     '<div class="bars">' + shown.map(([c, v]) =>
       '<div class="bar-row" title="' + esc(c + ': ' + inr(v)) + '"><span class="nm">' + esc(c) + '</span><span class="track"><i style="width:' + (v / max * 100).toFixed(1) + '%"></i></span><b style="min-width:5em">' + esc(inr(v)) + '</b></div>').join('') + '</div>';
+  // expenses paid from a bank account this month that are not in the bank log
+  const mFirst = month + '-01', [ex, bk] = await Promise.all([
+    sb.from('expenses').select('id,day,amount,mode,account_id').gte('day', mFirst).lte('day', today).neq('mode', 'Cash'),
+    sb.from('bank_entries').select('id,account_id,day,amount,method').eq('direction', 'out').gte('day', addDaysIso(mFirst, -1))]);
+  const bm = NJ.matchExpenses(must(ex) || [], must(bk) || []), miss = bm.missing.length + bm.noAccount.length;
+  if((must(ex) || []).length) $('expBox').insertAdjacentHTML('beforeend', '<p style="margin:12px 0 0;font-size:.88rem;font-weight:600;color:' + (miss ? 'var(--a)' : 'var(--p)') + '">' +
+    (miss ? 'Bank check: ' + (bm.missing.length ? bm.missing.length + ' expense' + (bm.missing.length > 1 ? 's' : '') + ' (' + inr(sum(bm.missing)) + ') not in the bank log' : '') + (bm.missing.length && bm.noAccount.length ? ', ' : '') + (bm.noAccount.length ? bm.noAccount.length + ' without an account' : '') + '.'
+      : '✓ Bank check: every bank-paid expense this month is in the bank log' + (bm.waiting.length ? ' (' + bm.waiting.length + ' from the last 3 days not in yet)' : '') + '.') + ' <a href="../expenses/#bank">See them ›</a></p>');
 }
 
 /* bank: each active account's balance today, and this month's money in and out (not counting
