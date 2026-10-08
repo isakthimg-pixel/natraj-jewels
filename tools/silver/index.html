@@ -54,17 +54,17 @@
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;border-top:1px solid var(--line);padding-top:16px}
 @media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .stats div{display:grid;gap:4px}
-.stats span{font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.stats span{font:600 .72rem/1.2 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .stats b{font:700 1.45rem/1 var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--ink)}
 .stats em{font-style:normal;font-size:.78rem;font-weight:600;color:var(--muted)}
 .frow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .kv{display:grid}
 .kv div{display:flex;justify-content:space-between;gap:12px;padding:9px 18px;border-top:1px solid var(--line);font-size:.92rem;font-variant-numeric:tabular-nums}
 .kv div:first-child{border-top:0}
-.kv .head{font:600 .66rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
+.kv .head{font:600 .72rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
 .tablewrap{overflow-x:auto}
 .mtab{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
-.mtab th{text-align:right;font:600 .66rem/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.mtab th{text-align:right;font:600 .72rem/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
 .mtab td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .mtab th:first-child,.mtab td:first-child{text-align:left}
 .mtab tfoot td{font-weight:700;border-bottom:0}
@@ -192,6 +192,10 @@ let curTab = 'add', dayView = todayIso(), monthView = todayIso().slice(0, 7);
 const inr = v => { const n = Math.round(Number(v || 0) * 100) / 100; return (n < 0 ? '−₹' : '₹') + Math.abs(n).toLocaleString('en-IN', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2}); };
 const gm = v => Number(v || 0).toLocaleString('en-IN', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + ' g';
 const num = s => { const v = String(s || '').replace(/[,\s₹]/g, ''); return v === '' ? null : /^\d+(\.\d+)?$/.test(v) ? Number(v) : NaN; };
+// say what is wrong as soon as you leave a box, not only after Save
+NJ.liveCheck($('fWeight'), v => num(v) > 0 ? '' : 'Type the weight in grams, e.g. 45.200.', $('fErr'));
+NJ.liveCheck($('fTouch'), v => num(v) > 0 && num(v) <= 100 ? '' : 'Type the touch (purity) as a percentage, e.g. 92.5.', $('fErr'));
+NJ.liveCheck($('fRate'), v => num(v) > 0 ? '' : 'Type the rate per gram, e.g. 95.', $('fErr'));
 const r2 = n => Math.round(n * 100) / 100, r3 = n => Math.round(n * 1000) / 1000;
 const fmtDay = d => { const t = todayIso(), y = iso(new Date(Date.now() - 864e5)); return d === t ? 'Today' : d === y ? 'Yesterday' : parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'}); };
 const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };

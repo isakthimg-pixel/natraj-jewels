@@ -60,7 +60,7 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
 .st th:nth-child(-n+2),.st td:nth-child(-n+2){text-align:left}
 .st td.d{white-space:normal;min-width:180px}
 .st td.d small{display:block;color:var(--muted);font-size:.8rem}
-.st thead th{font:600 .66rem var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
+.st thead th{font:600 .72rem var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
 .st .in{color:var(--p)} .st .out{color:var(--a)}
 .st tr.edge td{background:var(--paper);font-weight:600}
 .st tbody tr[data-id]{cursor:pointer}
@@ -203,6 +203,8 @@ const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); retu
 const fmtDay = d => { const t = todayIso(); return d === t ? 'Today' : d === addDays(t, -1) ? 'Yesterday' : parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'}); };
 const monthEnd = m => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + 1); d.setDate(0); return iso(d); };
 const amount = s => { const v = String(s).replace(/[,\s₹]/g, ''); return /^\d+(\.\d{1,2})?$/.test(v) ? Number(v) : NaN; };
+// say what is wrong as soon as you leave a box, not only after Save
+NJ.liveCheck($('fAmt'), v => amount(v) > 0 ? '' : 'Type the amount in rupees, e.g. 5000 or 5000.50.', $('fErr'));
 const signed = r => r.direction === 'in' ? Number(r.amount) : -Number(r.amount);
 const accName = id => (accounts.find(a => a.id === id) || {}).name || 'Removed account';
 const accLabel = a => a.name + (a.last4 ? ' ··' + a.last4 : '');

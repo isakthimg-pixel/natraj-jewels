@@ -24,12 +24,12 @@
 .ctrls{display:none;gap:6px;flex-wrap:wrap;align-items:center;padding-bottom:12px;margin-bottom:-2px;border-bottom:1px dashed var(--line)}
 .customising .ctrls{display:flex}
 .customising .mod{outline:2px dashed color-mix(in srgb,var(--gold) 55%,transparent);outline-offset:3px}
-.customising .mod.dragging{opacity:.4}
+.customising .mod.dragging{position:relative;z-index:40;box-shadow:0 18px 40px rgba(28,18,22,.28);cursor:grabbing;transition:box-shadow .2s}
 .customising .mod.over{outline-color:var(--maroon)}
 .customising .mod .body{pointer-events:none;opacity:.55;max-height:180px;overflow:hidden}
 .ctrls .grip{margin-right:auto;cursor:grab;user-select:none;touch-action:none;font:600 .82rem/1 var(--body);color:var(--muted);padding:8px 12px;border:1px dashed var(--line);border-radius:999px;background:var(--paper)}
 .ctrls .grip:active{cursor:grabbing}
-.customising .mod.dragging{opacity:.45}
+
 @media (max-width:860px){.ctrls [data-c=size]{display:none}}  /* one column on phones: width does not apply */
 .custbar{display:none;align-items:center;gap:10px;flex-wrap:wrap;background:color-mix(in srgb,var(--gold) 12%,var(--card));border:1px solid var(--gold);border-radius:4px;padding:12px 16px;font-size:.92rem}
 .customising .custbar{display:flex}
@@ -40,7 +40,7 @@
 .customising .hide-in-custom{display:none!important}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 @media (max-width:640px){.split{grid-template-columns:1fr}}
-.split h4{margin:0 0 4px;font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.split h4{margin:0 0 4px;font:600 .72rem/1.2 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .split h4 a{float:right;letter-spacing:0;text-transform:none;font-size:.78rem;color:var(--gold);text-decoration:none}
 .card .tally{border-top:0;padding:0}
 .card .tally b{font-size:1.7rem}
@@ -69,7 +69,7 @@
 .soon{display:flex;flex-wrap:wrap;gap:8px}
 .rates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .rates div{display:grid;gap:4px}
-.rates span{font:600 .66rem/1.2 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.rates span{font:600 .72rem/1.2 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .rates b{font:700 1.6rem/1 var(--display);font-variant-numeric:lining-nums proportional-nums}
 .rates em{font-style:normal;font-size:.78rem;font-weight:600;color:var(--muted)}
 .rates em.up{color:var(--p)} .rates em.down{color:var(--a)}
@@ -301,8 +301,23 @@ $('dash').addEventListener('click', e => {
   if(b.dataset.c === 'down' && pos < vis.length - 1){ const j = vis[pos + 1]; [layout[i], layout[j]] = [layout[j], layout[i]]; }
   if(b.dataset.c === 'size') layout[i].w = layout[i].w === 'full' ? 'half' : 'full';
   if(b.dataset.c === 'hide') layout[i].hidden = true;
-  applyLayout();
+  flip(applyLayout);
 });
+// move modules smoothly to their new places: note where each one is, change the layout, then slide each
+// from its old place to its new one (starting from where it is on screen)
+function flip(change){
+  const els = [...$('dash').querySelectorAll('.mod')], before = new Map(els.map(el => [el, el.getBoundingClientRect()]));
+  change();
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  els.forEach(el => {
+    const a = before.get(el), b = el.getBoundingClientRect();
+    if(el.hidden || !a.width || (Math.abs(a.left - b.left) < 1 && Math.abs(a.top - b.top) < 1)) return;
+    el.style.transition = 'none'; el.style.transform = 'translate(' + (a.left - b.left) + 'px,' + (a.top - b.top) + 'px)';
+    void el.offsetWidth;
+    el.style.transition = 'transform .38s cubic-bezier(.2,.8,.2,1)'; el.style.transform = '';
+    el.addEventListener('transitionend', () => { el.style.transition = ''; }, {once: true});
+  });
+}
 $('tray').addEventListener('click', e => {
   const b = e.target.closest('[data-show]'); if(!b) return;
   const x = layout.find(y => y.k === b.dataset.show); x.hidden = false;
@@ -315,13 +330,18 @@ $('dash').addEventListener('pointerdown', e => {
   const g = e.target.closest('.grip'); if(!g || !customising) return;
   e.preventDefault();
   const m = g.closest('.mod');
-  drag = {k: m.dataset.mod, el: m, id: e.pointerId, target: null, after: false};
+  // the module follows the finger from where it was picked up
+  drag = {k: m.dataset.mod, el: m, id: e.pointerId, target: null, after: false, x: e.clientX, y: e.clientY, sy: scrollY};
+  m.style.transition = 'none';
   m.classList.add('dragging');
   try{ g.setPointerCapture(e.pointerId); }catch(x){}
 });
 $('dash').addEventListener('pointermove', e => {
   if(!drag || e.pointerId !== drag.id) return;
+  drag.el.style.transform = 'translate(' + (e.clientX - drag.x) + 'px,' + (e.clientY - drag.y + scrollY - drag.sy) + 'px)';
+  drag.el.style.visibility = 'hidden';                 // look underneath the module being carried
   const under = document.elementFromPoint(e.clientX, e.clientY);
+  drag.el.style.visibility = '';
   const m = under && under.closest('.mod');
   document.querySelectorAll('.mod.over').forEach(x => x.classList.remove('over'));
   if(m && m !== drag.el && !m.hidden){
@@ -336,12 +356,20 @@ function endDrag(){
   if(!drag) return;
   const d = drag; drag = null;
   document.querySelectorAll('.mod.dragging,.mod.over').forEach(x => x.classList.remove('dragging', 'over'));
-  if(!d.target) return;
-  const from = layout.findIndex(x => x.k === d.k), item = layout[from];
-  layout.splice(from, 1);
-  const to = layout.findIndex(x => x.k === d.target);
-  layout.splice(to + (d.after ? 1 : 0), 0, item);
-  applyLayout();
+  if(!d.target){
+    // dropped nowhere: glide back home
+    d.el.style.transition = 'transform .32s cubic-bezier(.2,.8,.2,1)'; d.el.style.transform = '';
+    d.el.addEventListener('transitionend', () => { d.el.style.transition = ''; }, {once: true});
+    return;
+  }
+  flip(() => {
+    d.el.style.transform = ''; d.el.style.transition = '';
+    const from = layout.findIndex(x => x.k === d.k), item = layout[from];
+    layout.splice(from, 1);
+    const to = layout.findIndex(x => x.k === d.target);
+    layout.splice(to + (d.after ? 1 : 0), 0, item);
+    applyLayout();
+  });
 }
 $('dash').addEventListener('pointerup', endDrag);
 $('dash').addEventListener('pointercancel', () => { if(drag){ drag.target = null; endDrag(); } });

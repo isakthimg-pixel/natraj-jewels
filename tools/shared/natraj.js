@@ -65,8 +65,10 @@ const todayIso = () => iso(new Date());
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toast(msg){
   let t = $('nj-toast');
-  if(!t){ t = document.createElement('div'); t.id = 'nj-toast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
-  t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2600);
+  // rises from the bottom edge and goes back the same way
+  if(!t){ t = document.createElement('div'); t.id = 'nj-toast'; t.className = 'toast away'; t.setAttribute('role', 'status'); document.body.appendChild(t); void t.offsetWidth; }
+  t.textContent = msg; t.classList.remove('away');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.add('away'), 2600);
 }
 function download(name, text, type){
   const a = document.createElement('a');
@@ -133,7 +135,9 @@ function dialog(o){
   };
   return new Promise(res => {
     let result = null;
-    const close = r => { result = r; d.close(); };
+    // leaves the way it came (a short fade and shrink), then closes
+    let closing = false;
+    const close = r => { if(closing) return; closing = true; result = r; d.classList.add('closing'); setTimeout(() => d.close(), 150); };
     d.addEventListener('close', () => { d.remove(); res(result); });
     d.addEventListener('cancel', () => { result = null; });
     const c = f.querySelector('[data-cancel]'); if(c) c.onclick = () => close(null);
@@ -149,6 +153,12 @@ function dialog(o){
         if(msg){ err.textContent = msg; return; }
       }
       close(o.fields && o.fields.length ? v : true);
+    });
+    // say straight away when a PIN or code is the wrong length, not only after pressing the button
+    (o.fields || []).filter(x => x.type === 'pin' || x.type === 'otp').forEach(x => {
+      const el = $('nj-f-' + x.id);
+      el.addEventListener('blur', () => { if(el.value && !/^[0-9]{6}$/.test(el.value.trim())) err.textContent = (x.type === 'otp' ? 'The code' : 'The PIN') + ' is 6 digits.'; });
+      el.addEventListener('input', () => { if(/is 6 digits/.test(err.textContent)) err.textContent = ''; });
     });
     d.showModal();
     const first = f.querySelector('input,select,textarea');
@@ -413,6 +423,7 @@ function renderNotes(){
   }
   if(!me || !unread.length){ bar.hidden = true; return; }
   const n = unread[0];
+  if(bar.hidden || !bar.innerHTML){ bar.classList.remove('arrive'); void bar.offsetWidth; bar.classList.add('arrive'); }
   bar.hidden = false;
   bar.innerHTML = '<div class="wrap"><span class="nb-dot" aria-hidden="true"></span>' +
     '<button type="button" class="nb-text" data-nj-go="' + esc(n.id) + '"><b>' + esc(n.title) + '</b>' + (n.body ? ' · ' + esc(n.body) : '') + ' <span class="nb-when">' + esc(ago(n.created_at)) + '</span></button>' +
@@ -461,8 +472,26 @@ window.addEventListener('online', () => { const b = $('nj-offline'); if(b) b.hid
 
 /* Pages call this once. opts: {home: true on the home page, onReady(me)}.
    onReady runs after sign-in state is known, and again whenever it changes. */
+// pages with tabs: the header scrolls away except its tab row, which stays at the top
+function stickyTabs(){
+  const head = document.querySelector('header.top'), tabs = head && head.querySelector('.tabs');
+  if(!tabs) return;
+  head.classList.add('sticky');
+  const place = () => { head.style.top = -(head.offsetHeight - tabs.offsetHeight) + 'px'; };
+  place(); addEventListener('resize', place);
+  if(window.ResizeObserver) new ResizeObserver(place).observe(head);
+  const mark = () => head.classList.toggle('stuck', head.getBoundingClientRect().top < 0);
+  addEventListener('scroll', mark, {passive: true}); mark();
+}
+// fields that check themselves as soon as you leave them: NJ.liveCheck(input, value => message or '', where to say it)
+function liveCheck(el, check, out){
+  if(!el) return;
+  el.addEventListener('blur', () => { const m = el.value.trim() ? check(el.value.trim()) : ''; if(m) out.textContent = m; el.toggleAttribute('aria-invalid', !!m); });
+  el.addEventListener('input', () => { if(el.hasAttribute('aria-invalid')){ el.removeAttribute('aria-invalid'); out.textContent = ''; } });
+}
 async function start(opts){
   onChange = opts.onReady || (() => {});
+  stickyTabs();
   const y = $('year'); if(y) y.textContent = new Date().getFullYear();
   // the logo in the header goes back to the home page (all apps)
   const br = document.querySelector('header .brand');
@@ -665,6 +694,7 @@ function requestsBar(app, onApplied){
     if(!me){ box.hidden = true; return; }
     try{
       const list = await loadRequests(app);
+      if(box.hidden && list.length){ box.classList.remove('arrive'); void box.offsetWidth; box.classList.add('arrive'); }
       box.hidden = !list.length;
       const pending = list.filter(q => q.status === 'pending').length;
       box.innerHTML = '<div class="form panel reqs"><h3>' + (me.is_owner ? 'Waiting for your approval (' + pending + ')' : 'Your requests to the owner') + '</h3>' + list.map(q => reqItem(q, false)).join('') + '</div>';
@@ -687,5 +717,5 @@ async function reqClick(e, after){
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
   pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
-  recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick, get me(){ return me; }};
+  liveCheck, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick, get me(){ return me; }};
 })();
