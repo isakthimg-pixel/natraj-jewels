@@ -98,6 +98,20 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
 .bresult{margin:14px 0 0;border-radius:4px;padding:12px 14px;font-weight:600;font-size:.94rem}
 .bresult.ok{background:var(--p-bg);color:var(--p);border:1px solid var(--p)}
 .bresult.bad{background:var(--a-bg);color:var(--a);border:1px solid var(--a)}
+.gstbox{display:grid;gap:14px;border-left:3px solid var(--gold);padding-left:14px}
+.gtag{color:var(--gold);font-weight:600}
+#fGstin::placeholder{text-transform:none}
+.gsup{background:var(--card);border:1px solid var(--line);border-radius:4px}
+.gsup + .gsup{margin-top:10px}
+.gsup summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:14px 18px;align-items:start}
+.gsup summary::-webkit-details-marker{display:none}
+.gsup .nm{font:600 1.02rem/1.3 var(--heading);color:var(--ink)}
+.gsup .sub{font-size:.85rem;color:var(--muted);margin-top:2px}
+.gsup .amt{font:700 1.15rem/1.2 var(--display);font-variant-numeric:lining-nums tabular-nums;text-align:right;white-space:nowrap;color:var(--ink)}
+.gsup .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.gsup .bills{border-top:1px solid var(--line)}
+.gsup .bills .erow + .erow{border-top:1px solid var(--line)}
+.gwarn{color:var(--h);font-weight:600}
 .bfound summary{cursor:pointer;font:600 .7rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);padding:12px 0}
 </style>
 </head>
@@ -115,6 +129,7 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
       <button role="tab" data-tab="month" aria-selected="false">Month</button>
       <button role="tab" data-tab="running" aria-selected="false" class="owner-only">Running cost</button>
       <button role="tab" data-tab="bank" aria-selected="false" class="owner-only">Bank check</button>
+      <button role="tab" data-tab="gst" aria-selected="false" class="owner-only">GST</button>
     </nav>
   </div>
 </header>
@@ -144,6 +159,16 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
         <div class="two">
           <label>Date<input class="input" type="date" id="fDay"></label>
           <label>Paid to<input class="input" id="fTo" maxlength="80" placeholder="optional"></label>
+        </div>
+        <label class="field check"><input type="checkbox" id="fGst"> GST claimable</label>
+        <div class="gstbox" id="fGstBox" hidden>
+          <div class="field"><span>GST rate</span><div class="bubbles" id="fRate" role="group" aria-label="GST rate"></div></div>
+          <label id="fRateOtherL" hidden>GST rate (%)<input class="input" id="fRateOther" inputmode="decimal" maxlength="5" placeholder="e.g. 12"></label>
+          <div class="two">
+            <label>Supplier GSTIN<input class="input" id="fGstin" maxlength="15" placeholder="optional" style="text-transform:uppercase"></label>
+            <label>Bill number<input class="input" id="fBill" maxlength="40" placeholder="optional"></label>
+          </div>
+          <p class="covernote" id="fGstNote"></p>
         </div>
         <label>Covers<select class="input" id="fCover">
           <option value="day">Just this day</option>
@@ -214,6 +239,24 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
       <div><div class="lhead dhead"><span>Bank money out with no expense</span><b id="bExtraSum"></b></div><div class="ledger" id="bExtra"></div>
         <p class="axisnote" style="margin-top:10px">Supplier payments, silver purchases, cash withdrawals and bank charges show here too; they are not mistakes. Look for anything that should have been entered as an expense.</p></div>
       <p class="axisnote">An expense is found when Banking has money out of the same account for the same amount, on the expense date or up to 3 days later (a day earlier also counts). In Banking, enter each payment on its own so it can be matched.</p>
+    </div>
+  </section>
+
+  <!-- GST (owner): GST in expense bills that can be claimed back, by supplier -->
+  <section id="tab-gst" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">GST input credit</span><h2>GST to claim</h2></div>
+      <div class="tally tally3">
+        <div><b class="money-fig" id="gTotal">–</b><span>Not claimed yet</span></div>
+        <div><b id="gBills">–</b><span>Bills</span></div>
+        <div><b id="gSups">–</b><span>Suppliers</span></div>
+      </div>
+      <div class="bar" style="margin-top:14px"><button class="btn" id="gCsv">Download for the accountant (CSV)</button></div>
+    </div></div>
+    <div class="wrap content" style="display:grid;gap:20px">
+      <div><div class="lhead dhead"><span>Not claimed yet, by supplier</span><b id="gOpenSum"></b></div><div id="gOpen"></div></div>
+      <details class="bfound"><summary><span id="gDoneT">Claimed in the last 3 months</span></summary><div id="gDone"></div></details>
+      <p class="axisnote">The amount of an expense is the bill total with GST; the GST in it is worked out from the rate (for 18%: amount × 18 ÷ 118). Mark a supplier’s bills as claimed once they are in your GST return. To claim, your accountant needs each supplier’s GSTIN and the bill number.</p>
     </div>
   </section>
 
@@ -296,11 +339,12 @@ const covers = r => r.period_from && r.period_to && r.period_from !== r.period_t
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 function showTab(name){
-  if((name === 'running' || name === 'bank') && !NJ.me.is_owner) name = 'add';
+  if((name === 'running' || name === 'bank' || name === 'gst') && !NJ.me.is_owner) name = 'add';
   curTab = name;
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
   $('tab-add').hidden = name !== 'add'; $('tab-month').hidden = name !== 'month';
-  $('tab-running').hidden = name !== 'running'; $('tab-bank').hidden = name !== 'bank';
+  $('tab-running').hidden = name !== 'running'; $('tab-bank').hidden = name !== 'bank'; $('tab-gst').hidden = name !== 'gst';
+  if(name === 'gst') loadGst().catch(e => toast(e.message));
   if(name === 'bank') loadBank().catch(e => toast(e.message));
   if(name === 'month') loadMonth().catch(e => toast(e.message));
   if(name === 'running') loadRunning().catch(e => toast(e.message));
@@ -323,9 +367,10 @@ async function loadRecent(){
 /* ---------- add tab ---------- */
 function row(r, showDay){
   const sub = [showDay ? fmtDay(r.day) : '', r.mode + (r.mode !== 'Cash' && r.account_name ? ' from ' + r.account_name : ''), r.paid_to && ('to ' + r.paid_to), covers(r), r.note].filter(Boolean).join(' · ');
+  const gst = r.gst_claimable ? 'GST ' + Number(r.gst_rate) + '%: ' + inr(r.gst_amount) + (r.gst_claimed_on ? ' · claimed' : ' · to claim') + (r.bill_no ? ' · bill ' + r.bill_no : '') : '';
   const by = NJ.me.is_owner ? 'Entered by ' + (r.created_by_name || 'someone') + (r.updated_by_name ? ' · changed by ' + r.updated_by_name : '') : '';
   return '<div class="erow" data-id="' + esc(r.id) + '"><div><div class="cat">' + esc(r.category) + '</div>' +
-    (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
+    (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + (gst ? '<div class="sub gtag">' + esc(gst) + '</div>' : '') + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
     '<div class="amt">' + esc(inr(r.amount)) + '</div>' +
     '<div class="acts">' + (canChange(r) ? '<button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button>' : '') + '</div></div>';
 }
@@ -356,6 +401,32 @@ $('fMode').addEventListener('click', e => {
 $('fDay').value = todayIso(); $('fDay').max = todayIso();
 
 $('fCat').addEventListener('change', () => { $('fNewWrap').hidden = $('fCat').value !== NEW; if($('fCat').value === NEW) $('fNewCat').focus(); });
+/* GST claimable: the rate (bubbles, or another rate typed in), the supplier's GSTIN and the bill number */
+const RATES = ['18', '5', '3', '40'];
+let gstRate = '18';
+$('fRate').innerHTML = RATES.map(r => '<button type="button" class="bubble" data-rate="' + r + '" aria-pressed="' + (r === gstRate) + '">' + r + '%</button>').join('') +
+  '<button type="button" class="bubble" data-rate="other" aria-pressed="false">Other</button>';
+$('fRate').addEventListener('click', e => {
+  const b = e.target.closest('[data-rate]'); if(!b) return;
+  gstRate = b.dataset.rate;
+  $('fRate').querySelectorAll('[data-rate]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  $('fRateOtherL').hidden = gstRate !== 'other'; if(gstRate === 'other') $('fRateOther').focus();
+  syncGst();
+});
+const rateOk = v => Number.isFinite(v) && v > 0 && v <= 40;
+const pickedRate = () => gstRate === 'other' ? Number(String($('fRateOther').value).replace('%', '').trim()) : Number(gstRate);
+const gstOf = (a, rate) => Math.round(a * rate / (100 + rate) * 100) / 100;
+const GSTIN_RE = /^[0-9]{2}[A-Z0-9]{13}$/;
+function syncGst(){
+  $('fGstBox').hidden = !$('fGst').checked;
+  $('fTo').placeholder = $('fGst').checked ? 'supplier’s name' : 'optional';
+  const a = amount($('fAmt').value), rate = pickedRate();
+  $('fGstNote').textContent = $('fGst').checked && a > 0 && rateOk(rate) ? 'GST in this bill: ' + inr(gstOf(a, rate)) + ' (before GST ' + inr(Math.round((a - gstOf(a, rate)) * 100) / 100) + ')' : '';
+}
+$('fGst').addEventListener('change', syncGst);
+$('fAmt').addEventListener('input', syncGst);
+$('fRateOther').addEventListener('input', syncGst);
+
 function syncCover(){
   const c = $('fCover').value, day = $('fDay').value || todayIso();
   $('fRange').hidden = c === 'day';
@@ -403,14 +474,20 @@ $('eForm').addEventListener('submit', async e => {
   if(!from || !until) return $('fErr').textContent = 'Choose the first and last day the bill covers.';
   if(until < from) return $('fErr').textContent = 'The last day is before the first day.';
   if(span(from, until) > 1100) return $('fErr').textContent = 'A bill can cover 3 years at most.';
+  const gst = $('fGst').checked, rate = gst ? pickedRate() : null, gstin = $('fGstin').value.replace(/\s/g, '').toUpperCase();
+  if(gst && !rateOk(rate)) return $('fErr').textContent = 'Choose the GST rate (up to 40%).';
+  if(gst && !$('fTo').value.trim()) return $('fErr').textContent = 'Type who the bill is from in “Paid to”, so the GST can be claimed.';
+  if(gst && gstin && !GSTIN_RE.test(gstin)) return $('fErr').textContent = 'A GSTIN is 15 letters and numbers, e.g. 33ABCDE1234F1Z5. Leave it empty if you don’t have it.';
   if(a > BIG && !await ask('Save ' + inr(a) + '?', 'This is a large amount. Check there is no extra zero.', 'Save')) return;
   $('fSave').setAttribute('aria-busy', 'true');
   try{
     if(cat === NEW) cat = await ensureCategory(newCat);
-    const r = must(await sb.from('expenses').insert({day, amount: a, category: cat, mode, account_id: acc || null, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim(), period_from: from, period_to: until}).select().single());
+    const r = must(await sb.from('expenses').insert({day, amount: a, category: cat, mode, account_id: acc || null, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim(), period_from: from, period_to: until,
+      gst_claimable: gst, gst_rate: rate, gstin: gst ? gstin : '', bill_no: gst ? $('fBill').value.trim() : ''}).select().single());
     recent.unshift(r); recent.sort((x, y) => y.day.localeCompare(x.day) || y.created_at.localeCompare(x.created_at));
     renderRecent();
     toast('Saved ' + inr(a) + ' for ' + cat);
+    $('fGst').checked = false; $('fGstin').value = ''; $('fBill').value = ''; syncGst();
     $('fAmt').value = ''; $('fTo').value = ''; $('fNote').value = ''; $('fCat').value = ''; $('fNewCat').value = ''; $('fNewWrap').hidden = true;
     $('fCover').value = 'day'; $('fFrom').value = ''; $('fUntil').value = ''; syncCover();
     $('fAmt').focus();
@@ -422,14 +499,14 @@ $('eForm').addEventListener('submit', async e => {
 async function onListClick(e){
   const el = e.target.closest('.erow'); const act = e.target.closest('[data-act]');
   if(!el || !act) return;
-  const r = recent.find(x => x.id === el.dataset.id) || monthRows.find(x => x.id === el.dataset.id) || bankExp.find(x => x.id === el.dataset.id);
+  const r = recent.find(x => x.id === el.dataset.id) || monthRows.find(x => x.id === el.dataset.id) || bankExp.find(x => x.id === el.dataset.id) || gstOpen.concat(gstDone).find(x => x.id === el.dataset.id);
   if(!r) return;
   if(act.dataset.act === 'del'){
     if(!await ask('Delete this expense?', r.category + ' · ' + inr(r.amount) + ' · ' + fmtDay(r.day), 'Delete', true)) return;
     try{
       must(await sb.from('expenses').delete().eq('id', r.id));
       recent = recent.filter(x => x.id !== r.id); monthRows = monthRows.filter(x => x.id !== r.id);
-      toast('Expense deleted'); renderRecent(); if(curTab === 'month') renderMonth(); if(curTab === 'bank') loadBank().catch(x => toast(x.message));
+      toast('Expense deleted'); renderRecent(); if(curTab === 'gst') loadGst().catch(x => toast(x.message)); if(curTab === 'month') renderMonth(); if(curTab === 'bank') loadBank().catch(x => toast(x.message));
     }catch(x){ toast(x.message); }
     return;
   }
@@ -445,7 +522,11 @@ async function onListClick(e){
       {id: 'from', label: 'Covers from', type: 'date', value: r.period_from || r.day},
       {id: 'to', label: 'Covers to (same as “from” for a one-day expense)', type: 'date', value: r.period_to || r.day},
       {id: 'paid_to', label: 'Paid to (optional)', type: 'text', value: r.paid_to, maxlength: 80},
-      {id: 'note', label: 'Note (optional)', type: 'text', value: r.note, maxlength: 300}
+      {id: 'note', label: 'Note (optional)', type: 'text', value: r.note, maxlength: 300},
+      {id: 'gst', label: 'GST claimable', type: 'checkbox', value: r.gst_claimable},
+      {id: 'rate', label: 'GST rate (%), if claimable', type: 'text', value: r.gst_rate ? String(Number(r.gst_rate)) : '', maxlength: 5},
+      {id: 'gstin', label: 'Supplier GSTIN (optional)', type: 'text', value: r.gstin || '', maxlength: 15},
+      {id: 'bill', label: 'Bill number (optional)', type: 'text', value: r.bill_no || '', maxlength: 40}
     ],
     validate: async v => {
       const a = amount(v.amount);
@@ -458,12 +539,17 @@ async function onListClick(e){
       if(v.to < v.from) return 'The last day it covers is before the first day.';
       if(span(v.from, v.to) > 1100) return 'An expense can cover 3 years at most.';
       if(v.mode !== 'Cash' && accounts.length && !v.account && !r.account_name) return 'Choose the bank account it was paid from.';
-      const row = must(await sb.from('expenses').update({amount: a, category: v.category, mode: v.mode, ...(accounts.length && (v.account || v.mode === 'Cash') ? {account_id: v.mode === 'Cash' ? null : v.account} : {}), day: v.day, period_from: v.from, period_to: v.to, paid_to: v.paid_to, note: v.note}).eq('id', r.id).select().single());
+      const rate = v.gst ? Number(v.rate.replace('%', '')) : null, gstin = v.gstin.replace(/\s/g, '').toUpperCase();
+      if(v.gst && !rateOk(rate)) return 'Type the GST rate, e.g. 18 (up to 40).';
+      if(v.gst && !v.paid_to) return 'Type who the bill is from in “Paid to”, so the GST can be claimed.';
+      if(v.gst && gstin && !GSTIN_RE.test(gstin)) return 'A GSTIN is 15 letters and numbers, e.g. 33ABCDE1234F1Z5.';
+      const row = must(await sb.from('expenses').update({amount: a, category: v.category, mode: v.mode, ...(accounts.length && (v.account || v.mode === 'Cash') ? {account_id: v.mode === 'Cash' ? null : v.account} : {}), day: v.day, period_from: v.from, period_to: v.to, paid_to: v.paid_to, note: v.note,
+        gst_claimable: v.gst, gst_rate: rate, gstin: v.gst ? gstin : '', bill_no: v.gst ? v.bill : ''}).eq('id', r.id).select().single());
       [recent, monthRows].forEach(list => { const x = list.find(y => y.id === r.id); if(x) Object.assign(x, row); });
       return '';
     }
   });
-  if(v){ toast('Saved'); await loadRecent(); if(curTab === 'month') renderMonth(); if(curTab === 'bank') loadBank().catch(x => toast(x.message)); if(curTab === 'running') loadRunning().catch(x => toast(x.message)); }
+  if(v){ toast('Saved'); await loadRecent(); if(curTab === 'month') renderMonth(); if(curTab === 'gst') loadGst().catch(x => toast(x.message)); if(curTab === 'bank') loadBank().catch(x => toast(x.message)); if(curTab === 'running') loadRunning().catch(x => toast(x.message)); }
 }
 $('recent').addEventListener('click', onListClick);
 $('mList').addEventListener('click', onListClick);
@@ -511,8 +597,9 @@ $('mMonth').onchange = () => { if($('mMonth').value){ curMonth = $('mMonth').val
 
 $('mCsv').onclick = () => {
   const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [['Date', 'Category', 'Amount', 'Paid by', 'From account', 'Paid to', 'Covers from', 'Covers to', 'Note', 'Entered by']]
-    .concat(monthRows.slice().reverse().map(r => [r.day, r.category, Number(r.amount), r.mode, r.mode === 'Cash' ? '' : r.account_name, r.paid_to, r.period_from, r.period_to, r.note, r.created_by_name]));
+  const rows = [['Date', 'Category', 'Amount', 'Paid by', 'From account', 'Paid to', 'Covers from', 'Covers to', 'Note', 'Entered by', 'GST rate %', 'GST amount', 'Supplier GSTIN', 'Bill number', 'GST claimed on']]
+    .concat(monthRows.slice().reverse().map(r => [r.day, r.category, Number(r.amount), r.mode, r.mode === 'Cash' ? '' : r.account_name, r.paid_to, r.period_from, r.period_to, r.note, r.created_by_name,
+      r.gst_claimable ? Number(r.gst_rate) : '', r.gst_claimable ? Number(r.gst_amount) : '', r.gstin || '', r.bill_no || '', r.gst_claimed_on || '']));
   NJ.download('natraj-expenses-' + curMonth + '.csv', '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 };
 
@@ -632,6 +719,71 @@ $('rRange').addEventListener('click', e => {
   loadRunning().catch(x => toast(x.message));
 });
 
+/* ---------- GST to claim (owner) ----------
+   Bills marked GST claimable and not claimed yet, grouped by supplier (by GSTIN, or by name when
+   there is no GSTIN). The owner marks a supplier's bills claimed once they are in the GST return. */
+let gstOpen = [], gstDone = [];
+const supKey = r => r.gstin || 'name:' + (r.paid_to || '').trim().toLowerCase();
+function bySupplier(rows){
+  const m = new Map();
+  rows.forEach(r => { const k = supKey(r); if(!m.has(k)) m.set(k, {key: k, name: r.paid_to || 'Supplier not given', gstin: r.gstin, rows: []}); m.get(k).rows.push(r); });
+  return [...m.values()].map(g => Object.assign(g, {gst: g.rows.reduce((s, r) => s + Number(r.gst_amount), 0), amount: sum(g.rows),
+    from: g.rows.reduce((a, r) => r.day < a ? r.day : a, '9999'), to: g.rows.reduce((a, r) => r.day > a ? r.day : a, ''), noGstin: g.rows.some(r => !r.gstin)})).sort((a, b) => b.gst - a.gst);
+}
+async function loadGst(){
+  const since = addDays(todayIso(), -92);
+  const rows = must(await sb.from('expenses').select('*').eq('gst_claimable', true).or('gst_claimed_on.is.null,gst_claimed_on.gte.' + since).order('day', {ascending: false})) || [];
+  gstOpen = rows.filter(r => !r.gst_claimed_on); gstDone = rows.filter(r => r.gst_claimed_on);
+  renderGst();
+}
+function supCard(g, done){
+  const when = g.from === g.to ? fmtShort(g.from) : fmtShort(g.from) + ' to ' + fmtShort(g.to);
+  const sub = [g.gstin ? 'GSTIN ' + g.gstin : '', plural(g.rows.length, 'bill'), when].filter(Boolean).join(' · ');
+  return '<details class="gsup" data-key="' + esc(g.key) + '"><summary><div><div class="nm">' + esc(g.name) + '</div><div class="sub">' + esc(sub) + '</div>' +
+    (!done && g.noGstin ? '<div class="sub gwarn">GSTIN missing on ' + (g.rows.length === 1 ? 'this bill' : 'some bills') + ': needed to claim. Tap Edit to add it.</div>' : '') +
+    '<div class="sub">Bills total ' + esc(inr(g.amount)) + '</div></div><div class="amt">' + esc(inr(g.gst)) + '</div>' +
+    (done ? '' : '<div class="acts"><button class="btn mini btn-maroon" type="button" data-claim="' + esc(g.key) + '">Mark claimed</button></div>') + '</summary>' +
+    '<div class="bills">' + g.rows.map(r => row(r, true).replace('<div class="acts">', done ? '<div class="acts"><button class="btn mini" data-unclaim="' + esc(r.id) + '">Not claimed</button>' : '<div class="acts">')).join('') + '</div></details>';
+}
+function renderGst(){
+  const open = bySupplier(gstOpen), total = gstOpen.reduce((s, r) => s + Number(r.gst_amount), 0);
+  $('gTotal').textContent = inr(total); $('gBills').textContent = gstOpen.length; $('gSups').textContent = open.length;
+  $('gOpenSum').textContent = inr(total);
+  $('gOpen').innerHTML = open.length ? open.map(g => supCard(g, false)).join('') : '<div class="ledger"><div class="empty" style="padding:28px 20px">Nothing to claim. Tick “GST claimable” when you enter an expense with a GST bill.</div></div>';
+  const done = bySupplier(gstDone);
+  $('gDoneT').textContent = 'Claimed in the last 3 months · ' + inr(gstDone.reduce((s, r) => s + Number(r.gst_amount), 0));
+  $('gDone').innerHTML = done.length ? done.map(g => supCard(g, true)).join('') : '<p class="axisnote" style="padding:0 0 12px">Nothing marked claimed yet.</p>';
+}
+$('gOpen').addEventListener('click', async e => {
+  const c = e.target.closest('[data-claim]');
+  if(c){
+    e.preventDefault();
+    const g = bySupplier(gstOpen).find(x => x.key === c.dataset.claim); if(!g) return;
+    const v = await dialog({title: 'Mark GST claimed: ' + g.name, ok: 'Mark claimed', msg: plural(g.rows.length, 'bill') + ', GST ' + inr(g.gst) + '. Do this once they are in your GST return.',
+      fields: [{id: 'on', label: 'Claimed on', type: 'date', value: todayIso()}],
+      validate: async v => {
+        if(!v.on) return 'Choose the date.';
+        must(await sb.from('expenses').update({gst_claimed_on: v.on}).in('id', g.rows.map(r => r.id)));
+        return '';
+      }});
+    if(v){ toast('GST from ' + g.name + ' marked claimed'); loadGst().catch(x => toast(x.message)); }
+    return;
+  }
+  onListClick(e);
+});
+$('gDone').addEventListener('click', async e => {
+  const u = e.target.closest('[data-unclaim]');
+  if(u){ try{ must(await sb.from('expenses').update({gst_claimed_on: null}).eq('id', u.dataset.unclaim)); toast('Back in GST to claim'); loadGst(); }catch(x){ toast(x.message); } return; }
+  onListClick(e);
+});
+$('gCsv').onclick = () => {
+  const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = [['Supplier', 'Supplier GSTIN', 'Bill number', 'Bill date', 'Bill total', 'GST rate %', 'GST amount', 'Taxable value', 'Category', 'Note']]
+    .concat(gstOpen.slice().sort((a, b) => (a.paid_to || '').localeCompare(b.paid_to || '') || a.day.localeCompare(b.day))
+      .map(r => [r.paid_to, r.gstin, r.bill_no, r.day, Number(r.amount), Number(r.gst_rate), Number(r.gst_amount), Math.round((r.amount - r.gst_amount) * 100) / 100, r.category, r.note]));
+  NJ.download('natraj-gst-to-claim-' + todayIso() + '.csv', '\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+};
+
 /* ---------- bank check (owner) ---------- */
 let bankMonth = todayIso().slice(0, 7), bankExp = [];
 async function loadBank(){
@@ -687,7 +839,7 @@ NJ.start({onReady: async me => {
   document.body.classList.toggle('no-access', !!me && !ok);
   if(!ok) return;
   try{ await Promise.all([loadSettings(), loadRecent(), loadAccounts().catch(() => {})]); }catch(e){ toast(e.message); }
-  showTab(location.hash === '#month' ? 'month' : location.hash === '#running' ? 'running' : location.hash === '#bank' ? 'bank' : curTab);
+  showTab(location.hash === '#month' ? 'month' : location.hash === '#running' ? 'running' : location.hash === '#bank' ? 'bank' : location.hash === '#gst' ? 'gst' : curTab);
 }});
 })();
 </script>

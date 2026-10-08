@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v28';
+const KEY = 'natraj-demo-db-v29';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -98,6 +98,18 @@ function seed(){
   const sbi = acc('SBI Current', 'SBI, Tiruppur main', '4821'), hdfc = acc('HDFC Savings', 'HDFC, Kumaran Road', '0937');
   // expenses not paid in cash came out of one of the two accounts
   db.expenses.forEach((e, i) => { e.account_id = null; e.account_name = ''; if(e.mode !== 'Cash'){ const a = i % 3 ? sbi : hdfc; e.account_id = a.id; e.account_name = a.name + ' ··' + a.last4; } });
+  // GST bills: packing, hallmarking, the AC service and the paper ad. A month's bills are claimed in the return filed by the 20th of the next month.
+  const GSTS = {'Packing & boxes': [18, '33AAKFS4521M1Z3'], 'Hallmarking': [18, '33AAAGB0911C1ZQ'], 'Repairs & maintenance': [18, ''], 'Advertising': [5, '33AABCD7316E1Z8']};
+  const gstLastM = iso(new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 2, 1)).slice(0, 7);
+  let bill = 1201;
+  db.expenses.forEach(e => { const g = GSTS[e.category]; if(!g) return;
+    e.gst_claimable = true; e.gst_rate = g[0]; e.gstin = g[1]; e.bill_no = g[1] ? 'INV-' + bill++ : '';
+    e.gst_amount = Math.round(e.amount * g[0] / (100 + g[0]) * 100) / 100;
+    if(e.category === 'Repairs & maintenance') e.paid_to = 'Cool Point AC Service';
+    const m = e.day.slice(0, 7), claimedOn = iso(new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 20));
+    e.gst_claimed_on = m < gstLastM || (m === gstLastM && Number(today.slice(8)) >= 20) ? claimedOn : null;
+    e.gst_claimed_by_name = e.gst_claimed_on ? owner.name : ''; });
+  db.expenses.forEach(e => { if(!e.gst_claimable){ e.gst_claimable = false; e.gst_rate = null; e.gst_amount = 0; e.gstin = ''; e.bill_no = ''; e.gst_claimed_on = null; e.gst_claimed_by_name = ''; } });
   const be = (a, day, direction, amount, method, party, reference, by, tid) => db.bank_entries.push({id: uid(), account_id: a.id, day, direction, amount, method, party: party || '', reference: reference || '', note: '', transfer_id: tid || null, for_chit: false,
     created_by: by.user_id, created_by_name: by.name, created_at: day + 'T11:30:00Z', updated_by_name: '', updated_at: null});
   // bank-paid expenses are in the bank log the same day (cheques two days later), except one left out to show the check
@@ -624,6 +636,14 @@ function sortBy(out, ord){
 
 /* expenses: the owner sees all; others see their own and change them on the day they entered them */
 /* migration 022: the account an expense was paid from keeps its name on the expense; cash has none */
+function expenseGst(r, old, me){   // migration 028: GST in the bill, worked out from the rate; only the owner marks it claimed
+  r.gstin = String(r.gstin || '').replace(/\s/g, '').toUpperCase(); r.bill_no = r.bill_no || '';
+  if(r.gst_claimable){ const g = Number(r.gst_rate); r.gst_amount = g ? Math.round(Number(r.amount) * g / (100 + g) * 100) / 100 : 0; }
+  else { r.gst_claimable = false; r.gst_rate = null; r.gst_amount = 0; r.gst_claimed_on = null; }
+  if(!(me && me.is_owner)){ r.gst_claimed_on = old && r.gst_claimable ? old.gst_claimed_on || null : null; r.gst_claimed_by_name = old ? old.gst_claimed_by_name || '' : ''; }
+  else if(!r.gst_claimed_on) r.gst_claimed_by_name = '';
+  else if(!old || old.gst_claimed_on !== r.gst_claimed_on) r.gst_claimed_by_name = me.name;
+}
 function expenseAccount(r, old){
   if(r.mode === 'Cash') r.account_id = null;
   if(!r.account_id){ if(!old || old.account_id || r.mode === 'Cash') r.account_name = ''; }
@@ -637,11 +657,11 @@ function expensesRest(method, params, body, single, wantRows, me){
   else if(method === 'POST'){
     const r = Object.assign({id: uid(), mode: 'Cash', paid_to: '', note: ''}, body, {created_by: me.user_id, created_by_name: me.name, created_at: now(), updated_by_name: '', updated_at: null});
     if(!r.period_from || !r.period_to){ r.period_from = r.day; r.period_to = r.day; }
-    expenseAccount(r, null);
+    expenseAccount(r, null); expenseGst(r, null, me);
     db.expenses.push(r); out = [r];
   } else if(method === 'PATCH'){
     out = out.filter(r => owner || (may && ownToday(r)));
-    out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}); expenseAccount(r, old); });
+    out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}); expenseAccount(r, old); expenseGst(r, old, me); });
   } else if(method === 'DELETE'){
     out = out.filter(r => owner || (may && ownToday(r)));
     db.expenses = db.expenses.filter(r => !out.includes(r));

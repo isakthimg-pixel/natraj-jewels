@@ -113,6 +113,7 @@ footer img{height:54px;width:auto}
 .btn-danger{color:var(--err)}
 .mini{font:600 .78rem/1 var(--body);padding:7px 12px;color:var(--muted)}
 .mini:hover{color:var(--ink)}
+.mini.btn-maroon,.mini.btn-maroon:hover{color:#FFF7EE}
 .btn-danger.mini{color:var(--err)}
 
 /* inputs: same as the website enquiry form */

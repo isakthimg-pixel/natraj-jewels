@@ -137,6 +137,10 @@
         <div class="head"><h3 id="xTitle">Expenses this month</h3><a href="../expenses/#month">Expenses ›</a></div>
         <div class="body" id="expBox"><small>Loading…</small></div>
       </section>
+      <section class="card mod" data-mod="gst">
+        <div class="head"><h3>GST to claim</h3><a href="../expenses/#gst">GST ›</a></div>
+        <div class="body" id="gstBox"><small>Loading…</small></div>
+      </section>
       <section class="card mod" data-mod="bank">
         <div class="head"><h3>Bank balances</h3><a href="../banking/#accounts">Banking ›</a></div>
         <div class="body" id="bankBox"><small>Loading…</small></div>
@@ -199,6 +203,7 @@ const MODS = {
   online:     {name: 'Who is online', box: 'onlineBox', load: () => loadOnline()},
   rate:       {name: 'Today’s rate', box: 'rateBox', load: () => loadRates()},
   expenses:   {name: 'Expenses', box: 'expBox', load: () => loadExpenses()},
+  gst:        {name: 'GST to claim', box: 'gstBox', load: () => loadGst()},
   bank:       {name: 'Bank balances', box: 'bankBox', load: () => loadBank()},
   customers:  {name: 'Customers', box: 'crmBox', load: () => loadCrm()},
   tasks:      {name: 'Tasks today', box: 'taskBox', load: () => loadTasks()},
@@ -211,7 +216,7 @@ const MODS = {
 // the starting layout: the essentials, with the longer lists hidden until wanted
 const DEFAULT = [
   {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'}, {k: 'online', w: 'half'},
-  {k: 'expenses', w: 'half'}, {k: 'bank', w: 'half'},
+  {k: 'expenses', w: 'half'}, {k: 'gst', w: 'half'}, {k: 'bank', w: 'half'},
   {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
   {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'}, {k: 'silver', w: 'half'}, {k: 'campaigns', w: 'half'},
   {k: 'worked', w: 'full', hidden: true}
@@ -426,6 +431,31 @@ async function loadExpenses(){
   if((must(ex) || []).length) $('expBox').insertAdjacentHTML('beforeend', '<p style="margin:12px 0 0;font-size:.88rem;font-weight:600;color:' + (miss ? 'var(--a)' : 'var(--p)') + '">' +
     (miss ? 'Bank check: ' + (bm.missing.length ? bm.missing.length + ' expense' + (bm.missing.length > 1 ? 's' : '') + ' (' + inr(sum(bm.missing)) + ') not in the bank log' : '') + (bm.missing.length && bm.noAccount.length ? ', ' : '') + (bm.noAccount.length ? bm.noAccount.length + ' without an account' : '') + '.'
       : '✓ Bank check: every bank-paid expense this month is in the bank log' + (bm.waiting.length ? ' (' + bm.waiting.length + ' from the last 3 days not in yet)' : '') + '.') + ' <a href="../expenses/#bank">See them ›</a></p>');
+}
+
+/* GST to claim: GST in expense bills marked claimable and not marked claimed yet, by supplier */
+async function loadGst(){
+  const rows = must(await sb.from('expenses').select('day,amount,paid_to,gstin,gst_amount').eq('gst_claimable', true).is('gst_claimed_on', null)) || [];
+  const inr = v => '₹' + (Math.round(v * 100) / 100).toLocaleString('en-IN', {maximumFractionDigits: 2});
+  if(!rows.length){ $('gstBox').innerHTML = '<small>Nothing to claim. In Expenses, tick “GST claimable” on bills with GST.</small>'; return; }
+  const total = rows.reduce((s, r) => s + Number(r.gst_amount), 0), month = todayIso().slice(0, 7);
+  const thisMonth = rows.filter(r => r.day.slice(0, 7) === month).reduce((s, r) => s + Number(r.gst_amount), 0);
+  const oldest = rows.reduce((a, r) => r.day < a ? r.day : a, '9999');
+  const by = new Map();
+  rows.forEach(r => { const k = r.gstin || 'n:' + (r.paid_to || '').trim().toLowerCase();
+    const g = by.get(k) || {name: r.paid_to || 'Supplier not given', gstin: r.gstin, gst: 0, n: 0, noGstin: false};
+    g.gst += Number(r.gst_amount); g.n++; g.noGstin = g.noGstin || !r.gstin; by.set(k, g); });
+  const sups = [...by.values()].sort((a, b) => b.gst - a.gst), shown = sups.slice(0, 6), rest = sups.slice(6);
+  const missing = sups.filter(g => g.noGstin).length;
+  $('gstBox').innerHTML = '<div class="rates" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">' +
+      '<div><span>To claim</span><b>' + inr(total) + '</b><em>' + rows.length + ' bill' + (rows.length > 1 ? 's' : '') + '</em></div>' +
+      '<div><span>From this month’s bills</span><b>' + inr(thisMonth) + '</b></div>' +
+      '<div><span>Oldest bill</span><b style="font-size:1.1rem">' + esc(parse(oldest).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'})) + '</b></div></div>' +
+    '<div class="list">' + shown.map(g => '<div class="row" style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)"><span><b>' + esc(g.name) + '</b><br><small>' +
+        esc((g.gstin ? 'GSTIN ' + g.gstin + ' · ' : '') + g.n + ' bill' + (g.n > 1 ? 's' : '')) + (g.noGstin ? ' · <span style="color:var(--h);font-weight:600">GSTIN missing</span>' : '') + '</small></span>' +
+        '<b style="white-space:nowrap;font-variant-numeric:tabular-nums">' + inr(g.gst) + '</b></div>').join('') +
+      (rest.length ? '<div style="padding:8px 0;border-top:1px solid var(--line)"><small>' + rest.length + ' more supplier' + (rest.length > 1 ? 's' : '') + ': ' + inr(rest.reduce((s, g) => s + g.gst, 0)) + '</small></div>' : '') + '</div>' +
+    (missing ? '<p style="margin:10px 0 0;font-size:.88rem;font-weight:600;color:var(--h)">' + missing + ' supplier' + (missing > 1 ? 's have' : ' has') + ' bills without a GSTIN; add it in Expenses so the GST can be claimed.</p>' : '');
 }
 
 /* bank: each active account's balance today, and this month's money in and out (not counting
