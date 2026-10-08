@@ -197,8 +197,11 @@ const fmtDay = d => { const t = todayIso(), y = iso(new Date(Date.now() - 864e5)
 const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
 const monthEnd = m => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + 1); d.setDate(0); return iso(d); };
 const sum = (rows, k) => rows.reduce((s, r) => s + Number(r[k] || 0), 0);
-// the owner can change any entry; others only their own, on the day they entered it
-const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && iso(new Date(r.created_at)) === todayIso()));
+// the owner can change any entry; others only their own, dated today or yesterday (older: ask the owner)
+const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && NJ.recentDay(r.day)));
+const canAsk = r => NJ.me && !NJ.me.is_owner && r.created_by === NJ.me.user_id && !NJ.recentDay(r.day);
+const silverSummary = r => [r.kind === 'sale' ? 'Sale' : 'Purchase', r.item || 'Silver', Number(r.weight_g).toFixed(3) + ' g', r.amount != null ? inr(r.amount) : '',
+  parse(r.day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}), r.party].filter(Boolean).join(' · ');
 // the same sums the database makes
 function work(k, w, t, rt, mk, gst){
   const fine = r3(w * t / 100);
@@ -231,7 +234,7 @@ function setKind(k, keepTouch){
   $('fModeT').textContent = k === 'sale' ? 'Paid by (customer)' : 'We paid by';
   $('fAccT').textContent = k === 'sale' ? 'Into account' : 'From account';
   if(!keepTouch) $('fTouch').value = k === 'sale' ? '92.5' : '';
-  $('fSave').textContent = editing ? 'Save changes' : k === 'sale' ? 'Save sale' : 'Save purchase';
+  syncSave(k);
   calc();
 }
 function setSrc(s){ src = s; $('fSrc').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x.dataset.s === s)); setKind(kind, true); }
@@ -274,11 +277,16 @@ function editEntry(r){
   $('fMaking').value = Number(r.making) || ''; $('fGst').checked = Number(r.gst_percent) > 0;
   setMode(r.mode); if(r.account_id) $('fAcc').value = r.account_id;
   $('fDay').value = r.day; $('fBill').value = r.bill_no; $('fNote').value = r.note; $('fErr').textContent = '';
-  $('fCancel').hidden = false; $('fSave').textContent = 'Save changes';
+  $('fCancel').hidden = false; syncSave(r.kind);
   $('aTitle').textContent = 'Edit ' + (r.kind === 'sale' ? 'sale' : 'purchase'); $('aEyebrow').textContent = fmtDay(r.day) + (r.bill_no ? ' · bill ' + r.bill_no : '');
   calc();
 }
 $('fCancel').onclick = resetForm;
+// staff: a date older than yesterday is sent to the owner for approval
+function syncSave(k){
+  $('fSave').textContent = NJ.me && NJ.needsApproval($('fDay').value, editing && editing.day) ? 'Send to the owner for approval' : editing ? 'Save changes' : (k || kind) === 'sale' ? 'Save sale' : 'Save purchase';
+}
+$('fDay').addEventListener('change', () => syncSave());
 $('sf').addEventListener('submit', async e => {
   e.preventDefault(); const err = t => { $('fErr').textContent = t; }; err('');
   const w = num($('fWeight').value), t = num($('fTouch').value), rt = num($('fRate').value), mk = num($('fMaking').value), pcs = num($('fPieces').value), day = $('fDay').value;
@@ -298,6 +306,17 @@ $('sf').addEventListener('submit', async e => {
     weight_g: w, touch: t, rate: rt, making: kind === 'sale' ? (mk || 0) : 0, gst_percent: kind === 'sale' && $('fGst').checked ? 3 : 0, mode, day,
     bill_no: $('fBill').value.trim(), note: $('fNote').value.trim()};
   if(acc || mode === 'Cash' || !editing) row.account_id = acc || null;
+  if(NJ.needsApproval(day, editing && editing.day)){
+    // older than yesterday: the owner approves it first
+    $('fSave').setAttribute('aria-busy', 'true');
+    try{
+      const sent = await NJ.requestChange(editing ? {app: 'silver', action: 'edit', target: editing.id, data: row, summary: silverSummary(editing)}
+        : {app: 'silver', action: 'add', data: row, summary: silverSummary(Object.assign({}, row, {amount: x.amount}))});
+      if(sent){ const keep = {kind, src, mode}; resetForm(); kind = keep.kind; src = keep.src; setMode(keep.mode); }
+    }catch(x2){ err(x2.message); }
+    $('fSave').removeAttribute('aria-busy');
+    return;
+  }
   $('fSave').setAttribute('aria-busy', 'true');
   try{
     const saved = must(editing ? await sb.from('silver_entries').update(row).eq('id', editing.id).select().single() : await sb.from('silver_entries').insert(row).select().single());
@@ -318,7 +337,8 @@ function row(r, showDay){
   return '<div class="srow" data-id="' + esc(r.id) + '"><div><div class="what"><span class="tag ' + r.kind + '">' + (r.kind === 'sale' ? 'Sale' : r.from_supplier ? 'Bought · supplier' : 'Bought · old silver') + '</span> ' + esc(r.item || 'Silver') + (r.pieces > 1 ? ' × ' + r.pieces : '') + '</div>' +
     '<div class="sub">' + esc(sub) + '</div>' + (NJ.me.is_owner ? '<div class="sub" style="font-size:.76rem">Entered by ' + esc(r.created_by_name || 'someone') + (r.updated_by_name ? ' · changed by ' + esc(r.updated_by_name) : '') + '</div>' : '') + '</div>' +
     '<div class="amt ' + r.kind + '">' + (r.kind === 'sale' ? '+' : '−') + inr(r.amount) + '</div>' +
-    (canChange(r) ? '<div class="acts"><button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button></div>' : '') + '</div>';
+    (canChange(r) ? '<div class="acts"><button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button></div>'
+      : canAsk(r) ? '<div class="acts"><button class="btn mini" data-act="edit">Ask to change</button><button class="btn mini" data-act="del">Ask to delete</button></div>' : '') + '</div>';
 }
 // what came into and went out of the cash drawer through silver
 function cashLine(rows){
@@ -336,6 +356,7 @@ async function act(e, list, after){
   const b = e.target.closest('[data-act]'); if(!b) return;
   const r = list.find(x => x.id === b.closest('[data-id]').dataset.id); if(!r) return;
   if(b.dataset.act === 'edit') return editEntry(r);
+  if(NJ.needsApproval(r.day)) return NJ.requestChange({app: 'silver', action: 'delete', target: r.id, summary: silverSummary(r)}).catch(x => toast(x.message));
   if(!await ask('Delete this ' + (r.kind === 'sale' ? 'sale' : 'purchase') + '?', (r.item || 'Silver') + ' · ' + gm(r.weight_g) + ' · ' + inr(r.amount), 'Delete', true)) return;
   try{ must(await sb.from('silver_entries').delete().eq('id', r.id)); toast('Deleted'); await loadToday(); if(after) after(); }catch(x){ toast(x.message); }
 }
@@ -417,6 +438,7 @@ async function loadSupport(){
     $('custList').innerHTML = customers.map(c => '<option value="' + esc(c.name + (c.phone ? ' · ' + c.phone : '')) + '">').join('');
   }
 }
+let reqBar = null;
 NJ.start({onReady: async me => {
   const ok = !!me && NJ.canUse('silver');
   document.body.classList.toggle('no-access', !!me && !ok);
@@ -424,6 +446,8 @@ NJ.start({onReady: async me => {
   try{ await loadSupport(); }catch(e){}
   resetForm();
   try{ await loadToday(); }catch(e){ toast(e.message); }
+  // changes to older days waiting for the owner
+  if(!reqBar) reqBar = NJ.requestsBar('silver', () => { loadToday().catch(() => {}); if(curTab === 'day') loadDay(); }); else reqBar.load();
   route();
 }});
 })();

@@ -4,10 +4,12 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v29';
+const KEY = 'natraj-demo-db-v30';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+// migration 029: staff add, change and remove only entries dated today or yesterday
+const recentDay = d => { const y = new Date(); y.setDate(y.getDate() - 1); return !!d && d >= iso(y) && d <= iso(new Date()); };
 const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return iso(new Date(y, m - 1, d + n)); };
 const dow = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).getDay(); };
 const parse0 = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -21,7 +23,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -109,6 +111,12 @@ function seed(){
     const m = e.day.slice(0, 7), claimedOn = iso(new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 20));
     e.gst_claimed_on = m < gstLastM || (m === gstLastM && Number(today.slice(8)) >= 20) ? claimedOn : null;
     e.gst_claimed_by_name = e.gst_claimed_on ? owner.name : ''; });
+  // one change waiting for the owner: the manager forgot to enter a bill 4 days ago
+  { const d4 = addDays(today, -4), data = {day: d4, amount: 340, category: 'Stationery & printing', mode: 'Cash', paid_to: 'Sri Ganesh Stores', note: 'Bill books', period_from: d4, period_to: d4};
+    db.change_requests.push({id: uid(), app: 'expenses', action: 'add', target_id: null, data, before: null,
+      summary: 'Stationery & printing · ₹340 · ' + new Date(d4 + 'T12:00:00').toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}) + ' · to Sri Ganesh Stores',
+      reason: 'Forgot to enter the bill on the day', status: 'pending', requested_by: manager.user_id, requested_by_name: manager.name, requested_at: today + 'T09:40:00',
+      decided_by_name: '', decided_at: null, decision_note: '', result_id: null}); }
   db.expenses.forEach(e => { if(!e.gst_claimable){ e.gst_claimable = false; e.gst_rate = null; e.gst_amount = 0; e.gstin = ''; e.bill_no = ''; e.gst_claimed_on = null; e.gst_claimed_by_name = ''; } });
   const be = (a, day, direction, amount, method, party, reference, by, tid) => db.bank_entries.push({id: uid(), account_id: a.id, day, direction, amount, method, party: party || '', reference: reference || '', note: '', transfer_id: tid || null, for_chit: false,
     created_by: by.user_id, created_by_name: by.name, created_at: day + 'T11:30:00Z', updated_by_name: '', updated_at: null});
@@ -450,7 +458,68 @@ function people(body, me, headers){
 /* migration 026: devices staff can use (the demo keeps the key itself; the real database keeps only a hash) */
 const devKey = h => { const k = (h && h.get && h.get('x-natraj-device')) || ''; return k.length >= 32 ? k : null; };
 const deviceOk = (me, h) => aalOk(h) && (!db.settings[0].device_lock || (me && me.is_owner) || db.approved_devices.some(d => d.key_hash === devKey(h)));
+/* migration 029: changes to older days, asked by staff and approved by the owner */
+const CT = {expenses: ['expenses', ['day','amount','category','mode','account_id','paid_to','note','period_from','period_to','gst_claimable','gst_rate','gstin','bill_no']],
+  banking: ['bank_entries', ['account_id','day','direction','amount','method','party','reference','note','for_chit']],
+  silver: ['silver_entries', ['kind','day','item','party','phone','customer_id','from_supplier','pieces','weight_g','touch','rate','making','gst_percent','mode','account_id','bill_no','note']],
+  chits: ['chit_payments', ['member_id','paid_on','amount','mode','gold_rate','note']]};
+function applyChange(app, action, target, data, who, tryOnly){
+  const tbl = CT[app][0], snap = JSON.stringify(db[tbl]);
+  const meX = Object.assign({}, who, {is_owner: true});     // made as them, without the day limit
+  const res = rest(action === 'add' ? 'POST' : action === 'edit' ? 'PATCH' : 'DELETE', tbl, new URLSearchParams(action === 'add' ? '' : 'id=eq.' + target), data, new Headers({prefer: 'return=representation'}), meX);
+  const row = res.body && (Array.isArray(res.body) ? res.body[0] : res.body);
+  if(tryOnly || res.status >= 300) db[tbl] = JSON.parse(snap);
+  if(res.status >= 300) throw res;
+  if(!row && action !== 'add') throw {status: 400, body: {code: 'P0002', message: 'That entry no longer exists.'}};
+  return row && row.id;
+}
+function changeRpc(name, a, me, headers){
+  const pg = (message, code) => ({status: 400, body: {code: code || '22023', message}});
+  if(!me) return {status: 401, body: {message: 'no'}};
+  if(!deviceOk(me, headers)) return {status: 403, body: {code: '42501', message: 'permission denied'}};
+  if(name === 'request_change'){
+    const ct = CT[a.p_app]; if(!ct || !['add', 'edit', 'delete'].includes(a.p_action)) return pg('Unknown change.');
+    if(!canUse(me, a.p_app)) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to this app.'}};
+    if(!String(a.p_reason || '').trim()) return pg('Write a short reason for the owner.');
+    const data = {}; Object.keys(a.p_data || {}).filter(k => ct[1].includes(k)).forEach(k => data[k] = a.p_data[k]);
+    let before = null;
+    if(a.p_action !== 'add'){
+      before = db[ct[0]].find(r => r.id === a.p_target);
+      if(!before) return pg('That entry no longer exists.', 'P0002');
+      if(['expenses', 'banking'].includes(a.p_app) && !me.is_owner && before.created_by !== me.user_id) return {status: 403, body: {code: '42501', message: 'You can ask to change only entries you made.'}};
+      if(a.p_app === 'banking' && before.transfer_id) return pg('Transfers between accounts on older days are changed by the owner. Please ask the owner.');
+      before = JSON.parse(JSON.stringify(before));
+    }
+    if(!(a.p_app === 'chits' && a.p_action === 'add')){ try{ applyChange(a.p_app, a.p_action, a.p_target, data, me, true); }catch(e){ return e.status ? e : pg(String(e)); } }
+    const q = {id: uid(), app: a.p_app, action: a.p_action, target_id: a.p_action === 'add' ? null : a.p_target, data, before, summary: String(a.p_summary || '').slice(0, 300),
+      reason: String(a.p_reason).trim(), status: 'pending', requested_by: me.user_id, requested_by_name: me.name, requested_at: now(), decided_by_name: '', decided_at: null, decision_note: '', result_id: null};
+    db.change_requests.push(q);
+    db.profiles.filter(p => p.is_owner).forEach(p => db.notifications.push({id: uid(), user_id: p.user_id, kind: 'change_request', title: me.name + ' asks to ' + {add: 'add', edit: 'change', delete: 'remove'}[q.action] + ' an older entry', body: q.summary + ' · ' + q.reason, link: q.app + '/', created_at: q.requested_at, read_at: null}));
+    return {status: 200, body: q.id};
+  }
+  if(name === 'cancel_change_request'){
+    const q = db.change_requests.find(x => x.id === a.p_id && x.requested_by === me.user_id && x.status === 'pending');
+    if(!q) return pg('That request is no longer waiting.');
+    q.status = 'cancelled'; q.decided_at = now(); return {status: 204, body: null};
+  }
+  if(name === 'decide_change_request'){
+    if(!me.is_owner) return {status: 403, body: {code: '42501', message: 'Only the owner approves changes.'}};
+    const q = db.change_requests.find(x => x.id === a.p_id);
+    if(!q) return pg('That request no longer exists.', 'P0002');
+    if(q.status !== 'pending') return pg('This request was already ' + q.status + '.');
+    let res = null;
+    if(a.p_approve){
+      const who = db.profiles.find(p => p.user_id === q.requested_by);
+      if(!who) return pg('The person who asked has been removed, so the change can\'t be made in their name. Reject it and make the change yourself.');
+      try{ res = applyChange(q.app, q.action, q.target_id, q.data, who, false); }catch(e){ return e.status ? e : pg(String(e)); }
+    }
+    Object.assign(q, {status: a.p_approve ? 'approved' : 'rejected', decided_by_name: me.name, decided_at: now(), decision_note: String(a.p_note || '').trim(), result_id: res});
+    db.notifications.push({id: uid(), user_id: q.requested_by, kind: 'change_decided', title: me.name + (a.p_approve ? ' approved your change' : ' did not approve your change'), body: q.summary + (q.decision_note ? ' · ' + q.decision_note : ''), link: q.app + '/', created_at: q.decided_at, read_at: null});
+    return {status: 200, body: {status: q.status, result_id: res}};
+  }
+}
 function rpc(name, a, me, headers){
+  if(['request_change', 'cancel_change_request', 'decide_change_request'].includes(name)) return changeRpc(name, a, me, headers);
   if(name === 'device_status'){ const k = devKey(headers), d = db.approved_devices.find(x => x.key_hash === k);
     return {status: 200, body: {locked: !!db.settings[0].device_lock, approved: !!d, name: d ? d.name : null, has_key: !!k, ok: deviceOk(me, headers)}}; }
   if(name === 'two_step_people') return {status: 200, body: me && me.is_owner && aalOk(headers)
@@ -544,7 +613,7 @@ function rest(method, table, params, body, headers, me){
     chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, approved_devices: {read: me.is_owner, write: me.is_owner}, campaigns: {read: canUse(me, 'campaigns'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'campaigns')},
     campaign_contacts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_costs: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
-    tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}
+    tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
   if(method === 'GET' ? !rule.read : !rule.write) return denied;
@@ -561,6 +630,10 @@ function rest(method, table, params, body, headers, me){
     if(method !== 'GET') return denied;
     db.presence.forEach(r => { if(r.demo_live && !r.signed_out_at) r.last_seen = now(); });   // the sample person stays online in the demo
     return {status: 200, body: db.presence.filter(r => me.is_owner || r.user_id === me.user_id).map(r => Object.assign({}, r))};
+  }
+  if(table === 'change_requests'){
+    const out = sortBy(db.change_requests.filter(q => me.is_owner || q.requested_by === me.user_id).filter(q => matches(q, params)), params.get('order'));
+    return {status: 200, body: out.slice(0, Number(params.get('limit') || 1000))};
   }
   if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
   if(table === 'user_prefs') return prefsRest(method, params, body, single, wantRows, me);
@@ -651,16 +724,19 @@ function expenseAccount(r, old){
 }
 function expensesRest(method, params, body, single, wantRows, me){
   const owner = me.is_owner, may = canUse(me, 'expenses');
-  const ownToday = r => r.created_by === me.user_id && iso(new Date(r.created_at)) === iso(new Date());
+  const ownToday = r => r.created_by === me.user_id && recentDay(r.day);
+  const denied = {status: 403, body: {code: '42501', message: 'new row violates row-level security policy for table "expenses"'}};
   let out = db.expenses.filter(r => owner || r.created_by === me.user_id).filter(r => matches(r, params));
   if(method === 'GET') out = sortBy(out.slice(), params.get('order'));
   else if(method === 'POST'){
+    if(!owner && !recentDay(body.day)) return denied;
     const r = Object.assign({id: uid(), mode: 'Cash', paid_to: '', note: ''}, body, {created_by: me.user_id, created_by_name: me.name, created_at: now(), updated_by_name: '', updated_at: null});
     if(!r.period_from || !r.period_to){ r.period_from = r.day; r.period_to = r.day; }
     expenseAccount(r, null); expenseGst(r, null, me);
     db.expenses.push(r); out = [r];
   } else if(method === 'PATCH'){
     out = out.filter(r => owner || (may && ownToday(r)));
+    if(!owner && body.day && !recentDay(body.day)) return denied;
     out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}); expenseAccount(r, old); expenseGst(r, old, me); });
   } else if(method === 'DELETE'){
     out = out.filter(r => owner || (may && ownToday(r)));
@@ -716,16 +792,17 @@ function bankAccountsRest(method, params, body, single, wantRows, me){
 }
 function bankEntriesRest(method, params, body, single, wantRows, me){
   const owner = me.is_owner, may = canUse(me, 'banking'), nowIso = new Date().toISOString();
-  const ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
+  const ownToday = r => r.created_by === me.user_id && recentDay(r.day);
   let out = db.bank_entries.filter(r => owner || (may && r.created_by === me.user_id)).filter(r => matches(r, params));
   if(method === 'GET') sortBy(out, params.get('order'));
   else if(method === 'POST'){
-    if(!may) return {status: 403, body: {code: '42501', message: 'new row violates row-level security policy for table "bank_entries"'}};
+    if(!may || (!owner && (Array.isArray(body) ? body : [body]).some(b => !recentDay(b.day)))) return {status: 403, body: {code: '42501', message: 'new row violates row-level security policy for table "bank_entries"'}};
     out = (Array.isArray(body) ? body : [body]).map(b => Object.assign({id: uid(), method: '', party: '', reference: '', note: '', transfer_id: null, for_chit: false}, b,
       {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null}));
     db.bank_entries.push(...out);
   } else if(method === 'PATCH'){
     out = out.filter(r => owner || (may && ownToday(r)));
+    if(!owner && body.day && !recentDay(body.day)) return {status: 403, body: {code: '42501', message: 'new row violates row-level security policy for table "bank_entries"'}};
     out.forEach(r => Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}));
   } else if(method === 'DELETE'){
     out = out.filter(r => owner || (may && ownToday(r)));
@@ -863,15 +940,18 @@ function silverRow(x, d){
     created_by: null, created_by_name: 'Sample Staff 2', created_at: d + 'T12:00:00Z', updated_by_name: '', updated_at: null}, x));
 }
 function silverRest(method, params, body, single, wantRows, me){
-  const nowIso = now(), ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
+  const nowIso = now(), ownToday = r => r.created_by === me.user_id && recentDay(r.day);
+  const denied = {status: 403, body: {code: '42501', message: 'new row violates row-level security policy for table "silver_entries"'}};
   let out = db.silver_entries.filter(r => matches(r, params));
   if(method === 'GET') sortBy(out, params.get('order'));
   else if(method === 'POST'){
     const r = Object.assign(silverRow(Array.isArray(body) ? body[0] : body, iso(new Date())), {created_by: me.user_id, created_by_name: me.name, created_at: nowIso});
     if(!r.day) r.day = iso(new Date());
+    if(!me.is_owner && !recentDay(r.day)) return denied;
     expenseAccount(r, null); silverFigures(r); db.silver_entries.push(r); out = [r];
   } else if(method === 'PATCH'){
     out = out.filter(r => me.is_owner || ownToday(r));
+    if(!me.is_owner && body.day && !recentDay(body.day)) return denied;
     out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: nowIso}); expenseAccount(r, old); silverFigures(r); });
   } else if(method === 'DELETE'){
     out = out.filter(r => me.is_owner || ownToday(r));
@@ -884,7 +964,8 @@ function silverRest(method, params, body, single, wantRows, me){
 /* chit scheme (migration 019): card numbers and receipt numbers count up; staff fix only their own payment on the day */
 function chitsRest(table, method, params, body, single, wantRows, me){
   const nowIso = now();
-  const ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
+  const ownToday = r => r.created_by === me.user_id && recentDay(r.paid_on);
+  const denied = {status: 403, body: {code: '42501', message: 'new row violates row-level security policy for table "' + table + '"'}};
   const fix = r => {
     if(table === 'chit_members'){ r.card_no = String(r.card_no || '').trim().toUpperCase(); r.closed_at = r.status === 'active' ? null : (r.closed_at || nowIso); }
     if(table === 'chit_payments') r.grams = r.gold_rate ? Math.round(r.amount / r.gold_rate * 1000) / 1000 : null;
@@ -899,6 +980,7 @@ function chitsRest(table, method, params, body, single, wantRows, me){
       : table === 'chit_members' ? {customer_id: null, phone: '', status: 'active', closed_at: null, close_note: '', notes: '', card_no: ''}
       : {paid_on: iso(new Date()), mode: 'Cash', gold_rate: null, note: ''};
     const r = Object.assign({id: uid()}, base, b);
+    if(table === 'chit_payments' && !me.is_owner && !recentDay(r.paid_on)) return denied;
     if(table !== 'chit_plans') Object.assign(r, {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null});
     if(table === 'chit_members' && !String(r.card_no).trim()) r.card_no = String(db.chitSeq.card++);
     if(table === 'chit_payments') r.receipt_no = db.chitSeq.receipt++;
@@ -908,6 +990,7 @@ function chitsRest(table, method, params, body, single, wantRows, me){
     db[table].push(r); out = [r];
   } else if(method === 'PATCH'){
     if(table === 'chit_payments') out = out.filter(r => me.is_owner || ownToday(r));
+    if(table === 'chit_payments' && !me.is_owner && body.paid_on && !recentDay(body.paid_on)) return denied;
     out.forEach(r => { Object.assign(r, body); if(table !== 'chit_plans') Object.assign(r, {updated_by_name: me.name, updated_at: nowIso}); fix(r); });
   } else if(method === 'DELETE'){
     out = out.filter(r => me.is_owner || (table === 'chit_payments' && ownToday(r)));

@@ -570,13 +570,122 @@ function matchExpenses(expenses, bank, from, to){
   return {matched, missing, waiting, noAccount, extra};
 }
 
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs', 'change_requests'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
   for(const t of TABLES) out.tables[t] = must(await sb.from(t).select('*'));
   download('natraj-tools-backup-' + todayIso() + '.json', JSON.stringify(out, null, 1), 'application/json');
 }
 
+/* ---------- older days need the owner's approval (migration 029) ----------
+   In Expenses, Banking, Silver and Chit payments, staff add, change and remove entries dated today or
+   yesterday. For an older day they send the change to the owner, who approves or rejects it. */
+const yesterdayIso = () => { const d = new Date(); d.setDate(d.getDate() - 1); return iso(d); };
+const recentDay = d => !!d && d >= yesterdayIso() && d <= todayIso();
+// true when the person signed in may not do this directly because one of these dates is older than yesterday
+const needsApproval = (...days) => !!me && !me.is_owner && days.some(d => d && !recentDay(d));
+const REQ_APPS = {expenses: 'Expenses', banking: 'Banking', silver: 'Silver', chits: 'Chit scheme'};
+const REQ_LABELS = {
+  day: 'Date', paid_on: 'Date', amount: 'Amount', category: 'Category', mode: 'Paid by', paid_to: 'Paid to', note: 'Note',
+  period_from: 'Covers from', period_to: 'Covers to', gst_claimable: 'GST claimable', gst_rate: 'GST rate %', gstin: 'GSTIN', bill_no: 'Bill number',
+  direction: 'In or out', method: 'How', party: 'From / to', reference: 'Reference', for_chit: 'Chit money',
+  kind: 'Sale or purchase', item: 'Item', phone: 'Phone', from_supplier: 'From a supplier', pieces: 'Pieces', weight_g: 'Weight (g)', touch: 'Touch %',
+  rate: 'Rate', making: 'Making', gst_percent: 'GST %', gold_rate: 'Gold rate'
+};
+const reqVal = (k, v) => v === null || v === undefined || v === '' ? '–' : typeof v === 'boolean' ? (v ? 'Yes' : 'No')
+  : /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? parse(String(v)).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'})
+  : k === 'amount' || k === 'making' ? '₹' + Number(v).toLocaleString('en-IN') : String(v);
+// what the request changes, field by field (ids such as the account are shown in the summary instead)
+function reqDiff(q){
+  const keys = Object.keys(q.data || {}).filter(k => REQ_LABELS[k]);
+  // a new entry: what it says, leaving out blanks, "No", zeros and a period that is just its own day
+  const dayOf = q.data.day || q.data.paid_on;
+  if(q.action === 'add') return keys.filter(k => ![null, undefined, '', false, 0, '0'].includes(q.data[k]) && !((k === 'period_from' || k === 'period_to') && q.data[k] === dayOf))
+    .map(k => REQ_LABELS[k] + ': ' + reqVal(k, q.data[k]));
+  if(q.action === 'edit') return keys.filter(k => String(q.data[k] ?? '') !== String((q.before || {})[k] ?? '') && !(Number(q.data[k]) === Number((q.before || {})[k]) && q.data[k] !== '' && q.data[k] !== null && !isNaN(Number(q.data[k]))))
+    .map(k => REQ_LABELS[k] + ': ' + reqVal(k, (q.before || {})[k]) + ' → ' + reqVal(k, q.data[k]));
+  return [];
+}
+// ask the owner: o = {app, action: 'add'|'edit'|'delete', target, data, summary}
+async function requestChange(o){
+  const word = {add: 'add', edit: 'change', delete: 'remove'}[o.action];
+  const v = await dialog({
+    title: 'Ask the owner to ' + word + ' this', ok: 'Send for approval',
+    msg: 'Staff can add, change and remove entries for today and yesterday only. For an older day, the owner approves the change; until then nothing changes.',
+    html: '<p class="reqsum">' + esc(o.summary) + '</p>',
+    fields: [{id: 'reason', label: 'Why? (the owner will see this)', type: 'textarea', maxlength: 300, placeholder: 'e.g. forgot to enter the bill on Monday'}],
+    validate: async v => {
+      if(!v.reason) return 'Write a short reason for the owner.';
+      must(await sb.rpc('request_change', {p_app: o.app, p_action: o.action, p_target: o.target || null, p_data: o.data || {}, p_reason: v.reason, p_summary: o.summary}));
+      return '';
+    }
+  });
+  if(v){ toast('Sent to the owner for approval'); reqBars.forEach(b => b.load()); }
+  return !!v;
+}
+// the list of requests: the owner approves or rejects; the person who asked can take theirs back
+function reqItem(q, withApp){
+  const when = new Date(q.requested_at).toLocaleString('en-IN', {weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+  const word = {add: 'Add', edit: 'Change', delete: 'Remove'}[q.action];
+  const diff = reqDiff(q);
+  const state = q.status === 'pending' ? '' : '<span class="reqstate ' + q.status + '">' + {approved: 'Approved', rejected: 'Not approved', cancelled: 'Taken back'}[q.status] +
+    (q.decided_by_name ? ' by ' + esc(q.decided_by_name) : '') + (q.decision_note ? ': ' + esc(q.decision_note) : '') + '</span>';
+  const acts = q.status !== 'pending' ? '' : me && me.is_owner
+    ? '<button class="btn mini btn-maroon" type="button" data-req-ok="' + esc(q.id) + '">Approve</button><button class="btn mini" type="button" data-req-no="' + esc(q.id) + '">Reject</button>'
+    : me && q.requested_by === me.user_id ? '<button class="btn mini" type="button" data-req-cancel="' + esc(q.id) + '">Take back</button>' : '';
+  return '<div class="req"><div class="reqmain"><b>' + (withApp ? esc(REQ_APPS[q.app] || q.app) + ' · ' : '') + word + ': ' + esc(q.summary) + '</b>' +
+    (diff.length ? '<span class="reqdiff">' + diff.map(esc).join(' · ') + '</span>' : '') +
+    '<span>Asked by ' + esc(q.requested_by_name || 'someone') + ' · ' + esc(when) + ' · “' + esc(q.reason) + '”</span>' + state + '</div>' +
+    (acts ? '<div class="acts">' + acts + '</div>' : '') + '</div>';
+}
+async function loadRequests(app){
+  let q = sb.from('change_requests').select('*').order('requested_at', {ascending: false}).limit(60);
+  if(app) q = q.eq('app', app);
+  if(me && me.is_owner) q = q.eq('status', 'pending');
+  else q = q.or('status.eq.pending,decided_at.gte.' + new Date(Date.now() - 7 * 864e5).toISOString());
+  return must(await q) || [];
+}
+async function decideRequest(id, approve){
+  let note = '';
+  if(!approve){
+    const v = await dialog({title: 'Reject this change?', ok: 'Reject', danger: true, fields: [{id: 'note', label: 'Note for them (optional)', type: 'text', maxlength: 300}]});
+    if(!v) return false;
+    note = v.note;
+  }
+  must(await sb.rpc('decide_change_request', {p_id: id, p_approve: approve, p_note: note}));
+  toast(approve ? 'Approved: the change is made' : 'Rejected');
+  return true;
+}
+// a box at the top of an app page with its requests; onApplied runs after the owner approves one
+const reqBars = [];
+function requestsBar(app, onApplied){
+  let box = document.getElementById('nj-req');
+  if(!box){ box = document.createElement('div'); box.id = 'nj-req'; box.className = 'wrap content reqbar'; box.hidden = true; const m = document.querySelector('main'); if(m) m.prepend(box); else return; }
+  const bar = {load: async () => {
+    if(!me){ box.hidden = true; return; }
+    try{
+      const list = await loadRequests(app);
+      box.hidden = !list.length;
+      const pending = list.filter(q => q.status === 'pending').length;
+      box.innerHTML = '<div class="form panel reqs"><h3>' + (me.is_owner ? 'Waiting for your approval (' + pending + ')' : 'Your requests to the owner') + '</h3>' + list.map(q => reqItem(q, false)).join('') + '</div>';
+    }catch(e){ box.hidden = true; }
+  }};
+  box.addEventListener('click', e => reqClick(e, () => { bar.load(); if(onApplied) onApplied(); }));
+  reqBars.push(bar); bar.load();
+  return bar;
+}
+async function reqClick(e, after){
+  const ok = e.target.closest('[data-req-ok]'), no = e.target.closest('[data-req-no]'), cancel = e.target.closest('[data-req-cancel]');
+  if(!ok && !no && !cancel) return;
+  const b = ok || no || cancel; b.disabled = true;
+  try{
+    if(cancel){ must(await sb.rpc('cancel_change_request', {p_id: cancel.dataset.reqCancel})); toast('Request taken back'); after(); }
+    else if(await decideRequest((ok || no).dataset[ok ? 'reqOk' : 'reqNo'], !!ok)) after();
+  }catch(x){ toast(x.message); }
+  b.disabled = false;
+}
+
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
-  pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode, get me(){ return me; }};
+  pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
+  recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick, get me(){ return me; }};
 })();

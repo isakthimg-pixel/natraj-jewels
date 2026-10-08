@@ -206,7 +206,11 @@ const amount = s => { const v = String(s).replace(/[,\s₹]/g, ''); return /^\d+
 const signed = r => r.direction === 'in' ? Number(r.amount) : -Number(r.amount);
 const accName = id => (accounts.find(a => a.id === id) || {}).name || 'Removed account';
 const accLabel = a => a.name + (a.last4 ? ' ··' + a.last4 : '');
-const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && iso(new Date(r.created_at)) === todayIso()));
+// the owner can change any entry; others only their own, dated today or yesterday (older: ask the owner)
+const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && NJ.recentDay(r.day)));
+const canAsk = r => NJ.me && !NJ.me.is_owner && r.created_by === NJ.me.user_id && !NJ.recentDay(r.day);
+const OLD_TRANSFER = 'Transfers between accounts on older days are entered and changed by the owner. Please ask the owner.';
+const bankSummary = r => [describe(r), inr(r.amount), parse(r.day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'})].filter(Boolean).join(' · ');
 
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -250,7 +254,8 @@ function row(r, showDay){
   return '<div class="erow" data-id="' + esc(r.id) + '"><div><div class="what">' + esc(describe(r)) + '</div>' +
     '<div class="sub">' + esc(sub) + '</div>' + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
     '<div class="amt ' + cls + '">' + (r.direction === 'in' ? '+' : '−') + esc(inr(r.amount)) + '</div>' +
-    '<div class="acts">' + (canChange(r) ? '<button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button>' : '') + '</div></div>';
+    '<div class="acts">' + (canChange(r) ? '<button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button>'
+      : canAsk(r) && !r.transfer_id ? '<button class="btn mini" data-act="edit">Ask to change</button><button class="btn mini" data-act="del">Ask to delete</button>' : '') + '</div></div>';
 }
 function renderRecent(){
   const t = todayIso(), today = recent.filter(r => r.day === t && r.method !== 'Transfer' && r.method !== OPENING);
@@ -292,6 +297,8 @@ function pickOther(){
 $('fAcc').addEventListener('change', pickOther);
 setDir('in');
 $('fDay').value = todayIso(); $('fDay').max = todayIso();
+// staff: a date older than yesterday is sent to the owner for approval
+$('fDay').addEventListener('change', () => { $('fSave').textContent = NJ.me && NJ.needsApproval($('fDay').value) ? 'Send to the owner for approval' : 'Save entry'; });
 
 $('bForm').addEventListener('submit', async e => {
   e.preventDefault(); $('fErr').textContent = '';
@@ -311,11 +318,18 @@ $('bForm').addEventListener('submit', async e => {
     rows = [Object.assign({}, base, {account_id: acc, direction: 'out', method: 'Transfer', party: B.name, transfer_id: t}),
             Object.assign({}, base, {account_id: to, direction: 'in', method: 'Transfer', party: A.name, transfer_id: t})];
   } else rows = [Object.assign({}, base, {account_id: acc, direction: dir, method: $('fMethod').value, party: $('fParty').value.trim(), for_chit: dir === 'in' && $('fChit').checked})];
+  if(NJ.needsApproval(day) && dir === 'tr') return $('fErr').textContent = OLD_TRANSFER;
   $('fSave').setAttribute('aria-busy', 'true');
   try{
-    must(await sb.from('bank_entries').insert(rows).select());
-    await loadRecent();
-    toast(dir === 'tr' ? 'Moved ' + inr(a) + ' to ' + accName(to) : 'Saved ' + inr(a) + (dir === 'in' ? ' in to ' : ' out of ') + accName(acc));
+    if(NJ.needsApproval(day)){
+      // older than yesterday: the owner approves it first
+      const row = rows[0];
+      if(!await NJ.requestChange({app: 'banking', action: 'add', data: row, summary: bankSummary(Object.assign({}, row))})){ $('fSave').removeAttribute('aria-busy'); return; }
+    } else {
+      must(await sb.from('bank_entries').insert(rows).select());
+      await loadRecent();
+      toast(dir === 'tr' ? 'Moved ' + inr(a) + ' to ' + accName(to) : 'Saved ' + inr(a) + (dir === 'in' ? ' in to ' : ' out of ') + accName(acc));
+    }
     ['fAmt', 'fParty', 'fRef', 'fNote'].forEach(id => $(id).value = ''); $('fChit').checked = false;
     $('fAmt').focus();
   }catch(x){ $('fErr').textContent = x.message; }
@@ -325,6 +339,9 @@ $('bForm').addEventListener('submit', async e => {
 /* edit or delete an entry; both halves of a transfer change together */
 async function editEntry(r){
   const isTr = r.method === 'Transfer' && r.transfer_id;
+  if(!canChange(r) && !canAsk(r)) return;
+  if(canAsk(r) && isTr) return ask('Ask the owner', OLD_TRANSFER, 'OK', false);
+  let ask4 = null;   // a change to an older day: sent to the owner after the form closes
   const fields = [
     {id: 'amount', label: 'Amount (₹)', type: 'text', value: String(Number(r.amount)), maxlength: 14},
     {id: 'day', label: 'Date', type: 'date', value: r.day}
@@ -338,22 +355,31 @@ async function editEntry(r){
   fields.push({id: 'reference', label: 'Cheque no. or reference', type: 'text', value: r.reference, maxlength: 40},
               {id: 'note', label: 'Note', type: 'text', value: r.note, maxlength: 300});
   const v = await dialog({
-    title: isTr ? 'Edit transfer' : 'Edit entry', msg: isTr ? describe(r) + '. Both accounts change together.' : '', ok: 'Save', fields,
+    title: isTr ? 'Edit transfer' : canAsk(r) ? 'Ask to change this entry' : 'Edit entry', msg: isTr ? describe(r) + '. Both accounts change together.' : '', ok: canAsk(r) ? 'Next' : 'Save', fields,
     validate: async v => {
       const a = amount(v.amount);
       if(!(a > 0) || a >= 1e10) return 'Type the amount in rupees.';
       if(!v.day || v.day > todayIso()) return 'Choose a date that is not in the future.';
       if(v.chit && v.direction === 'out') return 'Only money in can be marked as chit money.';
       const patch = {amount: a, day: v.day, reference: v.reference, note: v.note};
+      if(NJ.needsApproval(r.day, v.day)){
+        if(isTr) return OLD_TRANSFER;
+        ask4 = Object.assign(patch, {account_id: v.account, direction: v.direction, method: v.method, party: v.party, for_chit: !!v.chit}); return '';
+      }
       if(isTr) must(await sb.from('bank_entries').update(patch).eq('transfer_id', r.transfer_id).select());
       else must(await sb.from('bank_entries').update(Object.assign(patch, {account_id: v.account, direction: v.direction, method: v.method, party: v.party, for_chit: !!v.chit})).eq('id', r.id).select());
       return '';
     }
   });
+  if(v && ask4){ NJ.requestChange({app: 'banking', action: 'edit', target: r.id, data: ask4, summary: bankSummary(r)}).catch(x => toast(x.message)); return; }
   if(v){ toast('Saved'); await refresh(); }
 }
 async function deleteEntry(r){
   const isTr = r.method === 'Transfer' && r.transfer_id;
+  if(NJ.needsApproval(r.day)){
+    if(isTr) return ask('Ask the owner', OLD_TRANSFER, 'OK', false);
+    return NJ.requestChange({app: 'banking', action: 'delete', target: r.id, summary: bankSummary(r)}).catch(x => toast(x.message));
+  }
   if(!await ask(isTr ? 'Delete this transfer?' : 'Delete this entry?', describe(r) + ' · ' + inr(r.amount) + ' · ' + fmtDay(r.day) + (isTr ? '\n\nBoth accounts lose the entry.' : ''), 'Delete', true)) return;
   try{
     must(isTr ? await sb.from('bank_entries').delete().eq('transfer_id', r.transfer_id) : await sb.from('bank_entries').delete().eq('id', r.id));
@@ -484,11 +510,14 @@ document.addEventListener('visibilitychange', () => {
     loadAccountList().then(refresh).catch(e => toast(e.message));
 });
 
+let reqBar = null;
 NJ.start({onReady: async me => {
   const ok = !!me && NJ.canUse('banking');
   document.body.classList.toggle('no-access', !!me && !ok);
   if(!ok) return;
   try{ await loadAccountList(); await loadRecent(); }catch(e){ toast(e.message); }
+  // changes to older days waiting for the owner
+  if(!reqBar) reqBar = NJ.requestsBar('banking', () => refresh().catch(() => {})); else reqBar.load();
   const h = location.hash.slice(1);
   showTab(['statement', 'accounts'].includes(h) ? h : curTab);
 }});

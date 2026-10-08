@@ -328,7 +328,10 @@ const monthEnd = m => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + 1)
 const sum = rows => rows.reduce((s, r) => s + Number(r.amount), 0);
 const amount = s => { const v = String(s).replace(/[,\s₹]/g, ''); return /^\d+(\.\d{1,2})?$/.test(v) ? Number(v) : NaN; };
 // the owner can change any entry; others only their own, on the day they entered it
-const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && iso(new Date(r.created_at)) === todayIso()));
+// the owner can change any entry; others only their own, dated today or yesterday (older: ask the owner)
+const canChange = r => NJ.me && (NJ.me.is_owner || (r.created_by === NJ.me.user_id && NJ.recentDay(r.day)));
+const canAsk = r => NJ.me && !NJ.me.is_owner && r.created_by === NJ.me.user_id && !NJ.recentDay(r.day);
+const expSummary = r => [r.category, inr(r.amount), parse(r.day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}), r.paid_to && 'to ' + r.paid_to].filter(Boolean).join(' · ');
 const catOptions = cur => [['', 'Choose a category'], ...cats.map(c => [c, c]), ...(cur && !cats.includes(cur) ? [[cur, cur]] : [])];
 const NEW = '__new';
 const fmtShort = d => parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: d.slice(0, 4) === todayIso().slice(0, 4) ? undefined : 'numeric'});
@@ -380,7 +383,8 @@ function row(r, showDay){
   return '<div class="erow" data-id="' + esc(r.id) + '"><div><div class="cat">' + esc(r.category) + '</div>' +
     (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + (gst ? '<div class="sub gtag">' + esc(gst) + '</div>' : '') + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
     '<div class="amt">' + esc(inr(r.amount)) + '</div>' +
-    '<div class="acts">' + (canChange(r) ? '<button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button>' : '') + '</div></div>';
+    '<div class="acts">' + (canChange(r) ? '<button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button>'
+      : canAsk(r) ? '<button class="btn mini" data-act="edit">Ask to change</button><button class="btn mini" data-act="del">Ask to delete</button>' : '') + '</div></div>';
 }
 function renderRecent(){
   const t = todayIso(), wk = addDays(t, -6), m = t.slice(0, 7);
@@ -450,6 +454,9 @@ function coverNote(){
 }
 $('fCover').addEventListener('change', syncCover);
 $('fDay').addEventListener('change', () => { if($('fCover').value !== 'custom') syncCover(); });
+// staff: a date older than yesterday is sent to the owner for approval
+const syncSaveLabel = () => { $('fSave').textContent = NJ.me && NJ.needsApproval($('fDay').value) ? 'Send to the owner for approval' : 'Save expense'; };
+$('fDay').addEventListener('change', syncSaveLabel);
 ['fFrom', 'fUntil', 'fAmt'].forEach(id => $(id).addEventListener('input', coverNote));
 ['fFrom', 'fUntil'].forEach(id => $(id).addEventListener('change', () => { $('fCover').value = 'custom'; coverNote(); }));
 
@@ -490,14 +497,21 @@ $('eForm').addEventListener('submit', async e => {
   $('fSave').setAttribute('aria-busy', 'true');
   try{
     if(cat === NEW) cat = await ensureCategory(newCat);
-    const r = must(await sb.from('expenses').insert({day, amount: a, category: cat, mode, account_id: acc || null, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim(), period_from: from, period_to: until,
-      gst_claimable: gst, gst_rate: rate, gstin: gst ? gstin : '', bill_no: gst ? $('fBill').value.trim() : ''}).select().single());
-    recent.unshift(r); recent.sort((x, y) => y.day.localeCompare(x.day) || y.created_at.localeCompare(x.created_at));
-    renderRecent();
-    toast('Saved ' + inr(a) + ' for ' + cat);
+    const data = {day, amount: a, category: cat, mode, account_id: acc || null, paid_to: $('fTo').value.trim(), note: $('fNote').value.trim(), period_from: from, period_to: until,
+      gst_claimable: gst, gst_rate: rate, gstin: gst ? gstin : '', bill_no: gst ? $('fBill').value.trim() : ''};
+    if(NJ.needsApproval(day)){
+      // older than yesterday: the owner approves it first
+      if(!await NJ.requestChange({app: 'expenses', action: 'add', data, summary: expSummary(data)})){ $('fSave').removeAttribute('aria-busy'); return; }
+    } else {
+      const r = must(await sb.from('expenses').insert(data).select().single());
+      recent.unshift(r); recent.sort((x, y) => y.day.localeCompare(x.day) || y.created_at.localeCompare(x.created_at));
+      renderRecent();
+      toast('Saved ' + inr(a) + ' for ' + cat);
+    }
     $('fGst').checked = false; $('fGstin').value = ''; $('fBill').value = ''; syncGst();
     $('fAmt').value = ''; $('fTo').value = ''; $('fNote').value = ''; $('fCat').value = ''; $('fNewCat').value = ''; $('fNewWrap').hidden = true;
     $('fCover').value = 'day'; $('fFrom').value = ''; $('fUntil').value = ''; syncCover();
+    syncSaveLabel();
     $('fAmt').focus();
   }catch(x){ $('fErr').textContent = x.message; }
   $('fSave').removeAttribute('aria-busy');
@@ -509,6 +523,10 @@ async function onListClick(e){
   if(!el || !act) return;
   const r = recent.find(x => x.id === el.dataset.id) || monthRows.find(x => x.id === el.dataset.id) || bankExp.find(x => x.id === el.dataset.id) || gstOpen.concat(gstDone).find(x => x.id === el.dataset.id);
   if(!r) return;
+  if(act.dataset.act === 'del' && NJ.needsApproval(r.day)){
+    NJ.requestChange({app: 'expenses', action: 'delete', target: r.id, summary: expSummary(r)}).catch(x => toast(x.message));
+    return;
+  }
   if(act.dataset.act === 'del'){
     if(!await ask('Delete this expense?', r.category + ' · ' + inr(r.amount) + ' · ' + fmtDay(r.day), 'Delete', true)) return;
     try{
@@ -518,8 +536,9 @@ async function onListClick(e){
     }catch(x){ toast(x.message); }
     return;
   }
+  let ask4 = null;   // a change to an older day: sent to the owner after the form closes
   const v = await dialog({
-    title: 'Edit expense', ok: 'Save',
+    title: canAsk(r) ? 'Ask to change this expense' : 'Edit expense', ok: canAsk(r) ? 'Next' : 'Save',
     fields: [
       {id: 'amount', label: 'Amount (₹)', type: 'text', value: String(Number(r.amount)), maxlength: 12},
       {id: 'category', label: 'Category', type: 'select', value: r.category, options: catOptions(r.category)},
@@ -551,12 +570,15 @@ async function onListClick(e){
       if(v.gst && !rateOk(rate)) return 'Type the GST rate, e.g. 18 (up to 40).';
       if(v.gst && !v.paid_to) return 'Type who the bill is from in “Paid to”, so the GST can be claimed.';
       if(v.gst && gstin && !GSTIN_RE.test(gstin)) return 'A GSTIN is 15 letters and numbers, e.g. 33ABCDE1234F1Z5.';
-      const row = must(await sb.from('expenses').update({amount: a, category: v.category, mode: v.mode, ...(accounts.length && (v.account || v.mode === 'Cash') ? {account_id: v.mode === 'Cash' ? null : v.account} : {}), day: v.day, period_from: v.from, period_to: v.to, paid_to: v.paid_to, note: v.note,
-        gst_claimable: v.gst, gst_rate: rate, gstin: v.gst ? gstin : '', bill_no: v.gst ? v.bill : ''}).eq('id', r.id).select().single());
+      const patch = {amount: a, category: v.category, mode: v.mode, ...(accounts.length && (v.account || v.mode === 'Cash') ? {account_id: v.mode === 'Cash' ? null : v.account} : {}), day: v.day, period_from: v.from, period_to: v.to, paid_to: v.paid_to, note: v.note,
+        gst_claimable: v.gst, gst_rate: rate, gstin: v.gst ? gstin : '', bill_no: v.gst ? v.bill : ''};
+      if(NJ.needsApproval(r.day, v.day)){ ask4 = patch; return ''; }
+      const row = must(await sb.from('expenses').update(patch).eq('id', r.id).select().single());
       [recent, monthRows].forEach(list => { const x = list.find(y => y.id === r.id); if(x) Object.assign(x, row); });
       return '';
     }
   });
+  if(v && ask4){ NJ.requestChange({app: 'expenses', action: 'edit', target: r.id, data: ask4, summary: expSummary(r)}).catch(x => toast(x.message)); return; }
   if(v){ toast('Saved'); await loadRecent(); if(curTab === 'month') renderMonth(); if(curTab === 'gst') loadGst().catch(x => toast(x.message)); if(curTab === 'bank') loadBank().catch(x => toast(x.message)); if(curTab === 'running') loadRunning().catch(x => toast(x.message)); }
 }
 $('recent').addEventListener('click', onListClick);
@@ -858,11 +880,15 @@ document.addEventListener('visibilitychange', () => {
     loadRecent().then(() => curTab === 'month' && loadMonth()).catch(e => toast(e.message));
 });
 
+let reqBar = null;
 NJ.start({onReady: async me => {
   const ok = !!me && NJ.canUse('expenses');
   document.body.classList.toggle('no-access', !!me && !ok);
   if(!ok) return;
   try{ await Promise.all([loadSettings(), loadRecent(), loadAccounts().catch(() => {})]); }catch(e){ toast(e.message); }
+  // changes to older days waiting for the owner; after one is approved, show the lists again
+  if(!reqBar) reqBar = NJ.requestsBar('expenses', () => { loadRecent().catch(() => {}); if(curTab === 'month') loadMonth().catch(() => {}); if(curTab === 'gst') loadGst().catch(() => {}); });
+  else reqBar.load();
   showTab(location.hash === '#month' ? 'month' : location.hash === '#running' ? 'running' : location.hash === '#bank' ? 'bank' : location.hash === '#gst' ? 'gst' : curTab);
 }});
 })();

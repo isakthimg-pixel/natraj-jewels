@@ -416,12 +416,15 @@ function renderMember(){
     ['Notes', esc(m.notes)], ['Joined', esc((m.created_by_name ? m.created_by_name + ', ' : '') + fmtD(m.created_at.slice(0, 10)))]].filter(r => r[1]);
   $('oInfo').innerHTML = rows.map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>').join('');
   $('oCancel').hidden = m.status !== 'active';
-  const canFix = p => NJ.me.is_owner || (p.created_by === NJ.me.user_id && new Date(p.created_at).toDateString() === new Date().toDateString());
+  // the owner can change any payment; others only their own, dated today or yesterday (older: ask the owner)
+  const canFix = p => NJ.me.is_owner || (p.created_by === NJ.me.user_id && NJ.recentDay(p.paid_on));
+  const canAsk = p => !NJ.me.is_owner && p.created_by === NJ.me.user_id && !NJ.recentDay(p.paid_on);
   $('oPays').innerHTML = s.ps.length ? '<table class="pay"><thead><tr><th>Date</th><th>Receipt</th><th class="n">Amount</th>' + (gold ? '<th class="n">Gold</th>' : '') + '<th></th></tr></thead><tbody>' +
     s.ps.map(p => '<tr data-id="' + esc(p.id) + '"><td>' + fmtD(p.paid_on) + '<small>' + esc(p.mode) + (p.created_by_name ? ' · ' + esc(p.created_by_name) : '') + '</small></td><td>' + rno(p) + (p.note ? '<small>' + esc(p.note) + '</small>' : '') + '</td>' +
       '<td class="n">' + inr(p.amount) + '</td>' + (gold ? '<td class="n">' + (p.grams ? gm(p.grams) + '<small>at ' + inr(p.gold_rate) + '/g</small>' : '') + '</td>' : '') +
       '<td class="n"><div class="tacts" style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">' + (m.phone ? '<button class="btn mini" data-r="send">Receipt</button>' : '') +
-      (canFix(p) ? '<button class="btn mini" data-r="edit">Edit</button><button class="btn mini btn-danger" data-r="del">Delete</button>' : '') + '</div></td></tr>').join('') + '</tbody></table>'
+      (canFix(p) ? '<button class="btn mini" data-r="edit">Edit</button><button class="btn mini btn-danger" data-r="del">Delete</button>'
+        : canAsk(p) ? '<button class="btn mini" data-r="edit">Ask to change</button><button class="btn mini" data-r="del">Ask to delete</button>' : '') + '</div></td></tr>').join('') + '</tbody></table>'
     : '<div class="empty-s">No payments yet.' + (m.status === 'active' ? ' Use “Take a payment”.' : '') + '</div>';
 }
 $('oActs').addEventListener('click', e => {
@@ -445,6 +448,8 @@ $('oPays').addEventListener('click', async e => {
   const p = pays.find(x => x.id === b.closest('tr').dataset.id);
   if(b.dataset.r === 'send') return sendReceipt(cur, p);
   if(b.dataset.r === 'edit') return takePayment(cur, p);
+  if(b.dataset.r === 'del' && NJ.needsApproval(p.paid_on))
+    return NJ.requestChange({app: 'chits', action: 'delete', target: p.id, summary: paySummary(cur, p)}).catch(x => toast(x.message));
   if(b.dataset.r === 'del'){
     if(!await ask('Delete receipt ' + rno(p) + '?', inr(p.amount) + ' on ' + fmtD(p.paid_on) + '. The receipt number is not used again.', 'Delete', true)) return;
     try{ must(await sb.from('chit_payments').delete().eq('id', p.id)); pays = pays.filter(x => x !== p); toast('Payment deleted'); renderMember(); }catch(x){ toast(x.message); }
@@ -466,7 +471,9 @@ $('oDel').onclick = async () => {
 };
 
 /* ---------- payments and receipts ---------- */
+const paySummary = (m, p) => [m.name + ' (card ' + m.card_no + ')', p.receipt_no ? 'receipt ' + rno(p) : 'new payment', inr(p.amount), fmtD(p.paid_on), p.mode].filter(Boolean).join(' · ');
 async function takePayment(m, old){
+  let ask4 = null;   // a payment on an older day: sent to the owner after the form closes
   const s = standing(m), pl = s.pl, gold = pl.saves === 'gold';
   const todays = rate && new Date(rate.set_at).toDateString() === new Date().toDateString();
   const fields = [
@@ -476,7 +483,7 @@ async function takePayment(m, old){
   if(gold) fields.push({id: 'rate', label: '22K rate (₹ per gram)' + (old || todays ? '' : ': today’s rate is not in yet'), value: old && old.gold_rate ? String(Number(old.gold_rate)) : rate ? String(Number(rate.gold_22k)) : '', maxlength: 10});
   fields.push({id: 'note', label: 'Note (optional)', value: old ? old.note : '', maxlength: 200});
   const v = await dialog({title: (old ? 'Edit ' + rno(old) : 'Payment from ' + m.name), msg: old ? '' : 'Card ' + m.card_no + ' · ' + pl.name + ' · ' + s.done + ' of ' + pl.months + ' months paid' + (s.behind ? ', ' + s.behind + ' behind' : '') + '.',
-    ok: old ? 'Save' : 'Save payment', fields,
+    ok: NJ.needsApproval(old && old.paid_on) ? 'Next' : old ? 'Save' : 'Save payment', fields,
     validate: async v => {
       const a = num(v.amount), r = gold ? num(v.rate) : null;
       if(!a || Number.isNaN(a)) return 'Type the amount in rupees, e.g. 2000.';
@@ -484,11 +491,18 @@ async function takePayment(m, old){
       if(!v.day) return 'Choose the date.';
       if(v.day > todayIso()) return 'The date cannot be in the future.';
       const row = {amount: a, mode: v.mode, paid_on: v.day, gold_rate: gold ? r : null, note: v.note};
+      if(NJ.needsApproval(v.day, old && old.paid_on)){ ask4 = row; return ''; }
       const saved = must(old ? await sb.from('chit_payments').update(row).eq('id', old.id).select().single() : await sb.from('chit_payments').insert(Object.assign({member_id: m.id}, row)).select().single());
       if(old) Object.assign(old, saved); else pays.unshift(saved);
       v.saved = saved; return '';
     }});
   if(!v) return;
+  if(ask4){
+    // older than yesterday: the owner approves it first
+    NJ.requestChange(old ? {app: 'chits', action: 'edit', target: old.id, data: ask4, summary: paySummary(m, old)}
+      : {app: 'chits', action: 'add', data: Object.assign({member_id: m.id}, ask4), summary: paySummary(m, ask4)}).catch(x => toast(x.message));
+    return;
+  }
   const saved = old || pays[0];
   toast(old ? 'Saved' : 'Saved: receipt ' + rno(saved));
   await loadAll();
@@ -708,11 +722,14 @@ document.addEventListener('visibilitychange', () => {
     loadAll().then(route).catch(e => toast(e.message));
 });
 
+let reqBar = null;
 NJ.start({onReady: async me => {
   const ok = !!me && NJ.canUse('chits');
   document.body.classList.toggle('no-access', !!me && !ok);
   if(!ok) return;
   try{ await Promise.all([loadAll(), loadCustomers().catch(() => {})]); route(); }catch(e){ toast(e.message); }
+  // payments on older days waiting for the owner
+  if(!reqBar) reqBar = NJ.requestsBar('chits', () => loadAll().then(route).catch(() => {})); else reqBar.load();
 }});
 })();
 </script>

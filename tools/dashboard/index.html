@@ -137,6 +137,10 @@
         <div class="head"><h3 id="xTitle">Expenses this month</h3><a href="../expenses/#month">Expenses ›</a></div>
         <div class="body" id="expBox"><small>Loading…</small></div>
       </section>
+      <section class="card mod" data-mod="approvals">
+        <div class="head"><h3 id="apprTitle">Waiting for your approval</h3></div>
+        <div class="body" id="apprBox"><small>Loading…</small></div>
+      </section>
       <section class="card mod" data-mod="gst">
         <div class="head"><h3>GST to claim</h3><a href="../expenses/#gst">GST ›</a></div>
         <div class="body" id="gstBox"><small>Loading…</small></div>
@@ -204,6 +208,7 @@ const MODS = {
   rate:       {name: 'Today’s rate', box: 'rateBox', load: () => loadRates()},
   expenses:   {name: 'Expenses', box: 'expBox', load: () => loadExpenses()},
   gst:        {name: 'GST to claim', box: 'gstBox', load: () => loadGst()},
+  approvals:  {name: 'Waiting for approval', box: 'apprBox', load: () => loadApprovals()},
   bank:       {name: 'Bank balances', box: 'bankBox', load: () => loadBank()},
   customers:  {name: 'Customers', box: 'crmBox', load: () => loadCrm()},
   tasks:      {name: 'Tasks today', box: 'taskBox', load: () => loadTasks()},
@@ -215,7 +220,7 @@ const MODS = {
 };
 // the starting layout: the essentials, with the longer lists hidden until wanted
 const DEFAULT = [
-  {k: 'attendance', w: 'full'}, {k: 'rate', w: 'full'}, {k: 'online', w: 'half'},
+  {k: 'attendance', w: 'full'}, {k: 'approvals', w: 'full'}, {k: 'rate', w: 'full'}, {k: 'online', w: 'half'},
   {k: 'expenses', w: 'half'}, {k: 'gst', w: 'half'}, {k: 'bank', w: 'half'},
   {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
   {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'}, {k: 'silver', w: 'half'}, {k: 'campaigns', w: 'half'},
@@ -432,6 +437,15 @@ async function loadExpenses(){
     (miss ? 'Bank check: ' + (bm.missing.length ? bm.missing.length + ' expense' + (bm.missing.length > 1 ? 's' : '') + ' (' + inr(sum(bm.missing)) + ') not in the bank log' : '') + (bm.missing.length && bm.noAccount.length ? ', ' : '') + (bm.noAccount.length ? bm.noAccount.length + ' without an account' : '') + '.'
       : '✓ Bank check: every bank-paid expense this month is in the bank log' + (bm.waiting.length ? ' (' + bm.waiting.length + ' from the last 3 days not in yet)' : '') + '.') + ' <a href="../expenses/#bank">See them ›</a></p>');
 }
+
+/* changes to older days that staff asked for, in every app */
+async function loadApprovals(){
+  const list = await NJ.loadRequests(null);
+  $('apprTitle').textContent = 'Waiting for your approval' + (list.length ? ' (' + list.length + ')' : '');
+  $('apprBox').innerHTML = list.length ? '<div class="reqs">' + list.map(q => NJ.reqItem(q, true)).join('') + '</div>'
+    : '<small>Nothing waiting. When staff need to add, change or delete an entry older than yesterday, it comes here for you to approve.</small>';
+}
+$('apprBox').addEventListener('click', e => NJ.reqClick(e, () => loadApprovals().catch(x => toast(x.message))));
 
 /* GST to claim: GST in expense bills marked claimable and not marked claimed yet, by supplier */
 async function loadGst(){
