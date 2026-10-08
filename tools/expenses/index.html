@@ -77,6 +77,12 @@
 .plot .axis text{fill:var(--muted);font:500 11px var(--body);font-variant-numeric:tabular-nums}
 .plot .col{fill:var(--maroon)}
 .plot .col:hover,.plot .col.on{fill:var(--maroon-deep)}
+.plot .col.sel{fill:var(--gold)}
+.plot.pick svg{cursor:pointer}
+.dayhead{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:14px 18px 6px;border-top:1px solid var(--line);background:var(--paper)}
+.dayhead:first-child{border-top:0}
+.dayhead span{font:600 .92rem var(--heading);color:var(--ink)} .dayhead span small{font:500 .8rem var(--body);color:var(--muted);margin-left:6px}
+.dayhead b{font:700 1rem var(--display);font-variant-numeric:lining-nums tabular-nums;color:var(--maroon)}
 .plot .avg{stroke:var(--gold);stroke-width:1.5;stroke-dasharray:5 4}
 .plot .avgl{fill:var(--gold);font:600 11px var(--body);paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
 .tip{position:absolute;pointer-events:none;background:var(--cocoa);color:var(--on-dark);border-radius:4px;padding:6px 9px;font-size:.78rem;line-height:1.35;white-space:nowrap;transform:translate(-50%,-100%);margin-top:-8px}
@@ -215,6 +221,8 @@ table.rc{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numer
       </div>
     </div></div>
     <div class="wrap content">
+      <div class="card" style="margin-bottom:20px"><h3>Each day</h3><div class="plot pick" id="mPlot"></div>
+        <p class="axisnote">What was paid out on each day. Tap a day to see only its entries; the dashed line is the average a day.</p></div>
       <div class="cards">
         <div class="card"><h3>By category</h3><div class="bars" id="mBars"></div><p class="axisnote">Tap a category to see only its entries.</p></div>
         <div class="card"><h3>Paid by</h3><div class="modes" id="mModes"></div></div>
@@ -302,7 +310,7 @@ const {sb, esc, must, toast, ask, dialog, iso, parse, todayIso} = NJ;
 const $ = id => document.getElementById(id);
 const MODES = ['Cash', 'UPI', 'Card', 'Bank transfer', 'Cheque'];
 const BIG = 50000;   // ask before saving more than this, to catch an extra zero
-let cats = [], recent = [], monthRows = [], curTab = 'add', curMonth = todayIso().slice(0, 7), catFilter = '', mode = 'Cash', accounts = [];
+let dayFilter = '', cats = [], recent = [], monthRows = [], curTab = 'add', curMonth = todayIso().slice(0, 7), catFilter = '', mode = 'Cash', accounts = [];
 // the bank accounts in use, for "From account" on anything not paid in cash
 async function loadAccounts(){
   accounts = must(await sb.rpc('bank_account_choices')) || [];
@@ -584,13 +592,27 @@ function renderMonth(){
   $('mModes').innerHTML = (MODES.filter(m => byMode[m]).map(m => '<div><span>' + m + '</span><b>' + esc(inr(byMode[m])) + '</b></div>').join('') || '<p class="axisnote">Nothing yet.</p>') +
     (Object.keys(byAcc).length ? '<div style="border-top:2px solid var(--line);font:600 .66rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);padding-top:14px">From bank accounts</div>' +
       Object.entries(byAcc).sort((a, b) => b[1] - a[1]).map(([k, v]) => '<div><span>' + esc(k) + '</span><b>' + esc(inr(v)) + '</b></div>').join('') : '');
-  const list = catFilter ? monthRows.filter(r => r.category === catFilter) : monthRows;
-  $('mList').innerHTML = (catFilter ? '<div class="lhead dhead"><span>' + esc(catFilter) + ' only · <button type="button" class="linkish" id="clearCat">show all</button></span><b>' + esc(inr(sum(list))) + '</b></div>' : '') +
-    (list.length ? list.map(r => row(r, true)).join('') : '<div class="empty" style="padding:32px 20px">No expenses in ' + esc(label) + '.</div>');
+  // each day: what was paid out that day (up to today in the current month), and the average a day
+  const byDay = {}; monthRows.forEach(r => byDay[r.day] = (byDay[r.day] || 0) + Number(r.amount));
+  const lastDay = curMonth === t.slice(0, 7) ? t : monthEnd(curMonth);
+  if(dayFilter && dayFilter.slice(0, 7) !== curMonth) dayFilter = '';
+  const pts = [];
+  if(curMonth <= t.slice(0, 7)) for(let d = curMonth + '-01'; d <= lastDay; d = addDays(d, 1))
+    pts.push({k: d, v: byDay[d] || 0, sel: d === dayFilter, label: String(Number(d.slice(8))), tip: parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'})});
+  if(pts.length){ drawColumns($('mPlot'), pts, total / pts.length); $('mPlot').onpick = i => { dayFilter = dayFilter === pts[i].k ? '' : pts[i].k; renderMonth(); }; }
+  else $('mPlot').innerHTML = '<p class="axisnote">No days yet.</p>';
+  // the list, grouped by day with each day's total
+  const list = monthRows.filter(r => (!catFilter || r.category === catFilter) && (!dayFilter || r.day === dayFilter));
+  const filt = [dayFilter && fmtDay(dayFilter), catFilter].filter(Boolean).join(' · ');
+  const groups = []; list.forEach(r => { const g = groups[groups.length - 1]; if(g && g.day === r.day) g.rows.push(r); else groups.push({day: r.day, rows: [r]}); });
+  $('mList').innerHTML = (filt ? '<div class="lhead dhead"><span>' + esc(filt) + ' only · <button type="button" class="linkish" id="clearCat">show all</button></span><b>' + esc(inr(sum(list))) + '</b></div>' : '') +
+    (list.length ? groups.map(g => '<div class="dayhead"><span>' + esc(parse(g.day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'short'})) + '<small>' + esc(plural(g.rows.length, 'entry').replace('entrys', 'entries')) + '</small></span><b>' + esc(inr(sum(g.rows))) + '</b></div>' +
+        g.rows.map(r => row(r, false)).join('')).join('')
+      : '<div class="empty" style="padding:32px 20px">No expenses ' + (filt ? 'for ' + esc(filt) : 'in ' + esc(label)) + '.</div>');
 }
 $('mBars').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if(!b) return; catFilter = catFilter === b.dataset.cat ? '' : b.dataset.cat; renderMonth(); });
-$('mList').addEventListener('click', e => { if(e.target.id === 'clearCat'){ catFilter = ''; renderMonth(); } });
-const shiftMonth = n => { const d = parse(curMonth + '-01'); d.setMonth(d.getMonth() + n); curMonth = iso(d).slice(0, 7); catFilter = ''; loadMonth().catch(e => toast(e.message)); };
+$('mList').addEventListener('click', e => { if(e.target.id === 'clearCat'){ catFilter = ''; dayFilter = ''; renderMonth(); } });
+const shiftMonth = n => { const d = parse(curMonth + '-01'); d.setMonth(d.getMonth() + n); curMonth = iso(d).slice(0, 7); catFilter = ''; dayFilter = ''; loadMonth().catch(e => toast(e.message)); };
 $('mPrev').onclick = () => shiftMonth(-1);
 $('mNext').onclick = () => shiftMonth(1);
 $('mMonth').onchange = () => { if($('mMonth').value){ curMonth = $('mMonth').value; catFilter = ''; loadMonth().catch(e => toast(e.message)); } };
@@ -696,7 +718,7 @@ function drawColumns(box, pts, avg){
   pts.forEach((p, i) => { if(i % every === 0) g += '<text x="' + (L + bw * i + bw / 2) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(p.label) + '</text>'; });
   g += '</g>';
   const gap = bw > 6 ? Math.min(bw * 0.25, 6) : 0.5;
-  const cols = pts.map((p, i) => '<rect class="col" data-i="' + i + '" x="' + (L + bw * i + gap / 2).toFixed(1) + '" y="' + y(p.v).toFixed(1) + '" width="' + Math.max(bw - gap, 1).toFixed(1) + '" height="' + Math.max(y(0) - y(p.v), p.v > 0 ? 1 : 0).toFixed(1) + '" rx="1.5"/>').join('');
+  const cols = pts.map((p, i) => '<rect class="col' + (p.sel ? ' sel' : '') + '" data-i="' + i + '" x="' + (L + bw * i + gap / 2).toFixed(1) + '" y="' + y(p.v).toFixed(1) + '" width="' + Math.max(bw - gap, 1).toFixed(1) + '" height="' + Math.max(y(0) - y(p.v), p.v > 0 ? 1 : 0).toFixed(1) + '" rx="1.5"/>').join('');
   const al = '<line class="avg" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(avg) + '" y2="' + y(avg) + '"/><text class="avgl" x="' + (L + 6) + '" y="' + (y(avg) - 6) + '">Average ' + esc(inr(Math.round(avg))) + '</text>';
   box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Running cost chart">' + g + cols + al + '</svg><div class="tip" hidden></div>';
   const tip = box.querySelector('.tip'), svg = box.querySelector('svg');
@@ -711,6 +733,8 @@ function drawColumns(box, pts, avg){
   };
   svg.addEventListener('pointermove', e => { const k = svg.getBoundingClientRect().width / W, x = (e.clientX - svg.getBoundingClientRect().left) / k; const i = Math.floor((x - L) / bw); show(i >= 0 && i < pts.length ? i : null); });
   svg.addEventListener('pointerleave', () => show(null));
+  // tap anywhere in a day's column (even an empty day) to pick it
+  svg.addEventListener('click', e => { const k = svg.getBoundingClientRect().width / W, x = (e.clientX - svg.getBoundingClientRect().left) / k; const i = Math.floor((x - L) / bw); if(box.onpick && i >= 0 && i < pts.length) box.onpick(i); });
 }
 $('rRange').addEventListener('click', e => {
   const b = e.target.closest('[data-r]'); if(!b) return;
