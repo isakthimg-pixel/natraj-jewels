@@ -40,4 +40,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `027_two_step.sql` — two-step sign-in: someone who has set up an authenticator app gets nothing from the database until they type its code. Applied.
 - `028_expense_gst.sql` — GST claimable on expenses: rate, supplier GSTIN, bill number; GST worked out from the bill total; the owner marks it claimed. Applied.
 - `029_change_requests.sql` — staff add, change and remove entries dated today or yesterday only (Expenses, Banking, Silver, Chit payments); older days go to the owner as change requests to approve. Applied.
+- `030_device_site.sql` — records the web address each device was approved at, so the blocked screen can say which address to use. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

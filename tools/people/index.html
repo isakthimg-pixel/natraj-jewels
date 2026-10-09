@@ -360,13 +360,14 @@ let devices = [], devState = {}, lockOn = false;
 async function loadDevices(){
   const [d, st, s] = await Promise.all([sb.from('approved_devices').select('*').order('created_at'), sb.rpc('device_status'), sb.from('settings').select('device_lock').eq('id', 1).maybeSingle()]);
   devices = must(d) || []; devState = must(st) || {}; lockOn = !!((s.data || {}).device_lock);
+  const myCode = await NJ.deviceCode(), codeOf = x => String(x.key_hash || '').slice(0, 6).toUpperCase();
   const when = t => t ? new Date(t).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'}) : 'not used yet';
   $('devThis').innerHTML = devState.approved
-    ? '<div><b class="devok">✓ This device is approved</b><span>as “' + esc(devState.name) + '”</span></div><button class="btn" type="button" id="devRename">Rename</button>'
-    : '<div><b>This device is not approved</b><span>' + (devState.has_key ? 'Approve it if it is the shop’s computer.' : 'This browser cannot keep a device key (private window or blocked storage).') + '</span></div>' +
+    ? '<div><b class="devok">✓ This device is approved</b><span>as “' + esc(devState.name) + '” · code ' + esc(myCode) + ' · ' + esc(location.host) + '</span></div><button class="btn" type="button" id="devRename">Rename</button>'
+    : '<div><b>This device is not approved</b><span>' + (devState.has_key ? 'Approve it if it is the shop’s computer. Its code is ' + esc(myCode) + ', at ' + esc(location.host) + '.' : 'This browser cannot keep a device key (private window or blocked storage).') + '</span></div>' +
       (devState.has_key ? '<button class="btn btn-maroon" type="button" id="devApprove">Approve this device</button>' : '');
   $('devList').innerHTML = devices.length ? '<h4 style="margin:6px 0 0;font:600 .7rem/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)">Approved devices</h4>' +
-    devices.map(x => '<div class="devrow"><div><b>' + esc(x.name) + '</b><br><span>Approved by ' + esc(x.approved_by_name || 'the owner') + ' · last used ' + esc(when(x.last_seen_at)) + '</span></div><button class="btn mini btn-danger" type="button" data-devdel="' + esc(x.id) + '">Remove</button></div>').join('')
+    devices.map(x => '<div class="devrow"><div><b>' + esc(x.name) + (codeOf(x) === myCode ? ' (this one)' : '') + '</b><br><span>Code ' + esc(codeOf(x)) + (x.site ? ' · ' + esc(x.site) : '') + ' · approved by ' + esc(x.approved_by_name || 'the owner') + ' · last used ' + esc(when(x.last_seen_at)) + '</span></div><button class="btn mini btn-danger" type="button" data-devdel="' + esc(x.id) + '">Remove</button></div>').join('')
     : '<p style="margin:0;color:var(--muted);font-size:.9rem">No device approved yet.</p>';
   $('devLock').checked = lockOn;
   $('devLock').disabled = !lockOn && !devices.length;
@@ -375,7 +376,7 @@ async function loadDevices(){
 $('devPanel').addEventListener('click', async e => {
   if(e.target.closest('#devApprove') || e.target.closest('#devRename')){
     const v = await dialog({title: devState.approved ? 'Rename this device' : 'Approve this device for staff', ok: devState.approved ? 'Save' : 'Approve', fields: [{id: 'name', label: 'Name', value: devState.name || 'Shop computer', maxlength: 60, placeholder: 'e.g. Counter computer'}],
-      validate: async v => { if(!v.name) return 'Give the device a name.'; must(await sb.rpc('approve_this_device', {p_name: v.name})); return ''; }});
+      validate: async v => { if(!v.name) return 'Give the device a name.'; must(await sb.rpc('approve_this_device', {p_name: v.name, p_site: location.host})); return ''; }});
     if(v){ toast(devState.approved ? 'Renamed' : 'This device is approved for staff'); loadDevices().catch(x => toast(x.message)); }
   }
   const d = e.target.closest('[data-devdel]');

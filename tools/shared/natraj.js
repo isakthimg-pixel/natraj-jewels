@@ -45,13 +45,25 @@ const icon = k => ICONS[k] ? '<svg viewBox="0 0 24 24" width="24" height="24" fi
 const ROOT = (document.currentScript && document.currentScript.src || '').replace(/shared\/natraj\.js.*$/, '');
 // each browser keeps a random device key and sends it with every request; the owner can approve the
 // shop's computer, and when "staff only on approved devices" is on, the database answers staff only there
+// The key is kept in two places (the page's storage and a long-lived cookie) so clearing one does not lose
+// it, and the browser is asked to keep this site's storage. Both are still per web address, and are gone
+// if Chrome deletes site data on closing or a private (Incognito) window is used.
 const DEVICE_KEY = (() => {
-  try{
-    let k = localStorage.getItem('natraj-device');
-    if(!k || k.length < 32){ k = [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('natraj-device', k); }
-    return k;
-  }catch(e){ return ''; }
+  const ok = k => !!k && /^[0-9a-f]{32,128}$/.test(k);
+  let k = '';
+  try{ k = localStorage.getItem('natraj-device') || ''; }catch(e){}
+  if(!ok(k)){ const m = document.cookie.match(/(?:^|;\s*)natraj-device=([0-9a-f]{32,128})/); k = m ? m[1] : ''; }
+  if(!ok(k)) k = [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join('');
+  try{ localStorage.setItem('natraj-device', k); }catch(e){}
+  try{ document.cookie = 'natraj-device=' + k + '; max-age=315360000; path=/; SameSite=Strict' + (location.protocol === 'https:' ? '; Secure' : ''); }catch(e){}
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); }catch(e){}
+  return k;
 })();
+// a short code for this browser's key, to compare with the list of approved devices
+async function deviceCode(){
+  try{ const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(DEVICE_KEY)); return [...new Uint8Array(h)].slice(0, 3).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase(); }
+  catch(e){ return ''; }
+}
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, Object.assign({
   auth: {persistSession: true, autoRefreshToken: true, storageKey: 'natraj-tools-auth'}
 }, DEVICE_KEY ? {global: {headers: {'x-natraj-device': DEVICE_KEY}}} : {}));
@@ -342,7 +354,7 @@ function presenceText(p){
 }
 document.addEventListener('visibilitychange', () => heartbeat());
 
-let blocked = false;
+let blocked = false, blockedInfo = {};
 // the page in place of the app, for staff on a device that is not approved
 function showBlocked(){
   document.body.classList.toggle('device-blocked', blocked);
@@ -355,7 +367,12 @@ function showBlocked(){
   el.innerHTML = '<div class="form panel" style="max-width:640px"><h3>This device is not approved</h3>' +
     '<p>Staff can use the Natraj Jewels apps only on the shop’s approved computer. Please use the computer at the shop, or ask the owner to approve this device in People &amp; settings.</p>' +
     '<p style="font-size:.9rem;color:var(--muted)">You can still apply for leave from any phone without signing in.</p>' +
+    // on the shop computer this usually means the browser forgot its approval: say which address was approved, and this browser's code
+    ((blockedInfo.sites || []).length && !(blockedInfo.sites || []).includes(location.host)
+      ? '<p class="notice" style="margin:0">This page is open at <b>' + esc(location.host) + '</b>, but the shop computers were approved at <b>' + (blockedInfo.sites || []).map(esc).join('</b> or <b>') + '</b>. Open the apps at that address instead.</p>' : '') +
+    '<p style="font-size:.85rem;color:var(--muted)" id="nj-devcode">If this is the shop computer, the browser has forgotten its approval (for example, Chrome cleared its data when it closed). Ask the owner to approve it again.</p>' +
     '<div class="bar"><button class="btn btn-maroon" type="button" data-nj-out>Sign out</button><a class="btn" href="' + ROOT + 'attendance/#leave" data-nj-leave>Apply for leave</a></div></div>';
+  deviceCode().then(c => { const p = $('nj-devcode'); if(p && c) p.insertAdjacentHTML('beforeend', ' This browser’s code: <b>' + c + '</b>.'); });
   return true;
 }
 async function loadMe(session){
@@ -368,7 +385,7 @@ async function loadMe(session){
   if(!me && !r.error){ await sb.auth.signOut(); }   // account was removed
   // staff on a device the owner has not approved, while the lock is on: the database gives them nothing
   blocked = false;
-  if(me && !me.is_owner){ const d = await sb.rpc('device_status'); blocked = !!(d.data && d.data.ok === false); }
+  if(me && !me.is_owner){ const d = await sb.rpc('device_status'); blocked = !!(d.data && d.data.ok === false); blockedInfo = d.data || {}; }
 }
 
 function renderAccess(opts){
@@ -717,5 +734,5 @@ async function reqClick(e, after){
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
   pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
-  liveCheck, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick, get me(){ return me; }};
+  liveCheck, deviceCode, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick, get me(){ return me; }};
 })();
