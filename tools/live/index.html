@@ -95,10 +95,26 @@ const POLL = 20000;
 /* ---------- helpers ---------- */
 const hash = s => { let h = 2166136261; for(const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
 function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+/* the store is painted: flat colour in three hard tones of light and shadow, on a grainy paper-and-brush texture */
+let PAINT = false;
+const PAINT_STEPS = (() => { const t = new THREE.DataTexture(new Uint8Array([85, 165, 255]), 3, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+const GRAIN = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'), r = rng(5);
+  g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 256);
+  // broad dry-brush strokes, then fine paper grain
+  for(let i = 0; i < 70; i++){
+    const x = r() * 256, y = r() * 256, len = 40 + r() * 90, w = 6 + r() * 14, a = (r() < .5 ? 0 : Math.PI / 2) + (r() - .5) * .3;
+    g.save(); g.translate(x, y); g.rotate(a); g.fillStyle = r() < .5 ? 'rgba(255,248,235,.16)' : 'rgba(110,70,30,.06)'; g.fillRect(-len / 2, -w / 2, len, w); g.restore();
+  }
+  for(let i = 0; i < 9000; i++){ g.fillStyle = 'rgba(70,45,25,' + (.02 + r() * .06) + ')'; g.fillRect(r() * 256, r() * 256, 1 + r() * 1.5, 1 + r() * 1.5); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+})();
 const MATS = new Map();
 function mat(color, o){
-  const k = color + JSON.stringify(o || {});
-  if(!MATS.has(k)) MATS.set(k, new THREE.MeshStandardMaterial(Object.assign({color, roughness: .7, metalness: 0}, o || {})));
+  const k = (PAINT ? 'paint:' : '') + color + JSON.stringify(o || {});
+  if(!MATS.has(k)) MATS.set(k, PAINT
+    ? new THREE.MeshToonMaterial({color, gradientMap: PAINT_STEPS, map: GRAIN, side: o && o.side || THREE.FrontSide})
+    : new THREE.MeshStandardMaterial(Object.assign({color, roughness: .7, metalness: 0}, o || {})));
   return MATS.get(k);
 }
 const GEOS = new Map();
@@ -138,7 +154,7 @@ camera.position.copy(HOME.pos);
 let controls = null;
 if(renderer){
   renderer.setPixelRatio(Math.min(devicePixelRatio, small ? 1.6 : 2));
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;   // crisp painted shadows
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   stage.prepend(renderer.domElement);
@@ -153,8 +169,8 @@ if(renderer){
    soft gold #E7D3AE, paper #F5F2ED, cream #F8EFE2, ink #2A1E1B */
 const BR_ = {maroon: 0x8E2A2A, deep: 0x6E1F1F, cocoa: 0x3B2420, gold: 0x845E22, goldSoft: 0xE7D3AE, paper: 0xF5F2ED, cream: 0xF8EFE2, ink: 0x2A1E1B,
   metal: 0xC9A04E, line: 0xE2D6C4};
-scene.add(new THREE.HemisphereLight(0xDCEEFF, 0x6E8B4E, 1.25));
-const sun = new THREE.DirectionalLight(0xFFF6E6, 2.6);
+scene.add(new THREE.HemisphereLight(0xDCEEFF, 0x7A6A4E, .95));
+const sun = new THREE.DirectionalLight(0xFFEBC8, 3.1);
 sun.position.set(16, 34, 18); sun.target.position.set(-6, 0, 2); scene.add(sun, sun.target);
 sun.castShadow = true; sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
 Object.assign(sun.shadow.camera, {left: -40, right: 34, top: 34, bottom: -34, near: 1, far: 120});
@@ -201,23 +217,28 @@ parkFace.rotation.y = Math.atan2(HOME.pos.x - park.position.x, HOME.pos.z - park
 /* ---------- the shop: 20 x 80 ft (about 6.1 x 24.4 m), laid out from the floor plan:
    the gate at the front, counters along the left and right walls and across the back, three store computers ---------- */
 const SW = 6.1, SL = 24.4, HX = SW / 2, HZ = SL / 2;   // shop width and length, x across and z along
+PAINT = true;
+// hand-painted floor tiles: warm cream, uneven brush lines between them
 const TILE = (() => {
-  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
-  g.fillStyle = '#F2EADC'; g.fillRect(0, 0, 256, 256);
-  g.fillStyle = 'rgba(132,94,34,.08)'; g.fillRect(0, 0, 128, 128); g.fillRect(128, 128, 128, 128);
-  g.strokeStyle = '#E2D6C4'; g.lineWidth = 4; g.strokeRect(0, 0, 128, 128); g.strokeRect(128, 0, 128, 128); g.strokeRect(0, 128, 128, 128); g.strokeRect(128, 128, 128, 128);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(SW / 1.2, SL / 1.2); return t;
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d'), r = rng(9);
+  g.fillStyle = '#E8CFA2'; g.fillRect(0, 0, 512, 512);
+  for(let i = 0; i < 4; i++) for(let j = 0; j < 4; j++){ g.fillStyle = 'rgba(' + (180 + r() * 40 | 0) + ',' + (130 + r() * 30 | 0) + ',70,' + (.05 + r() * .08) + ')'; g.fillRect(i * 128 + 3, j * 128 + 3, 122, 122); }
+  for(let i = 0; i < 60; i++){ g.fillStyle = 'rgba(255,250,235,.35)'; g.fillRect(r() * 512, r() * 512, 30 + r() * 80, 4 + r() * 8); }
+  g.strokeStyle = 'rgba(150,105,55,.45)'; g.lineCap = 'round';
+  for(let k = 0; k <= 4; k++){ g.lineWidth = 3 + r() * 2; g.beginPath(); g.moveTo(k * 128 + (r() - .5) * 3, 0); g.lineTo(k * 128 + (r() - .5) * 3, 512); g.stroke();
+    g.beginPath(); g.moveTo(0, k * 128 + (r() - .5) * 3); g.lineTo(512, k * 128 + (r() - .5) * 3); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(SW / 2.4, SL / 2.4); return t;
 })();
 const FL = .15;   // floor top
-add(shop, new THREE.BoxGeometry(SW + .3, FL, SL + .3), new THREE.MeshStandardMaterial({map: TILE, roughness: .45}), 0, FL / 2, 0);
-const WALL = BR_.paper, TRIM = BR_.metal, MAROON = BR_.maroon, goldO = {metalness: .75, roughness: .3};
-block(shop, .3, 2.6, SL + .6, WALL, -HX - .15, FL, 0, {r: .08});                // left wall
+add(shop, new THREE.BoxGeometry(SW + .3, FL, SL + .3), new THREE.MeshToonMaterial({map: TILE, gradientMap: PAINT_STEPS}), 0, FL / 2, 0);
+const WALL = 0xEFD9B4, TRIM = 0xD49A3C, MAROON = BR_.maroon, goldO = {metalness: .75, roughness: .3};
+block(shop, .3, 3.6, SL + .6, WALL, -HX - .15, FL, 0, {r: .08});                // left wall, tall, with arched alcoves
 block(shop, SW + .6, 3.6, .3, WALL, 0, FL, -HZ - .15, {r: .08});               // back wall (holds the sign)
 block(shop, .3, .5, SL + .6, WALL, HX + .15, FL, 0, {r: .08});                  // right wall, cut away low
 // front wall either side of the gate (gate opening x -1.35 to 0.4)
 block(shop, 1.85, .5, .3, WALL, -2.38, FL, HZ + .15, {r: .08});
 block(shop, 2.75, .5, .3, WALL, 1.98, FL, HZ + .15, {r: .08});
-block(shop, .32, .08, SL + .6, TRIM, -HX - .15, FL + 2.6, 0, {mo: goldO});
+block(shop, .32, .1, SL + .6, TRIM, -HX - .15, FL + 3.6, 0, {mo: goldO});
 block(shop, SW + .6, .08, .32, TRIM, 0, FL + 3.6, -HZ - .15, {mo: goldO});
 block(shop, .06, .12, SL, BR_.maroon, -HX + .02, FL + .1, 0, {r: .02, shadow: false});   // maroon skirting
 // the logo on the back wall, on a maroon board with a gold frame
@@ -228,11 +249,48 @@ block(shop, .06, .12, SL, BR_.maroon, -HX + .02, FL + .1, 0, {r: .02, shadow: fa
   const s = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 3.8 * 517 / 1200), new THREE.MeshBasicMaterial({map: logo, transparent: true}));
   s.position.set(0, FL + 2.32, -HZ + .09); shop.add(s);
 }
-// display panels on the left wall, above the staff side
-for(const z of [-8.6, -4.6, -.6, 3.4]){
-  block(shop, .06, 1.1, 2.2, MAROON, -HX + .03, FL + 1.25, z, {r: .03});
-  for(let i = 0; i < 3; i++) add(shop, new THREE.TorusGeometry(.17, .04, 8, 20), mat(0xE9C46A, {metalness: .85, roughness: .25}), -HX + .09, FL + 1.8, z - .6 + i * .6).rotation.y = Math.PI / 2;
+// arched alcoves along the left wall, each with a maroon banner and gold rings, pilasters and glowing sconces between
+function archShape(w, h){ const r = w / 2, sh = new THREE.Shape(); sh.moveTo(-r, 0); sh.lineTo(-r, h - r); sh.absarc(0, h - r, r, Math.PI, 0, true); sh.lineTo(r, 0); sh.lineTo(-r, 0); return sh; }
+function archBand(rOut, rIn){ const sh = new THREE.Shape(); sh.moveTo(-rOut, 0); sh.absarc(0, 0, rOut, Math.PI, 0, true); sh.lineTo(rIn, 0); sh.absarc(0, 0, rIn, 0, Math.PI, false); sh.lineTo(-rOut, 0); return sh; }
+const ALCOVES = [-8.6, -4.6, -.6, 3.4, 7.3];
+const recess = mat(0xB98A55), wallLight = mat(0xF6E6C8), banner = mat(BR_.maroon), ochre = mat(0xD4A24C);
+const flameM = new THREE.MeshStandardMaterial({color: 0xFFD27A, emissive: 0xFFB43A, emissiveIntensity: 2.6});
+for(const z of ALCOVES){
+  const g = new THREE.Group(); g.position.set(-HX + .005, FL, z); g.rotation.y = Math.PI / 2; shop.add(g);
+  add(g, new THREE.ShapeGeometry(archShape(2.1, 3.05), 16), recess, 0, .2, 0, false).receiveShadow = true;
+  const band = add(g, new THREE.ExtrudeGeometry(archBand(1.25, 1.05), {depth: .12, bevelEnabled: false, curveSegments: 20}), wallLight, 0, .2 + 3.05 - 1.05, 0);
+  for(const sx of [-1.15, 1.15]) add(g, rbox(.2, 2.0, .12, .03), wallLight, sx, .2 + 1.0, .06);
+  // the banner, with a pointed foot, and gold rings on it
+  const bs = new THREE.Shape(); bs.moveTo(-.5, 0); bs.lineTo(-.5, 1.7); bs.lineTo(.5, 1.7); bs.lineTo(.5, 0); bs.lineTo(0, -.32); bs.lineTo(-.5, 0);
+  add(g, new THREE.ShapeGeometry(bs), banner, 0, 1.05, .03, false);
+  add(g, new THREE.CylinderGeometry(.025, .025, 1.2, 8), ochre, 0, 2.78, .05).rotation.z = Math.PI / 2;
+  for(let i = 0; i < 3; i++) add(g, new THREE.TorusGeometry(.14, .035, 8, 20), ochre, 0, 2.35 - i * .45, .06);
 }
+// pilasters and sconces between the alcoves
+for(let i = 0; i < ALCOVES.length - 1; i++){
+  const z = (ALCOVES[i] + ALCOVES[i + 1]) / 2;
+  block(shop, .2, 3.6, .55, 0xF6E6C8, -HX + .1, FL, z, {r: .04});
+  block(shop, .26, .14, .66, 0xD4A24C, -HX + .13, FL + 3.25, z, {r: .03});
+  add(shop, rbox(.12, .2, .16, .03), ochre, -HX + .26, FL + 2.15, z);
+  const fl = add(shop, new THREE.SphereGeometry(.07, 10, 8), flameM, -HX + .3, FL + 2.36, z, false); fl.scale.y = 1.6;
+}
+// iron ring chandeliers with candles over the aisle
+const iron = mat(0x3B2420), wax = mat(0xFBF1DC);
+for(const z of [7, 0, -7]){
+  const c = new THREE.Group(); c.position.set(0, FL + 3.9, z); shop.add(c);
+  add(c, new THREE.TorusGeometry(.75, .05, 8, 40), iron, 0, 0, 0).rotation.x = Math.PI / 2;
+  for(let i = 0; i < 8; i++){ const a = i / 8 * Math.PI * 2, x = Math.cos(a) * .75, zz = Math.sin(a) * .75;
+    add(c, new THREE.CylinderGeometry(.035, .035, .16, 8), wax, x, .1, zz, false);
+    add(c, new THREE.SphereGeometry(.035, 8, 6), flameM, x, .21, zz, false).scale.y = 1.6; }
+  const hub = new THREE.Vector3(0, .9, 0);
+  for(let i = 0; i < 3; i++){ const a = i / 3 * Math.PI * 2, foot = new THREE.Vector3(Math.cos(a) * .75, 0, Math.sin(a) * .75), dir = hub.clone().sub(foot);
+    const rod = add(c, new THREE.CylinderGeometry(.012, .012, dir.length(), 5), iron, 0, 0, 0, false);
+    rod.position.copy(foot.clone().add(hub).multiplyScalar(.5)); rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize()); }
+  add(c, new THREE.CylinderGeometry(.015, .015, 3, 5), iron, 0, .9 + 1.5, 0, false);
+}
+// a maroon carpet with gold edges along the aisle, from the gate to the back counter
+block(shop, 1.2, .025, 21.2, BR_.maroon, 0, FL, 1.2, {r: .005, shadow: false});
+for(const x of [-.57, .57]) block(shop, .05, .03, 21.2, 0xD4A24C, x, FL, 1.2, {r: .005, shadow: false});
 // a lamp shelf in the back-right corner
 block(shop, .8, .1, .35, WALL, 2.4, FL + 1.9, -HZ + .18, {r: .03});
 add(shop, new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({color: 0xFFB347, emissive: 0xFFA020, emissiveIntensity: 2.4}), 2.4, FL + 2.12, -HZ + .22, false);
@@ -311,6 +369,7 @@ DESKS.forEach(d => {
   d.pad = add(shop, new THREE.TorusGeometry(.4, .03, 8, 40), padOff, d.seat[0], FL + .06, d.seat[1], false); d.pad.rotation.x = -Math.PI / 2;
 });
 
+PAINT = false;
 // trees and planters around the shop, in muted greens that sit with the brand colours
 function tree(parent, x, z, s, seed){
   const r = rng(seed);
