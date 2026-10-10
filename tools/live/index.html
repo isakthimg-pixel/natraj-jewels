@@ -18,12 +18,12 @@
 .not-owner .owner-only-msg{display:block}
 .not-owner main{display:none!important}
 .stage{position:relative;height:clamp(420px,74vh,860px);border-radius:18px;overflow:hidden;border:1px solid var(--line);
-  background:radial-gradient(ellipse at 50% 26%,#7A2E2A 0%,#4A1F1C 48%,#2A1513 100%)}
+  background:linear-gradient(180deg,#6FB7EA 0%,#A9DAF7 45%,#E4F4FC 100%)}
 .stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 .stage canvas:active{cursor:grabbing}
 .stage .tools{position:absolute;top:12px;right:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .stage .tools .btn{background:rgba(255,255,255,.92)}
-.stage .live{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(42,21,19,.62);color:#F8EFE2;font-size:.8rem;font-weight:600;letter-spacing:.02em}
+.stage .live{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(42,30,27,.62);color:#F8EFE2;font-size:.8rem;font-weight:600;letter-spacing:.02em}
 .stage .live i{width:8px;height:8px;border-radius:50%;background:#3DDC84;box-shadow:0 0 0 0 rgba(61,220,132,.7);animation:livepulse 2s infinite}
 @keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,.6)}70%{box-shadow:0 0 0 9px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
 @media (prefers-reduced-motion:reduce){.stage .live i{animation:none}}
@@ -153,16 +153,16 @@ if(renderer){
    soft gold #E7D3AE, paper #F5F2ED, cream #F8EFE2, ink #2A1E1B */
 const BR_ = {maroon: 0x8E2A2A, deep: 0x6E1F1F, cocoa: 0x3B2420, gold: 0x845E22, goldSoft: 0xE7D3AE, paper: 0xF5F2ED, cream: 0xF8EFE2, ink: 0x2A1E1B,
   metal: 0xC9A04E, line: 0xE2D6C4};
-scene.add(new THREE.HemisphereLight(0xFFF3E2, 0x5A2A24, 1.2));
-const sun = new THREE.DirectionalLight(0xFFF0D6, 2.3);
+scene.add(new THREE.HemisphereLight(0xDCEEFF, 0x6E8B4E, 1.25));
+const sun = new THREE.DirectionalLight(0xFFF6E6, 2.6);
 sun.position.set(16, 34, 18); sun.target.position.set(-6, 0, 2); scene.add(sun, sun.target);
 sun.castShadow = true; sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
 Object.assign(sun.shadow.camera, {left: -40, right: 34, top: 34, bottom: -34, near: 1, far: 120});
 sun.shadow.bias = -.0004; sun.shadow.normalBias = .03;
-const fill = new THREE.DirectionalLight(0xF0C8A8, .45); fill.position.set(-30, 18, -20); scene.add(fill);
+const fill = new THREE.DirectionalLight(0xBFDFFF, .45); fill.position.set(-30, 18, -20); scene.add(fill);
 
-// faint warm stars
-{
+// (stars only at night)
+if(false){
   const r = rng(7), pts = [];
   for(let i = 0; i < 260; i++){ const a = r() * Math.PI * 2, e = r() * .9 - .15, d = 170 + r() * 80; pts.push(Math.cos(a) * Math.cos(e) * d, Math.sin(e) * d, Math.sin(a) * Math.cos(e) * d); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
@@ -170,13 +170,12 @@ const fill = new THREE.DirectionalLight(0xF0C8A8, .45); fill.position.set(-30, 1
 }
 
 /* ---------- floating hexagon islands ---------- */
-function island(R, topColor, rimColor, seed){
+function island(R, seed){
   const g = new THREE.Group(), r = rng(seed);
-  add(g, new THREE.CylinderGeometry(R, R, .7, 6), mat(topColor, {roughness: .9}), 0, -.35, 0);
-  // the glowing gold edge
-  add(g, new THREE.CylinderGeometry(R + .18, R + .18, .32, 6, 1, true), new THREE.MeshStandardMaterial({color: rimColor, emissive: rimColor, emissiveIntensity: 1.4, roughness: .4, side: THREE.DoubleSide}), 0, -.16, 0, false);
-  add(g, new THREE.CylinderGeometry(R * .985, R * .9, 1.4, 6), mat(BR_.cocoa, {roughness: 1}), 0, -1.4, 0);
-  const cone = new THREE.ConeGeometry(R * .9, R * .8, 6, 4); cone.rotateX(Math.PI);
+  add(g, new THREE.CylinderGeometry(R, R, .5, 6), mat(0x7DBA5C, {roughness: .95}), 0, -.25, 0);          // grass
+  add(g, new THREE.CylinderGeometry(R + .12, R + .12, .22, 6, 1, true), mat(0x6AA84E, {roughness: .95, side: THREE.DoubleSide}), 0, -.12, 0, false);
+  add(g, new THREE.CylinderGeometry(R * .99, R * .92, 1.4, 6), mat(0x8B5E3C, {roughness: 1}), 0, -1.2, 0);  // earth
+  const cone = new THREE.ConeGeometry(R * .92, R * .8, 6, 4); cone.rotateX(Math.PI);
   const p = cone.attributes.position, seen = new Map();
   for(let i = 0; i < p.count; i++){
     const y = p.getY(i); if(y > R * .39) continue;
@@ -185,13 +184,16 @@ function island(R, topColor, rimColor, seed){
     const d = seen.get(k); p.setXYZ(i, p.getX(i) + d[0], y + d[1], p.getZ(i) + d[2]);
   }
   cone.computeVertexNormals();
-  add(g, cone, mat(0x5C3A30, {flatShading: true, roughness: 1}), 0, -2.1 - R * .4, 0);
-  const glow = new THREE.Mesh(new THREE.CircleGeometry(R * 1.05, 6), new THREE.MeshBasicMaterial({color: rimColor, transparent: true, opacity: .06, depthWrite: false}));
-  glow.rotation.x = -Math.PI / 2; glow.position.y = -2.15; g.add(glow);
+  add(g, cone, mat(0x8A8178, {flatShading: true, roughness: 1}), 0, -1.9 - R * .4, 0);                     // rock
+  // a few flowers and tufts in the grass
+  for(let i = 0; i < R * 2.5; i++){
+    const a = r() * Math.PI * 2, d = R * (.55 + r() * .38), x = Math.cos(a) * d, z = Math.sin(a) * d;
+    add(g, new THREE.IcosahedronGeometry(.12 + r() * .08, 0), mat([0xFFFFFF, 0xF6D35B, 0xF28AB2, 0x5FA046][i % 4], {flatShading: true}), x, .08, z, false);
+  }
   scene.add(g); return g;
 }
-const shop = island(18, 0x4A2723, 0xE7C27A, 11);
-const park = island(6.6, 0xD9C49A, BR_.cream, 23);
+const shop = island(18, 11);
+const park = island(6.6, 23);
 park.position.set(-21, 1.5, -19);
 const parkFace = new THREE.Group(); park.add(parkFace);
 parkFace.rotation.y = Math.atan2(HOME.pos.x - park.position.x, HOME.pos.z - park.position.z);
@@ -252,7 +254,7 @@ for(const [x, a] of [[-1.35, -1.25], [.4, 1.25]]){
   for(const y of [.15, 1.25, 2.4]) add(door, new THREE.BoxGeometry(.85, .05, .05), gold, (x < 0 ? 1 : -1) * .43, y, 0);
 }
 // the path to the gate, and lamps
-for(let i = 0; i < 4; i++) block(shop, 1.6, .06, .7, BR_.goldSoft, GX, 0, HZ + .8 + i * .85, {r: .05, shadow: false});
+for(let i = 0; i < 4; i++) block(shop, 1.6, .06, .7, 0xD8D2C4, GX, 0, HZ + .8 + i * .85, {r: .05, shadow: false});
 for(const x of [-2.1, 1.2]){
   block(shop, .14, 2.1, .14, BR_.cocoa, x, 0, HZ + 1.1, {r: .04});
   add(shop, new THREE.SphereGeometry(.22, 14, 10), new THREE.MeshStandardMaterial({color: 0xFFE7A8, emissive: 0xFFD27A, emissiveIntensity: 1.8}), x, 2.25, HZ + 1.1, false);
@@ -313,16 +315,16 @@ DESKS.forEach(d => {
 function tree(parent, x, z, s, seed){
   const r = rng(seed);
   block(parent, .22 * s, 1.1 * s, .22 * s, 0x6B4A33, x, 0, z, {r: .05});
-  const leaf = mat([0x5E7D4F, 0x6E8B57, 0x4F6E45][seed % 3], {flatShading: true, roughness: .85});
+  const leaf = mat([0x4CAF6E, 0x3E9E62, 0x5DBB75][seed % 3], {flatShading: true, roughness: .8});
   for(let i = 0; i < 3; i++) add(parent, new THREE.IcosahedronGeometry((.75 - i * .14) * s, 0), leaf, x + (r() - .5) * .3 * s, (1.3 + i * .55) * s, z + (r() - .5) * .3 * s).rotation.set(r() * 3, r() * 3, 0);
 }
 function plant(parent, x, z){
   add(parent, new THREE.CylinderGeometry(.24, .18, .42, 10), mat(BR_.maroon), x, .21 + FL, z);
-  add(parent, new THREE.IcosahedronGeometry(.32, 0), mat(0x5E7D4F, {flatShading: true}), x, .72 + FL, z);
+  add(parent, new THREE.IcosahedronGeometry(.32, 0), mat(0x4CAF6E, {flatShading: true}), x, .72 + FL, z);
 }
 [[-6, 9, 1.3, 1], [6.5, -3, 1.5, 2], [-6.5, -8, 1.2, 3], [6, 10, 1.1, 4], [7.5, 4, .9, 5], [-7, 1, 1.1, 6], [5.5, -12, 1.2, 7], [-5.5, -14, 1, 8], [8, -8, 1, 9]].forEach(([x, z, sc, sd]) => tree(shop, x, z, sc, sd));
 plant(shop, 2.65, 11.6); plant(shop, -2.65, 11.6);
-for(const [x, z] of [[-5, 13], [4.5, 13.5], [-8.5, -3], [9, -1], [3.5, -15]]) add(shop, new THREE.DodecahedronGeometry(.45, 0), mat(0x7A5A4E, {flatShading: true}), x, .2, z);
+for(const [x, z] of [[-5, 13], [4.5, 13.5], [-8.5, -3], [9, -1], [3.5, -15]]) add(shop, new THREE.DodecahedronGeometry(.45, 0), mat(0x9A948C, {flatShading: true}), x, .2, z);
 
 /* ---------- the small island: a bench for those away today ---------- */
 {
@@ -347,7 +349,7 @@ for(const [x, z] of [[-5, 13], [4.5, 13.5], [-8.5, -3], [9, -1], [3.5, -15]]) ad
 // clouds drifting by
 const clouds = [];
 {
-  const r = rng(31), m = new THREE.MeshStandardMaterial({color: BR_.cream, roughness: 1, transparent: true, opacity: .8, flatShading: true});
+  const r = rng(31), m = new THREE.MeshStandardMaterial({color: 0xFFFFFF, roughness: 1, transparent: true, opacity: .92, flatShading: true});
   for(let i = 0; i < 6; i++){
     const c = new THREE.Group();
     for(let j = 0; j < 4; j++) add(c, new THREE.IcosahedronGeometry(1 + r() * 1.2, 0), m, j * 1.4 - 2, r() * .6, (r() - .5) * 1.2, false);
