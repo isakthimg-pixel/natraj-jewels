@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v35';
+const KEY = 'natraj-demo-db-v36';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -288,7 +288,8 @@ function seed(){
   // who is online: Sample Staff 2 is always on the tasks page on a phone, the manager on a store computer
   const ago = m => new Date(Date.now() - m * 60000).toISOString();
   db.presence.push({user_id: worker.user_id, page: 'Tasks', device: 'Phone', signed_in_at: ago(25), last_seen: ago(0), signed_out_at: null, demo_live: true},
-    {user_id: manager.user_id, page: 'Expenses', device: 'Computer', signed_in_at: ago(95), last_seen: ago(0), signed_out_at: null, demo_live: true});
+    {user_id: manager.user_id, page: 'Expenses', device: 'Computer', device_id: 'demo-pc-0', signed_in_at: ago(95), last_seen: ago(0), signed_out_at: null, demo_live: true});
+  ['Front counter computer', 'Billing computer', 'Back office computer'].forEach((name, i) => db.approved_devices.push({id: 'demo-pc-' + i, name, key_hash: 'demo-key-' + i, site: '', approved_by_name: owner.name, created_at: ago(60 * 24 * 30), last_seen_at: ago(i * 30), live_desk: i}));
   const chitBank = {};
   let skipped = false;
   db.chit_payments.filter(p => p.mode !== 'Cash' && p.paid_on >= monthAgo(1)).forEach(p => {
@@ -608,6 +609,12 @@ function rpc(name, a, me, headers){
     return {status: 200, body: {locked: !!db.settings[0].device_lock, approved: !!d, name: d ? d.name : null, has_key: !!k, ok: deviceOk(me, headers)}}; }
   if(name === 'two_step_people') return {status: 200, body: me && me.is_owner && aalOk(headers)
     ? Object.values(db.users).filter(u => (u.factors || []).some(f => f.status === 'verified')).map(u => ({user_id: u.id, since: u.factors[0].created_at})) : []};
+  if(name === 'set_live_desk'){
+    if(!me || !me.is_owner) return {status: 403, body: {code: '42501', message: 'Only the owner can do this.'}};
+    const d = db.approved_devices.find(x => x.id === a.p_device); if(!d) return {status: 400, body: {code: 'P0002', message: 'That device is no longer approved.'}};
+    if(a.p_desk != null) db.approved_devices.forEach(x => { if(x !== d && x.live_desk === a.p_desk) x.live_desk = null; });
+    d.live_desk = a.p_desk == null ? null : a.p_desk; return {status: 200, body: null};
+  }
   if(name === 'approve_this_device'){
     if(!me || !me.is_owner || !aalOk(headers)) return {status: 403, body: {code: '42501', message: 'Only the owner can approve a device.'}};
     const k = devKey(headers), nm = String(a.p_name || '').trim();
@@ -626,7 +633,8 @@ function rpc(name, a, me, headers){
       let r = db.presence.find(x => x.user_id === me.user_id); const t = now();
       if(!r){ r = {user_id: me.user_id, signed_in_at: t}; db.presence.push(r); }
       else if(r.signed_out_at || Date.now() - new Date(r.last_seen) > 600000) r.signed_in_at = t;
-      Object.assign(r, {page: String(a.p_page || '').slice(0, 40), device: String(a.p_device || '').slice(0, 20), last_seen: t, signed_out_at: null, demo_live: false});
+      const dv = db.approved_devices.find(x => x.key_hash === devKey(headers));
+      Object.assign(r, {page: String(a.p_page || '').slice(0, 40), device: String(a.p_device || '').slice(0, 20), device_id: dv ? dv.id : null, last_seen: t, signed_out_at: null, demo_live: false});
       return {status: 200, body: null};
     }
     case 'presence_out': { const r = me && db.presence.find(x => x.user_id === me.user_id); if(r){ r.signed_out_at = now(); r.demo_live = false; } return {status: 200, body: null}; }

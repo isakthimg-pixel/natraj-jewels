@@ -73,7 +73,7 @@
       </div>
       <div class="card" id="card" hidden></div>
     </div>
-    <p class="keynote">Each staff member is a chess piece, from their designation in People &amp; settings: gate keeper a pawn, accountant and manager a rook, sales a bishop, all-rounders a knight. Drag to turn, pinch or scroll to zoom, tap a piece to follow it. Signed in on a computer: it stands at a store computer and its gem glows gold. On a phone: a small screen floats in front of it. Not marked yet: it waits at the gate. At thottam: it tends the crops on the farm island. At home: it sits outside the house on the home island. Absent, on leave or week off: it rests on the bench on the small island.</p>
+    <p class="keynote">Each staff member is a chess piece, from their designation in People &amp; settings: gate keeper a pawn, accountant and manager a rook, sales a bishop, all-rounders a knight. Drag to turn, pinch or scroll to zoom, tap a piece to follow it. Signed in on one of the three store computers (chosen in People &amp; settings, under devices): it stands at that computer and its gem glows gold. On a phone or any other device: a small screen floats in front of it. Not marked yet: it waits at the gate. At thottam: it tends the crops on the farm island. At home: it sits outside the house on the home island. Absent, on leave or week off: it rests on the bench on the small island.</p>
     <div class="people" id="people"></div>
   </div>
 </main>
@@ -278,7 +278,7 @@ for(let i = 0; i < ALCOVES.length - 1; i++){
 }
 // iron ring chandeliers with candles over the aisle
 const iron = mat(0x3B2420), wax = mat(0xFBF1DC);
-for(const z of [7, 0, -7]){
+for(const z of [7, 1, -4.5]){
   const c = new THREE.Group(); c.position.set(0, FL + 3.9, z); store.add(c);
   add(c, new THREE.TorusGeometry(.75, .05, 8, 40), iron, 0, 0, 0).rotation.x = Math.PI / 2;
   for(let i = 0; i < 8; i++){ const a = i / 8 * Math.PI * 2, x = Math.cos(a) * .75, zz = Math.sin(a) * .75;
@@ -291,8 +291,8 @@ for(const z of [7, 0, -7]){
   add(c, new THREE.CylinderGeometry(.015, .015, 3, 5), iron, 0, .9 + 1.5, 0, false);
 }
 // a maroon carpet with gold edges along the aisle, from the gate to the back counter
-block(store, 1.2, .025, 21.2, BR_.maroon, 0, FL, 1.2, {r: .005, shadow: false});
-for(const x of [-.57, .57]) block(store, .05, .03, 21.2, 0xD4A24C, x, FL, 1.2, {r: .005, shadow: false});
+block(store, 1.2, .025, 18.6, BR_.maroon, 0, FL, 2.8, {r: .005, shadow: false});
+for(const x of [-.57, .57]) block(store, .05, .03, 18.6, 0xD4A24C, x, FL, 2.8, {r: .005, shadow: false});
 // a lamp shelf in the back-right corner
 block(store, .8, .1, .35, WALL, 2.4, FL + 1.9, -HZ + .18, {r: .03});
 add(store, new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({color: 0xFFB347, emissive: 0xFFA020, emissiveIntensity: 2.4}), 2.4, FL + 2.12, -HZ + .22, false);
@@ -339,20 +339,21 @@ function counter(x0, x1, z0, z1){
     else { const m = add(store, new THREE.TorusGeometry(.11, .042, 8, 18), mat(0xE8E8F0, {metalness: .9, roughness: .2}), px, FL + .98, pz, false); m.rotation.x = -Math.PI / 2; }
   }
 }
-counter(-2.05, -1.35, -6.1, 5.9);     // left
-counter(1.35, 2.05, -9.85, 5.3);      // right
-counter(-1.1, 2.05, -10.6, -9.85);    // back, joining the right counter
+// one U-shaped counter: the left and right counters run down the sides and join a counter across the back
+counter(-2.05, -1.35, -6.7, 6.4);     // left
+counter(1.35, 2.05, -6.7, 5.9);       // right
+counter(-2.05, 2.05, -7.4, -6.7);     // across the back, joining both
 // stools for customers: soft gold seats on gold legs
-for(const [x, z] of [[-1.1, 4.5], [-1.1, 1.5], [-1.1, -1.5], [-1.1, -4.5], [1.1, 3.8], [1.1, .8], [1.1, -2.2], [1.1, -5.2], [1.1, -8], [.3, -9.4], [1.05, -9.4]]){
+for(const [x, z] of [[-1.1, 4.5], [-1.1, 1.5], [-1.1, -1.5], [-1.1, -4.5], [1.1, 3.8], [1.1, .8], [1.1, -2.2], [1.1, -5.2], [-.9, -6.3], [.9, -6.3]]){
   block(store, .08, .45, .08, TRIM, x, FL, z, {r: .03, mo: goldO});
   add(store, new THREE.CylinderGeometry(.22, .22, .09, 18), mat(BR_.goldSoft, {roughness: .7}), x, FL + .49, z);
 }
 
 // the three store computers (where the sketch shows them): cream desks, a gold-lit screen and charging pad when in use
 const DESKS = [
-  {desk: [-1.75, 9.8], seat: [-2.55, 9.8], face: Math.PI / 2, near: 'Lff'},   // faces into the store, reached along the staff lane
-  {desk: [1.8, 7.0], seat: [2.6, 7.0], face: -Math.PI / 2, near: 'Rff'},   // faces into the shop, reached along the staff lane
-  {desk: [-2.6, -11.4], seat: [-1.8, -11.4], face: -Math.PI / 2, near: 'Bg'}
+  {desk: [-1.75, 9.8], seat: [-2.55, 9.8], face: Math.PI / 2, near: 'Lff'},    // top left, by the gate: faces into the shop
+  {desk: [1.8, 7.6], seat: [2.6, 7.6], face: -Math.PI / 2, near: 'Rff'},     // top right, above the right counter: faces into the shop
+  {desk: [-1.6, -9.4], seat: [-1.6, -10.2], face: 0, near: 'C3a'}             // bottom left, behind the back counter: faces the gate
 ];
 const padOff = new THREE.MeshStandardMaterial({color: BR_.gold, emissive: 0x845E22, emissiveIntensity: .35});
 const padOn = new THREE.MeshStandardMaterial({color: 0xFFE2A0, emissive: 0xFFC24A, emissiveIntensity: 2.4});
@@ -507,12 +508,13 @@ const clouds = [];
 
 /* ---------- where people move in the shop: a small network of points ---------- */
 const NODES = {
-  G: [GX, HZ + 1.6], A0: [-.3, 11.2], C1a: [-.9, 9.8], A1: [0, 8.2], C2a: [.9, 7], Lf: [-.9, 6.7], Lff: [-2.55, 6.7], Rf: [.9, 5.9], Rff: [2.55, 5.9],
-  A2: [0, 4], A3: [0, 0], A4: [0, -4], A5: [0, -7.2], A6: [-.4, -9],
-  L1: [-2.55, 4.3], L2: [-2.55, 1.2], L3: [-2.55, -1.9], L4: [-2.55, -5], Lbb: [-2.55, -6.8], Lb: [-.9, -6.8], Lc: [-2.3, -9.2], Bg: [-1.75, -10],
-  B3: [-.6, -11.4], B2: [.7, -11.4], B1: [1.6, -11.4], Rc: [2.55, -11.4], R4: [2.55, -8.2], R3: [2.55, -4.6], R2: [2.55, -1], R1: [2.55, 2.6]
+  G: [GX, HZ + 1.6], A0: [-.3, 11.2], C1a: [-.9, 9.8], A1: [0, 8.2], Lf: [-.9, 7.1], Lff: [-2.55, 7.1], Rf: [.9, 6.4], Rff: [2.55, 6.4],
+  A2: [0, 4], A3: [0, .5], A4: [0, -3], A5: [0, -5.8],
+  L1: [-2.55, 4.3], L2: [-2.55, 1.2], L3: [-2.55, -1.9], L4: [-2.55, -5], Lbb: [-2.55, -8], C3a: [-2.55, -10.2],
+  B3: [-.9, -8], B2: [.3, -8], B1: [1.4, -8], Rc: [2.55, -8], R4: [2.55, -5.8], R3: [2.55, -3.2], R2: [2.55, 0], R1: [2.55, 3.2]
 };
-const EDGES = 'G-A0 A0-C1a A0-A1 C1a-A1 C1a-Lf A1-Lf A1-C2a C2a-Rf A1-Rf A1-A2 Rf-A2 Lf-A2 Lf-Lff Rf-Rff Lff-L1 L1-L2 L2-L3 L3-L4 L4-Lbb Lbb-Lb Lbb-Lc Lc-Bg Lb-A4 Lb-A5 A2-A3 A3-A4 A4-A5 A5-A6 A6-Bg Lb-Bg Bg-B3 B3-B2 B2-B1 B1-Rc Rc-R4 R4-R3 R3-R2 R2-R1 R1-Rff';
+// the aisle reaches the staff side round the front ends of the side counters; the staff lanes meet behind the back counter
+const EDGES = 'G-A0 A0-C1a A0-A1 C1a-A1 C1a-Lf A1-Lf A1-Rf A1-A2 Rf-A2 Lf-A2 Lf-Lff Rf-Rff A2-A3 A3-A4 A4-A5 Lff-L1 L1-L2 L2-L3 L3-L4 L4-Lbb Lbb-C3a Lbb-B3 B3-B2 B2-B1 B1-Rc Rc-R4 R4-R3 R3-R2 R2-R1 R1-Rff';
 for(const k in NODES) NODES[k][0] = -NODES[k][0];   // mirrored with the store
 const ADJ = {};
 EDGES.split(' ').forEach(e => { const [a, b] = e.split('-'); (ADJ[a] = ADJ[a] || []).push(b); (ADJ[b] = ADJ[b] || []).push(a); });
@@ -809,11 +811,15 @@ async function load(){
     sb.from('attendance').select('staff_id,status').eq('day', todayIso()),
     sb.from('profiles').select('user_id,name,staff_id,is_owner'),
     sb.from('presence').select('*')]);
+  // the shop computers given a desk in People & settings
+  const devs = (await sb.from('approved_devices').select('id,name,live_desk')).data || [];
   const staff = (must(s) || []).filter(x => x.active !== false), att = must(a) || [], profs = must(pr) || [], pres = must(ps) || [];
   const rows = [];
   const one = (id, name, code, prof, designation) => {
     const r = prof && pres.find(x => x.user_id === prof.user_id), st = NJ.presenceText(r);
-    return {id, name, code, designation: designation || '', kind: pieceFor(designation), online: !!(prof && st.online), page: r && r.page || '', device: r && r.device || '', presText: prof ? st.text : 'No sign-in account'};
+    const dev = r && r.device_id && devs.find(d => d.id === r.device_id);
+    return {id, name, code, designation: designation || '', kind: pieceFor(designation), online: !!(prof && st.online), page: r && r.page || '', device: r && r.device || '',
+      deviceName: dev ? dev.name : '', desk: dev && dev.live_desk != null ? dev.live_desk : null, presText: prof ? st.text : 'No sign-in account'};
   };
   staff.forEach(st => rows.push(one(st.id, st.name, (att.find(x => x.staff_id === st.id) || {}).status || null, profs.find(x => x.staff_id === st.id && !x.is_owner), st.designation)));
   // people who sign in but are not on the staff list show up while they are signed in
@@ -824,11 +830,10 @@ async function load(){
 }
 function want(r, p){
   if(r.online){
-    if(r.device === 'Computer'){
-      const mine = p && p.want && p.want.where === 'desk' ? p.want.desk : null;
-      const used = new Set(); people.forEach(q => { if(q !== p && q.want && q.want.where === 'desk') used.add(q.want.desk); });
-      const d = mine != null && !used.has(mine) ? mine : [0, 1, 2].find(i => !used.has(i));
-      if(d != null) return {where: 'desk', desk: d};
+    // signed in on one of the store computers: sit at its desk (any other device: a floating screen)
+    if(r.desk != null){
+      const taken = [...people.values()].some(q => q !== p && q.want && q.want.where === 'desk' && q.want.desk === r.desk);
+      if(!taken) return {where: 'desk', desk: r.desk};
     }
     return {where: 'shop', phone: true};
   }
@@ -852,8 +857,8 @@ function apply(rows){
   const ids = new Set(rows.map(r => r.id));
   people.forEach((p, id) => { if(!ids.has(id)){ p.g.parent && p.g.parent.remove(p.g); people.delete(id); if(selected === id) select(null); } });
   // free the desks of people no longer at a computer, then give out desks first, so a person keeps theirs
-  rows.forEach(r => { const p = people.get(r.id); if(p && p.want && p.want.where === 'desk' && !(r.online && r.device === 'Computer')) p.want = {where: 'leaving'}; });
-  rows.slice().sort((x, y) => (y.online && y.device === 'Computer') - (x.online && x.device === 'Computer')).forEach(r => {
+  rows.forEach(r => { const p = people.get(r.id); if(p && p.want && p.want.where === 'desk' && !(r.online && r.desk === p.want.desk)) p.want = {where: 'leaving'}; });
+  rows.slice().sort((x, y) => (y.online && y.desk != null) - (x.online && x.desk != null)).forEach(r => {
     let p = people.get(r.id);
     // a new designation means a different piece
     if(p && p.kind !== r.kind){ p.g.parent && p.g.parent.remove(p.g); people.delete(r.id); p = null; }
@@ -885,7 +890,7 @@ function showCard(id){
   const p = people.get(id), card = $('card');
   if(!p){ card.hidden = true; return; }
   const r = p.info, [l2] = describe(r, p.want);
-  card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button><b>' + esc(r.name) + '</b><span>' + esc(PIECE_NAME[r.kind] + (r.designation ? ' · ' + r.designation : '')) + '</span><span>' + esc(l2) + '</span><span>Attendance today: ' + esc(WORK[r.code] || AWAY[r.code] || OFF[r.code] || 'not marked yet') + '</span><span>' + esc(r.presText) + '</span>';
+  card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button><b>' + esc(r.name) + '</b><span>' + esc(PIECE_NAME[r.kind] + (r.designation ? ' · ' + r.designation : '')) + '</span><span>' + esc(l2) + '</span><span>Attendance today: ' + esc(WORK[r.code] || AWAY[r.code] || OFF[r.code] || 'not marked yet') + '</span><span>' + esc(r.presText) + (r.online && r.deviceName ? ' · on ' + r.deviceName : '') + '</span>';
   card.hidden = false;
 }
 function select(id){
