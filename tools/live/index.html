@@ -73,7 +73,7 @@
       </div>
       <div class="card" id="card" hidden></div>
     </div>
-    <p class="keynote">Each staff member is a chess piece, from their designation in People &amp; settings: gate keeper a pawn, accountant and manager a rook, sales a bishop, all-rounders a knight. Drag to turn, pinch or scroll to zoom, tap a piece to follow it. Signed in on a computer: it stands at a store computer and its gem glows gold. On a phone: a small screen floats in front of it. Not marked yet: it waits at the gate. Away today: it rests on the bench on the small island.</p>
+    <p class="keynote">Each staff member is a chess piece, from their designation in People &amp; settings: gate keeper a pawn, accountant and manager a rook, sales a bishop, all-rounders a knight. Drag to turn, pinch or scroll to zoom, tap a piece to follow it. Signed in on a computer: it stands at a store computer and its gem glows gold. On a phone: a small screen floats in front of it. Not marked yet: it waits at the gate. At thottam: it tends the crops on the farm island. At home: it sits outside the house on the home island. Absent, on leave or week off: it rests on the bench on the small island.</p>
     <div class="people" id="people"></div>
   </div>
 </main>
@@ -148,7 +148,7 @@ try{
 }
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(36, 1, .5, 500);
-const HOME = {pos: new THREE.Vector3(-22, 22, 24), target: new THREE.Vector3(3, -1, 1)};
+const HOME = {pos: new THREE.Vector3(-24, 27, 27), target: new THREE.Vector3(5, -1, -3)};
 const HOME_NARROW = {pos: new THREE.Vector3(-22, 34, 30), target: new THREE.Vector3(2, -1, 1)};
 camera.position.copy(HOME.pos);
 let controls = null;
@@ -351,7 +351,7 @@ for(const [x, z] of [[-1.1, 4.5], [-1.1, 1.5], [-1.1, -1.5], [-1.1, -4.5], [1.1,
 // the three store computers (where the sketch shows them): cream desks, a gold-lit screen and charging pad when in use
 const DESKS = [
   {desk: [-1.75, 9.8], seat: [-2.55, 9.8], face: Math.PI / 2, near: 'Lff'},   // faces into the store, reached along the staff lane
-  {desk: [2.6, 7.0], seat: [1.8, 7.0], face: Math.PI / 2, near: 'C2a'},
+  {desk: [1.8, 7.0], seat: [2.6, 7.0], face: -Math.PI / 2, near: 'Rff'},   // faces into the shop, reached along the staff lane
   {desk: [-2.6, -11.4], seat: [-1.8, -11.4], face: -Math.PI / 2, near: 'Bg'}
 ];
 const padOff = new THREE.MeshStandardMaterial({color: BR_.gold, emissive: 0x845E22, emissiveIntensity: .35});
@@ -408,6 +408,91 @@ for(const [x, z] of [[-5, 13], [4.5, 13.5], [-8.5, -3], [9, -1], [3.5, -15]]) ad
   for(const [x, z] of [[-1.8, 3.2], [1.2, 3.6], [4.2, -.6]]) add(f, new THREE.IcosahedronGeometry(.28, 0), mat([0xC98276, 0xE9C46A, 0xF8EFE2][(x + 9 | 0) % 3], {flatShading: true}), x, .2, z);
 }
 
+/* ---------- the farm island (thottam) and the home island ---------- */
+const farm = island(6.6, 31), homeIsl = island(6.6, 41);
+farm.position.set(7.7, .6, -26.4); homeIsl.position.set(30.7, -.6, -1.4);
+const farmFace = new THREE.Group(), homeFace = new THREE.Group(); farm.add(farmFace); homeIsl.add(homeFace);
+for(const [isl, f] of [[farm, farmFace], [homeIsl, homeFace]]) f.rotation.y = Math.atan2(HOME.pos.x - isl.position.x, HOME.pos.z - isl.position.z);
+function signBoard(parent, text, x, z, bg, fg){
+  block(parent, .12, 1.7, .12, BR_.cocoa, x, 0, z, {r: .03});
+  const t = textTexture([{text, font: '800 56px ' + FONT, color: fg, x: 256, y: 64}], 512, 128, bg, {radius: 24});
+  const m0 = mat(parseInt(bg.slice(1), 16));
+  const s = new THREE.Mesh(new RoundedBoxGeometry(1.8, .46, .08, 2, .04), [m0, m0, m0, m0, new THREE.MeshStandardMaterial({map: t}), m0]);
+  s.position.set(x, 1.55, z + .08); s.castShadow = true; parent.add(s);
+}
+function fence(parent, x0, x1, z){
+  const wood = mat(0xC9A27A);
+  for(let x = x0; x <= x1 + .01; x += .6) block(parent, .08, .6, .08, 0xC9A27A, x, 0, z, {r: .02, m: wood});
+  for(const y of [.22, .46]) block(parent, x1 - x0, .06, .05, 0xC9A27A, (x0 + x1) / 2, y, z, {r: .01, m: wood});
+}
+function palm(parent, x, z, h, lean, seed){
+  const r = rng(seed), trunk = mat(0x9A7653, {flatShading: true}), leaf = mat(0x4E9A4A, {flatShading: true, side: THREE.DoubleSide});
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.z = lean; parent.add(g);
+  for(let i = 0; i < 5; i++) add(g, new THREE.CylinderGeometry(.13 - i * .012, .15 - i * .012, h / 5, 7), trunk, Math.sin(i * .5) * .08, h / 10 + i * h / 5, 0);
+  for(let i = 0; i < 7; i++){
+    const a = i / 7 * Math.PI * 2 + r(), f = add(g, new THREE.ConeGeometry(.22, 1.7, 4), leaf, 0, h, 0);
+    f.scale.set(1, 1, .25); f.rotation.set(0, a, 1.15 + r() * .3); f.position.set(Math.cos(a) * .7, h - .25, -Math.sin(a) * .7); f.rotation.order = 'YZX';
+  }
+  for(let i = 0; i < 3; i++) add(g, new THREE.SphereGeometry(.11, 8, 6), mat(0x6B4A2B), Math.cos(i * 2.1) * .14, h - .15, Math.sin(i * 2.1) * .14);
+}
+// the farm: a ploughed field with rows of crops, coconut palms behind, a little barn and a fence
+{
+  const f = farmFace, soil = mat(0x8B5A3C), green = mat(0x5DBB63, {flatShading: true}), deep = mat(0x3E8E48, {flatShading: true}), yellow = mat(0xF2C230, {flatShading: true});
+  add(f, new THREE.BoxGeometry(6.4, .12, 3.9), soil, 0, .06, -.2);
+  for(const [ri, z] of [-1.55, -.75, .05, .85].entries()){
+    add(f, new THREE.BoxGeometry(6.0, .1, .32), mat(0x6E4429), 0, .14, z);   // the raised row
+    for(let i = 0; i < 13; i++){
+      const x = -2.7 + i * .45;
+      if(ri === 2){ add(f, new THREE.CylinderGeometry(.02, .02, .4, 4), deep, x, .38, z); add(f, new THREE.IcosahedronGeometry(.1, 0), yellow, x, .6, z); }
+      else add(f, new THREE.IcosahedronGeometry(.15 + (i % 3) * .03, 0), ri % 2 ? deep : green, x, .3, z).rotation.y = i;
+    }
+  }
+  palm(f, -3.2, -3.1, 3.2, .12, 1); palm(f, -.6, -3.6, 3.6, -.08, 2); palm(f, 2.2, -3.2, 3.0, .1, 3); palm(f, 4.3, -1.6, 2.8, -.15, 4);
+  // the barn
+  const barn = new THREE.Group(); barn.position.set(3.9, 0, 1.9); barn.rotation.y = -.5; f.add(barn);
+  block(barn, 1.7, 1.3, 1.5, 0xB3243A, 0, 0, 0, {r: .04});
+  const roof = new THREE.Shape(); roof.moveTo(-1, 0); roof.lineTo(0, .75); roof.lineTo(1, 0); roof.lineTo(-1, 0);
+  const rg = new THREE.ExtrudeGeometry(roof, {depth: 1.7, bevelEnabled: false}); rg.translate(0, 0, -.85);
+  add(barn, rg, mat(0x5A3A2A), 0, 1.3, 0).rotation.y = Math.PI / 2;
+  block(barn, .6, .8, .04, 0xF4E8D0, 0, 0, .76, {r: .02});
+  fence(f, -3.4, 3.0, 2.6);
+  signBoard(f, 'Thottam', -3.9, 2.2, '#3E7D3A', '#FFF6DF');
+}
+// home: a cottage with a sloping roof, a bench out front, a garden and a fence
+{
+  const f = homeFace;
+  const house = new THREE.Group(); house.position.set(0, 0, -1.6); f.add(house);
+  block(house, 3.4, 2.0, 2.6, 0xF5E6CC, 0, 0, 0, {r: .05});
+  const roof = new THREE.Shape(); roof.moveTo(-2.05, 0); roof.lineTo(0, 1.25); roof.lineTo(2.05, 0); roof.lineTo(-2.05, 0);
+  const rg = new THREE.ExtrudeGeometry(roof, {depth: 3.0, bevelEnabled: false}); rg.translate(0, 0, -1.5);
+  add(house, rg, mat(0xB5523B), 0, 2.0, 0);
+  block(house, .4, .9, .4, 0x9C4A36, .9, 2.4, -.5, {r: .03});                 // chimney
+  block(house, .8, 1.35, .06, BR_.maroon, 0, 0, 1.31, {r: .03});               // door
+  add(house, new THREE.SphereGeometry(.045, 8, 6), mat(0xD4A24C), .26, .7, 1.36);
+  for(const x of [-1.05, 1.05]){
+    block(house, .8, .7, .06, 0xF8EFE2, x, .85, 1.31, {r: .02});
+    block(house, .62, .52, .07, 0x8EC5E8, x, .94, 1.32, {r: .01});
+    block(house, .05, .52, .08, 0xF8EFE2, x, .94, 1.33, {r: .01});
+  }
+  // the bench out front, for those at home
+  const b = new THREE.Group(); b.position.set(0, 0, .95); f.add(b);
+  block(b, 2.7, .1, .5, BR_.maroon, 0, .42, 0, {r: .03}); block(b, 2.7, .45, .08, BR_.maroon, 0, .58, -.27, {r: .03});
+  for(const x of [-1.15, 1.15]) block(b, .1, .42, .46, BR_.cocoa, x, 0, 0, {r: .02});
+  // the garden
+  const petals = [0xF28AB2, 0xFFD166, 0xFFFFFF, 0xE85D75];
+  for(const sx of [-1, 1]) for(let i = 0; i < 9; i++){
+    const x = sx * (2.2 + (i % 3) * .4), z = .2 + Math.floor(i / 3) * .45;
+    add(f, new THREE.CylinderGeometry(.015, .015, .3, 4), mat(0x3E8E48), x, .15, z);
+    add(f, new THREE.IcosahedronGeometry(.09, 0), mat(petals[i % 4], {flatShading: true}), x, .32, z);
+  }
+  for(let i = 0; i < 4; i++) block(f, .7, .05, .5, 0xD8D2C4, 0, 0, 1.9 + i * .65, {r: .05, shadow: false});
+  tree(f, 3.4, -2.4, 1.1, 5); tree(f, -3.6, -1.2, .9, 6);
+  fence(f, -3.3, -.6, 3.4); fence(f, .6, 3.3, 3.4);
+  signBoard(f, 'Home', 3.8, 2.2, '#3D5A99', '#FFF6DF');
+}
+const FARM_SPOTS = []; for(const z of [-1.15, -.35, .45]) for(let i = 0; i < 5; i++) FARM_SPOTS.push([-2.2 + i * 1.1, z]);
+const HOME_SPOTS = [[-.8, 1.0], [0, 1.0], [.8, 1.0], [-2.0, 2.3], [2.0, 2.3], [-2.6, 1.6], [2.6, 1.6], [-1.4, 2.9], [1.4, 2.9]];
+
 // clouds drifting by
 const clouds = [];
 {
@@ -450,7 +535,6 @@ function route(from, to, final){
 }
 const WAIT = Array.from({length: 16}, (_, i) => [-3.3 + (i % 8) * .9, HZ + 2 + Math.floor(i / 8) * .95]);
 const BENCH = [...Array.from({length: 5}, (_, i) => [-1.6 + i * .8, 1.08]), ...Array.from({length: 5}, (_, i) => [-1.6 + i * .8, -.77]), ...Array.from({length: 8}, (_, i) => [-2.4 + i * .7, 2.6])];
-const AWAYSPOTS = Array.from({length: 8}, (_, i) => [2.4 + (i % 2) * .9, -1.6 + Math.floor(i / 2) * .9]);
 
 /* ---------- the little people ---------- */
 /* the staff are chess pieces, by their designation on the staff list:
@@ -570,7 +654,20 @@ function setLabel(p, line2, color){
 }
 
 /* ---------- moving people around ---------- */
-const islandOf = k => k === 'park' ? park : shop;
+const ISLANDS = {shop, park, farm, home: homeIsl};
+const islandOf = k => ISLANDS[k] || shop;
+const FACE = {park: parkFace, farm: farmFace, home: homeFace};
+const UP = new THREE.Vector3(0, 1, 0);
+// positions on the small islands are in each island's turned frame
+const facePoint = (isl, xy) => { const v = new THREE.Vector3(xy[0], 0, xy[1]).applyAxisAngle(UP, FACE[isl].rotation.y); return [v.x, v.z]; };
+// those not in the shop: absent, on leave or week off on the bench; thottam on the farm; home at home
+const AWAYS = {
+  bench: {isl: 'park', spots: BENCH, seats: 10},
+  farm: {isl: 'farm', spots: FARM_SPOTS, seats: 0},
+  home: {isl: 'home', spots: HOME_SPOTS, seats: 3}
+};
+const islandFor = w => AWAYS[w.where] ? AWAYS[w.where].isl : 'shop';
+const awayPoint = p => facePoint(AWAYS[p.want.where].isl, AWAYS[p.want.where].spots[p.slot]);
 function placeAt(p, isl, pos, angle){
   islandOf(isl).add(p.g); p.island = isl; p.pos = pos.slice(); p.angle = angle || 0;
   p.g.position.set(pos[0], isl === 'shop' ? FL : 0, pos[1]); p.g.rotation.y = p.angle;
@@ -579,19 +676,24 @@ function free(list, key, mine){
   const used = new Set(); people.forEach(q => { if(q !== mine && q[key] != null) used.add(q[key]); });
   return list.findIndex((_, i) => !used.has(i));
 }
-function releaseAll(p){ p.spot = null; p.deskIdx = null; p.benchIdx = null; p.waitIdx = null; p.awayIdx = null; }
-// park positions are in the bench group's turned frame
-const parkPoint = xy => { const v = new THREE.Vector3(xy[0], 0, xy[1]).applyAxisAngle(new THREE.Vector3(0, 1, 0), parkFace.rotation.y); return [v.x, v.z]; };
+// a free spot on the island they are going to (on the farm, any free row, so people spread out)
+function freeSlot(p, random){
+  const a = AWAYS[p.want.where], used = new Set();
+  people.forEach(q => { if(q !== p && q.want && q.want.where === p.want.where && q.slot != null) used.add(q.slot); });
+  const open = a.spots.map((_, i) => i).filter(i => !used.has(i));
+  if(!open.length) return 0;
+  return random ? open[Math.floor(Math.random() * open.length)] : open[0];
+}
+function releaseAll(p){ p.spot = null; p.deskIdx = null; p.slot = null; p.waitIdx = null; p.seated = false; }
 function settle(p, first){
-  const w = p.want, toIsl = ['bench', 'away'].includes(w.where) ? 'park' : 'shop';
+  const w = p.want, toIsl = islandFor(w);
   releaseAll(p);
   if(w.where === 'desk') p.deskIdx = w.desk;
-  if(w.where === 'bench') p.benchIdx = Math.max(0, free(BENCH, 'benchIdx', p));
-  if(w.where === 'away') p.awayIdx = Math.max(0, free(AWAYSPOTS, 'awayIdx', p));
+  if(AWAYS[w.where]) p.slot = freeSlot(p, w.where === 'farm');
   if(w.where === 'wait') p.waitIdx = Math.max(0, free(WAIT, 'waitIdx', p));
   if(p.island && p.island !== toIsl && !first){ startHop(p, toIsl); return; }
   if(first || !p.island){
-    if(toIsl === 'park'){ const pt = parkPoint(w.where === 'bench' ? BENCH[p.benchIdx] : AWAYSPOTS[p.awayIdx]); placeAt(p, 'park', pt, parkFace.rotation.y); arrive(p); return; }
+    if(AWAYS[w.where]){ placeAt(p, toIsl, awayPoint(p), FACE[toIsl].rotation.y); arrive(p); return; }
     if(w.where === 'desk'){ const d = DESKS[p.deskIdx]; placeAt(p, 'shop', d.seat, d.face); arrive(p); return; }
     if(w.where === 'wait'){ placeAt(p, 'shop', WAIT[p.waitIdx], 0); arrive(p); return; }
     const k = pickSpot(p); placeAt(p, 'shop', NODES[k], SPOTS[k] ?? Math.random() * 6); arrive(p); return;
@@ -608,37 +710,38 @@ function pickSpot(p){
 // walk to wherever this person wants to be, on the island they are on
 function goTo(p){
   const w = p.want;
-  p.pose = 'stand';
-  if(p.island === 'park'){ const pt = parkPoint(w.where === 'bench' ? BENCH[p.benchIdx] : AWAYSPOTS[p.awayIdx]); p.path = [pt]; p.mode = 'walk'; return; }
+  p.pose = 'stand'; p.seated = false;
+  if(p.island !== 'shop'){ p.path = [awayPoint(p)]; p.mode = 'walk'; return; }
   if(w.where === 'desk'){ const d = DESKS[p.deskIdx]; p.path = route(p.pos, d.near, d.seat); }
   else if(w.where === 'wait') p.path = [...route(p.pos, 'G'), WAIT[p.waitIdx]];
   else { const k = pickSpot(p); p.path = route(p.pos, k); }
   p.mode = 'walk';
 }
 function arrive(p){
-  const w = p.want; p.mode = 'still';
-  if(w.where === 'desk'){ const d = DESKS[p.deskIdx]; p.pos = d.seat.slice(); p.angle = d.face; p.pose = 'type'; }
-  else if(w.where === 'bench'){ p.angle = parkFace.rotation.y; p.pose = 'bench'; }
-  else if(w.where === 'away' || w.where === 'wait'){ p.angle = p.island === 'park' ? parkFace.rotation.y : 0; p.pose = 'stand'; }
+  const w = p.want; p.mode = 'still'; p.seated = false;
+  if(AWAYS[w.where]){
+    const a = AWAYS[w.where]; p.angle = FACE[a.isl].rotation.y; p.seated = p.slot < a.seats;
+    if(w.where === 'bench') p.pose = p.seated ? 'bench' : 'stand';
+    else if(w.where === 'home') p.pose = p.seated ? 'porch' : 'stand';
+    else { p.pose = 'tend'; p.mode = 'field'; p.wait = 6 + Math.random() * 9; }   // on the farm: tending a row, then the next
+  }
+  else if(w.where === 'desk'){ const d = DESKS[p.deskIdx]; p.pos = d.seat.slice(); p.angle = d.face; p.pose = 'type'; }
+  else if(w.where === 'wait'){ p.angle = 0; p.pose = 'stand'; }
   else { p.angle = SPOTS[p.spot] ?? p.angle; p.pose = 'stand'; p.wait = (w.phone ? 9 : 4) + Math.random() * 8; p.mode = 'roam'; }
-  if(w.where === 'away' && p.island === 'park') p.pose = 'stand';
 }
 function startHop(p, toIsl){
   const from = new THREE.Vector3(); p.g.getWorldPosition(from);
-  let land;
-  if(toIsl === 'park'){ const pt = parkPoint(p.want.where === 'bench' ? BENCH[p.benchIdx] : AWAYSPOTS[p.awayIdx]); land = pt; }
-  else land = p.want.where === 'wait' ? WAIT[p.waitIdx] : NODES.G;
+  const land = AWAYS[p.want.where] ? awayPoint(p) : p.want.where === 'wait' ? WAIT[p.waitIdx] : NODES.G;
   const to = islandOf(toIsl).localToWorld(new THREE.Vector3(land[0], toIsl === 'shop' ? FL : 0, land[1]));
   scene.attach(p.g);
   p.hop = {from, to, t: 0, dur: reduce ? .6 : 1.7, h: reduce ? 1 : 5 + from.distanceTo(to) * .12, toIsl, land, spin: p.g.rotation.y};
-  p.mode = 'hop'; p.pose = 'hop'; p.path = [];
+  p.mode = 'hop'; p.pose = 'hop'; p.path = []; p.seated = false;
 }
 function endHop(p){
   const hp = p.hop; p.hop = null;
   islandOf(hp.toIsl).attach(p.g); p.island = hp.toIsl;
   p.pos = [p.g.position.x, p.g.position.z]; p.g.position.y = hp.toIsl === 'shop' ? FL : 0;
-  if(hp.toIsl === 'park') arrive(p);
-  else if(p.want.where === 'wait') arrive(p);
+  if(hp.toIsl !== 'shop' || p.want.where === 'wait') arrive(p);
   else goTo(p);
 }
 
@@ -651,6 +754,8 @@ function pose(p, dt, t){
   else if(P === 'type'){ tilt = .14 + Math.sin(t * 5 + sd) * .04; gem = EYE.work; }
   else if(P === 'bench'){ roll = .1 + Math.sin(t * .5 + sd) * .04; tilt = -.08; gem = EYE.sleep; }       // resting, half asleep
   else if(P === 'hop'){ gem = EYE.happy; }
+  else if(P === 'tend'){ tilt = .22 + Math.sin(t * 2.2 + sd) * .18; turn = Math.sin(t * .4 + sd) * .2; }   // bending over the crops
+  else if(P === 'porch'){ roll = Math.sin(t * .6 + sd) * .05; tilt = -.06; }                               // sitting back at home
   else { turn = Math.sin(t * .5 + sd) * .3; roll = Math.sin(t * .8 + sd) * .025; }
   const phone = w.phone && P !== 'type' && P !== 'hop';
   if(phone){ tilt = .16; turn = 0; gem = EYE.work; }
@@ -684,12 +789,15 @@ function step(p, dt, t){
   } else if(p.mode === 'roam'){
     p.wait -= dt;
     if(p.wait <= 0){ const k = pickSpot(p); p.path = route(p.pos, k); p.mode = 'walk'; }
+  } else if(p.mode === 'field'){
+    p.wait -= dt;
+    if(p.wait <= 0){ p.slot = freeSlot(p, true); p.path = [awayPoint(p)]; p.mode = 'walk'; p.seated = false; }
   }
   if(p.mode !== 'walk') p.g.rotation.y = lerpA(p.g.rotation.y, p.angle, 1 - Math.exp(-dt * 6));
   else p.g.rotation.y = p.angle;
   p.g.position.x = p.pos[0]; p.g.position.z = p.pos[1];
-  // on the bench the ball rests on the seat
-  p.g.position.y = (p.island === 'shop' ? FL : 0) + (p.pose === 'bench' && p.benchIdx < 10 ? .47 : 0);
+  // on a bench the piece stands on the seat
+  p.g.position.y = (p.island === 'shop' ? FL : 0) + (p.seated && p.mode !== 'walk' ? .47 : 0);
 }
 
 /* ---------- live data: who is marked present, and who is signed in now ---------- */
@@ -725,7 +833,7 @@ function want(r, p){
     return {where: 'shop', phone: true};
   }
   if(WORK[r.code]) return {where: 'shop'};
-  if(AWAY[r.code]) return {where: 'away'};
+  if(AWAY[r.code]) return {where: r.code === 'T' ? 'farm' : 'home'};
   if(OFF[r.code]) return {where: 'bench'};
   return {where: 'wait'};
 }
@@ -734,7 +842,8 @@ function describe(r, w){
   if(w.where === 'desk') return ['Working · ' + app, '#2E7D4F'];
   if(w.phone) return ['On phone · ' + app, '#2E7D4F'];
   if(w.where === 'shop') return [WORK[r.code] || 'Present', '#8E2A2A'];
-  if(w.where === 'away') return [AWAY[r.code], '#3D5A99'];
+  if(w.where === 'farm') return ['At thottam', '#3E7D3A'];
+  if(w.where === 'home') return ['At home', '#3D5A99'];
   if(w.where === 'bench') return [OFF[r.code], '#B3261E'];
   return ['Not marked yet', '#9A6A12'];
 }
@@ -765,7 +874,7 @@ function renderLists(rows){
   const n = k => rows.filter(r => { const p = people.get(r.id); return p && p.want && p.want.where === k; }).length;
   const online = rows.filter(r => r.online).length;
   $('counts').innerHTML = '<span><b>' + (n('shop') + n('desk')) + '</b> in the shop</span><span><b>' + online + '</b> signed in now</span>' +
-    '<span><b>' + n('wait') + '</b> not marked yet</span><span><b>' + (n('bench') + n('away')) + '</b> away today</span>';
+    '<span><b>' + n('wait') + '</b> not marked yet</span><span><b>' + (n('bench') + n('farm') + n('home')) + '</b> away today</span>';
   $('people').innerHTML = rows.map(r => { const p = people.get(r.id), w = p && p.want || {}, [l2] = describe(r, w);
     return '<button class="person" type="button" data-id="' + esc(r.id) + '" aria-pressed="' + (selected === r.id) + '"><i style="background:' + (p ? p.color : '#999') + '"></i><b>' + esc(r.name) + '</b><span>' + esc(PIECE_NAME[r.kind]) + ' · ' + esc(l2) + (r.online ? '' : ' · ' + r.presText) + '</span></button>'; }).join('');
 }
@@ -824,6 +933,8 @@ function tick(){
   const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
   shop.position.y = Math.sin(t * .45) * (reduce ? 0 : .12);
   park.position.y = -1.2 + Math.sin(t * .55 + 1) * (reduce ? 0 : .16);
+  farm.position.y = .6 + Math.sin(t * .5 + 2) * (reduce ? 0 : .15);
+  homeIsl.position.y = -.6 + Math.sin(t * .6 + 3) * (reduce ? 0 : .15);
   if(!reduce) clouds.forEach(c => { const a = c.userData.v * dt * .012; const x = c.position.x, z = c.position.z; c.position.x = x * Math.cos(a) - z * Math.sin(a); c.position.z = x * Math.sin(a) + z * Math.cos(a); });
   people.forEach(p => { step(p, dt, t); pose(p, dt, t); });
   if(selected && people.get(selected)){

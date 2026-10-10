@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v34';
+const KEY = 'natraj-demo-db-v35';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -41,7 +41,7 @@ function seed(){
     });
   }
   // today: two people already marked
-  [[0, 'P'], [1, 'P'], [2, 'A'], [3, 'P']].forEach(([i, st]) => db.attendance.push({staff_id: staff[i].id, day: today, status: st, note: '', leave_id: null, marked_by: manager.user_id, marked_by_name: 'Sample Manager', marked_at: now()}));
+  [[0, 'P'], [1, 'P'], [2, 'A'], [3, 'T']].forEach(([i, st]) => db.attendance.push({staff_id: staff[i].id, day: today, status: st, note: '', leave_id: null, marked_by: manager.user_id, marked_by_name: 'Sample Manager', marked_at: now()}));
   // leave waiting for approval
   const leave = (s, from, to, half, reason, status) => ({id: uid(), staff_id: s.id, from_day: from, to_day: to, half, reason, status, created_at: now(), decided_by_name: status === 'pending' ? '' : 'Owner', decided_at: status === 'pending' ? null : now()});
   db.leave_requests.push(
