@@ -18,12 +18,12 @@
 .not-owner .owner-only-msg{display:block}
 .not-owner main{display:none!important}
 .stage{position:relative;height:clamp(420px,74vh,860px);border-radius:18px;overflow:hidden;border:1px solid var(--line);
-  background:radial-gradient(ellipse at 50% 28%,#3d3560 0%,#211c38 55%,#141126 100%)}
+  background:radial-gradient(ellipse at 50% 26%,#7A2E2A 0%,#4A1F1C 48%,#2A1513 100%)}
 .stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 .stage canvas:active{cursor:grabbing}
 .stage .tools{position:absolute;top:12px;right:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .stage .tools .btn{background:rgba(255,255,255,.92)}
-.stage .live{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(20,17,38,.6);color:#F4EEFF;font-size:.8rem;font-weight:600;letter-spacing:.02em}
+.stage .live{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(42,21,19,.62);color:#F8EFE2;font-size:.8rem;font-weight:600;letter-spacing:.02em}
 .stage .live i{width:8px;height:8px;border-radius:50%;background:#3DDC84;box-shadow:0 0 0 0 rgba(61,220,132,.7);animation:livepulse 2s infinite}
 @keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,.6)}70%{box-shadow:0 0 0 9px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
 @media (prefers-reduced-motion:reduce){.stage .live i{animation:none}}
@@ -31,7 +31,7 @@
 .stage .card b{font-size:1.05rem;color:var(--ink)}
 .stage .card span{font-size:.88rem;color:var(--muted)}
 .stage .card .x{position:absolute;top:6px;right:8px;border:0;background:none;font-size:1.3rem;line-height:1;color:var(--muted);cursor:pointer;padding:6px}
-.stage .nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#F4EEFF}
+.stage .nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#F8EFE2}
 .counts{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0 4px;font-size:.92rem;color:var(--muted)}
 .counts b{color:var(--ink);font-size:1.05rem}
 .people{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:16px}
@@ -132,8 +132,8 @@ try{
 }
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(36, 1, .5, 500);
-const HOME = {pos: new THREE.Vector3(13, 21, 25), target: new THREE.Vector3(-6, -1, 1)};
-const HOME_NARROW = {pos: new THREE.Vector3(14, 30, 30), target: new THREE.Vector3(-2, -1, 1)};
+const HOME = {pos: new THREE.Vector3(22, 22, 24), target: new THREE.Vector3(-3, -1, 1)};
+const HOME_NARROW = {pos: new THREE.Vector3(22, 34, 30), target: new THREE.Vector3(-2, -1, 1)};
 camera.position.copy(HOME.pos);
 let controls = null;
 if(renderer){
@@ -149,220 +149,227 @@ if(renderer){
   controls.minDistance = 3.5; controls.maxDistance = 110; controls.maxPolarAngle = 1.36; controls.autoRotateSpeed = .5;
 }
 
-scene.add(new THREE.HemisphereLight(0xEAF0FF, 0x463C5E, 1.15));
-const sun = new THREE.DirectionalLight(0xFFF1DC, 2.3);
-sun.position.set(14, 34, 22); sun.target.position.set(-8, 0, 0); scene.add(sun, sun.target);
+/* Natraj Jewels brand colours: maroon #8E2A2A, deep maroon #6E1F1F, cocoa #3B2420, gold #845E22,
+   soft gold #E7D3AE, paper #F5F2ED, cream #F8EFE2, ink #2A1E1B */
+const BR_ = {maroon: 0x8E2A2A, deep: 0x6E1F1F, cocoa: 0x3B2420, gold: 0x845E22, goldSoft: 0xE7D3AE, paper: 0xF5F2ED, cream: 0xF8EFE2, ink: 0x2A1E1B,
+  metal: 0xC9A04E, line: 0xE2D6C4};
+scene.add(new THREE.HemisphereLight(0xFFF3E2, 0x5A2A24, 1.2));
+const sun = new THREE.DirectionalLight(0xFFF0D6, 2.3);
+sun.position.set(16, 34, 18); sun.target.position.set(-6, 0, 2); scene.add(sun, sun.target);
 sun.castShadow = true; sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
-Object.assign(sun.shadow.camera, {left: -36, right: 30, top: 30, bottom: -30, near: 1, far: 110});
+Object.assign(sun.shadow.camera, {left: -40, right: 34, top: 34, bottom: -34, near: 1, far: 120});
 sun.shadow.bias = -.0004; sun.shadow.normalBias = .03;
-const fill = new THREE.DirectionalLight(0x9DB4FF, .55); fill.position.set(-30, 18, -20); scene.add(fill);
+const fill = new THREE.DirectionalLight(0xF0C8A8, .45); fill.position.set(-30, 18, -20); scene.add(fill);
 
-// faint stars
+// faint warm stars
 {
   const r = rng(7), pts = [];
-  for(let i = 0; i < 260; i++){ const a = r() * Math.PI * 2, e = r() * .9 - .15, d = 160 + r() * 80; pts.push(Math.cos(a) * Math.cos(e) * d, Math.sin(e) * d, Math.sin(a) * Math.cos(e) * d); }
+  for(let i = 0; i < 260; i++){ const a = r() * Math.PI * 2, e = r() * .9 - .15, d = 170 + r() * 80; pts.push(Math.cos(a) * Math.cos(e) * d, Math.sin(e) * d, Math.sin(a) * Math.cos(e) * d); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({color: 0xE9E4FF, size: 1.1, sizeAttenuation: false, transparent: true, opacity: .7})));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({color: BR_.cream, size: 1.1, sizeAttenuation: false, transparent: true, opacity: .6})));
 }
 
 /* ---------- floating hexagon islands ---------- */
 function island(R, topColor, rimColor, seed){
   const g = new THREE.Group(), r = rng(seed);
   add(g, new THREE.CylinderGeometry(R, R, .7, 6), mat(topColor, {roughness: .9}), 0, -.35, 0);
-  // the glowing edge
-  add(g, new THREE.CylinderGeometry(R + .18, R + .18, .32, 6, 1, true), new THREE.MeshStandardMaterial({color: rimColor, emissive: rimColor, emissiveIntensity: 1.6, roughness: .4, side: THREE.DoubleSide}), 0, -.16, 0, false);
-  add(g, new THREE.CylinderGeometry(R * .985, R * .9, 1.4, 6), mat(0x3A3350, {roughness: 1}), 0, -1.4, 0);
-  // rocky underside: an upside-down cone, roughened
-  const cone = new THREE.ConeGeometry(R * .9, R * .9, 6, 4); cone.rotateX(Math.PI);
+  // the glowing gold edge
+  add(g, new THREE.CylinderGeometry(R + .18, R + .18, .32, 6, 1, true), new THREE.MeshStandardMaterial({color: rimColor, emissive: rimColor, emissiveIntensity: 1.4, roughness: .4, side: THREE.DoubleSide}), 0, -.16, 0, false);
+  add(g, new THREE.CylinderGeometry(R * .985, R * .9, 1.4, 6), mat(BR_.cocoa, {roughness: 1}), 0, -1.4, 0);
+  const cone = new THREE.ConeGeometry(R * .9, R * .8, 6, 4); cone.rotateX(Math.PI);
   const p = cone.attributes.position, seen = new Map();
   for(let i = 0; i < p.count; i++){
-    const y = p.getY(i); if(y > R * .44) continue;
+    const y = p.getY(i); if(y > R * .39) continue;
     const k = [p.getX(i).toFixed(2), y.toFixed(2), p.getZ(i).toFixed(2)].join();
-    if(!seen.has(k)) seen.set(k, [(r() - .5) * 1.4, (r() - .5) * .8, (r() - .5) * 1.4]);
+    if(!seen.has(k)) seen.set(k, [(r() - .5) * 1.6, (r() - .5) * .9, (r() - .5) * 1.6]);
     const d = seen.get(k); p.setXYZ(i, p.getX(i) + d[0], y + d[1], p.getZ(i) + d[2]);
   }
   cone.computeVertexNormals();
-  add(g, cone, mat(0x4B3F63, {flatShading: true, roughness: 1}), 0, -2.1 - R * .45, 0);
-  // a soft glow under the island
-  const glow = new THREE.Mesh(new THREE.CircleGeometry(R * 1.05, 6), new THREE.MeshBasicMaterial({color: rimColor, transparent: true, opacity: .07, depthWrite: false}));
+  add(g, cone, mat(0x5C3A30, {flatShading: true, roughness: 1}), 0, -2.1 - R * .4, 0);
+  const glow = new THREE.Mesh(new THREE.CircleGeometry(R * 1.05, 6), new THREE.MeshBasicMaterial({color: rimColor, transparent: true, opacity: .06, depthWrite: false}));
   glow.rotation.x = -Math.PI / 2; glow.position.y = -2.15; g.add(glow);
   scene.add(g); return g;
 }
-const shop = island(14, 0x2E3446, 0xF4C542, 11);
-const park = island(6.6, 0x4E7E52, 0xA393FF, 23);
-park.position.set(-27, -1.2, 6);
+const shop = island(18, 0x4A2723, 0xE7C27A, 11);
+const park = island(6.6, 0xD9C49A, BR_.cream, 23);
+park.position.set(-21, 1.5, -19);
 const parkFace = new THREE.Group(); park.add(parkFace);
 parkFace.rotation.y = Math.atan2(HOME.pos.x - park.position.x, HOME.pos.z - park.position.z);
 
-/* ---------- the shop (from the floor plan: gate at the front, counters left, right and back, three computers) ---------- */
-const WOOD = (() => {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 256; const g = c.getContext('2d');
-  for(let i = 0; i < 8; i++){ g.fillStyle = ['#8B5A3C', '#94603F', '#7F5236', '#8F5D3E'][i % 4]; g.fillRect(0, i * 32, 256, 32); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(0, i * 32 + 30, 256, 2);
-    g.fillRect(((i * 97) % 200) + 20, i * 32, 2, 32); }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2.5, 4.5); t.rotation = Math.PI / 2; return t;
+/* ---------- the shop: 20 x 80 ft (about 6.1 x 24.4 m), laid out from the floor plan:
+   the gate at the front, counters along the left and right walls and across the back, three store computers ---------- */
+const SW = 6.1, SL = 24.4, HX = SW / 2, HZ = SL / 2;   // shop width and length, x across and z along
+const TILE = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#F2EADC'; g.fillRect(0, 0, 256, 256);
+  g.fillStyle = 'rgba(132,94,34,.08)'; g.fillRect(0, 0, 128, 128); g.fillRect(128, 128, 128, 128);
+  g.strokeStyle = '#E2D6C4'; g.lineWidth = 4; g.strokeRect(0, 0, 128, 128); g.strokeRect(128, 0, 128, 128); g.strokeRect(0, 128, 128, 128); g.strokeRect(128, 128, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(SW / 1.2, SL / 1.2); return t;
 })();
 const FL = .15;   // floor top
-add(shop, new THREE.BoxGeometry(10.4, FL, 19.4), new THREE.MeshStandardMaterial({map: WOOD, roughness: .75}), 0, FL / 2, 0);
-const WALL = 0xF7F1E8, TRIM = 0xD4A637, MAROON = 0x8E2A2A;
-block(shop, .3, 2.4, 19.7, WALL, -5.35, FL, 0, {r: .08});                 // left wall
-block(shop, 10.9, 3.2, .3, WALL, 0, FL, -9.85, {r: .08});                 // back wall (holds the sign)
-block(shop, .3, .5, 19.7, WALL, 5.35, FL, 0, {r: .08});                   // right wall, cut away low
-block(shop, 4.1, .5, .3, WALL, -3.65, FL, 9.85, {r: .08});                 // front wall, left of the gate
-block(shop, 4.5, .5, .3, WALL, 3.05, FL, 9.85, {r: .08});                  // front wall, right of the gate
-block(shop, .32, .08, 19.7, TRIM, -5.35, FL + 2.4, 0, {mo: {metalness: .6, roughness: .35}});
-block(shop, 10.9, .08, .32, TRIM, 0, FL + 3.2, -9.85, {mo: {metalness: .6, roughness: .35}});
-// the sign on the back wall
+add(shop, new THREE.BoxGeometry(SW + .3, FL, SL + .3), new THREE.MeshStandardMaterial({map: TILE, roughness: .45}), 0, FL / 2, 0);
+const WALL = BR_.paper, TRIM = BR_.metal, MAROON = BR_.maroon, goldO = {metalness: .75, roughness: .3};
+block(shop, .3, 2.6, SL + .6, WALL, -HX - .15, FL, 0, {r: .08});                // left wall
+block(shop, SW + .6, 3.6, .3, WALL, 0, FL, -HZ - .15, {r: .08});               // back wall (holds the sign)
+block(shop, .3, .5, SL + .6, WALL, HX + .15, FL, 0, {r: .08});                  // right wall, cut away low
+// front wall either side of the gate (gate opening x -1.35 to 0.4)
+block(shop, 1.85, .5, .3, WALL, -2.38, FL, HZ + .15, {r: .08});
+block(shop, 2.75, .5, .3, WALL, 1.98, FL, HZ + .15, {r: .08});
+block(shop, .32, .08, SL + .6, TRIM, -HX - .15, FL + 2.6, 0, {mo: goldO});
+block(shop, SW + .6, .08, .32, TRIM, 0, FL + 3.6, -HZ - .15, {mo: goldO});
+block(shop, .06, .12, SL, BR_.maroon, -HX + .02, FL + .1, 0, {r: .02, shadow: false});   // maroon skirting
+// the logo on the back wall, on a maroon board with a gold frame
 {
-  const t = textTexture([{text: 'NATRAJ JEWELS', font: '800 120px ' + FONT, color: '#F6D47A', x: 512, y: 104}], 1024, 208, '#8E2A2A', {radius: 40});
-  const s = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 1.3), new THREE.MeshStandardMaterial({map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: .35, roughness: .5}));
-  s.position.set(.6, FL + 2.45, -9.68); shop.add(s);
+  block(shop, 4.3, 1.95, .08, MAROON, 0, FL + 1.35, -HZ + .04, {r: .04});
+  block(shop, 4.45, 2.1, .04, TRIM, 0, FL + 1.28, -HZ + .01, {r: .02, mo: goldO, shadow: false});
+  const logo = new THREE.TextureLoader().load('../img/logo-cream.png'); logo.colorSpace = THREE.SRGBColorSpace; logo.anisotropy = 4;
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 3.8 * 517 / 1200), new THREE.MeshBasicMaterial({map: logo, transparent: true}));
+  s.position.set(0, FL + 2.32, -HZ + .09); shop.add(s);
 }
-// display panels on the left wall
-for(const z of [-3, 0, 3]){
-  block(shop, .06, 1.1, 2.2, MAROON, -5.18, FL + 1.1, z, {r: .03});
-  for(let i = 0; i < 3; i++) add(shop, new THREE.TorusGeometry(.17, .04, 8, 20), mat(0xF2C14E, {metalness: .85, roughness: .25}), -5.12, FL + 1.65, z - .6 + i * .6).rotation.y = Math.PI / 2;
+// display panels on the left wall, above the staff side
+for(const z of [-8.6, -4.6, -.6, 3.4]){
+  block(shop, .06, 1.1, 2.2, MAROON, -HX + .03, FL + 1.25, z, {r: .03});
+  for(let i = 0; i < 3; i++) add(shop, new THREE.TorusGeometry(.17, .04, 8, 20), mat(0xE9C46A, {metalness: .85, roughness: .25}), -HX + .09, FL + 1.8, z - .6 + i * .6).rotation.y = Math.PI / 2;
 }
-// a small lamp shelf on the back wall
-block(shop, .8, .1, .35, WALL, -4.2, FL + 1.7, -9.55, {r: .03});
-add(shop, new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({color: 0xFFB347, emissive: 0xFFA020, emissiveIntensity: 2.4}), -4.2, FL + 1.92, -9.5, false);
+// a lamp shelf in the back-right corner
+block(shop, .8, .1, .35, WALL, 2.4, FL + 1.9, -HZ + .18, {r: .03});
+add(shop, new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({color: 0xFFB347, emissive: 0xFFA020, emissiveIntensity: 2.4}), 2.4, FL + 2.12, -HZ + .22, false);
 
-// the gate: two pillars, an arch with the name, and the two doors folded open
-block(shop, .45, 3.2, .45, WALL, -1.75, FL, 9.85, {r: .1});
-block(shop, .45, 3.2, .45, WALL, .75, FL, 9.85, {r: .1});
-block(shop, 3.1, .5, .5, MAROON, -.5, FL + 3.2, 9.85, {r: .12});
+// the gate: two pillars, a maroon arch with the name, and the two gold doors folded open
+const GX = -.47;
+block(shop, .4, 3.2, .45, WALL, -1.55, FL, HZ + .15, {r: .1});
+block(shop, .4, 3.2, .45, WALL, .6, FL, HZ + .15, {r: .1});
+block(shop, 2.6, .5, .5, MAROON, GX, FL + 3.2, HZ + .15, {r: .12});
 {
-  const t = textTexture([{text: 'NATRAJ JEWELS', font: '800 64px ' + FONT, color: '#F6D47A', x: 256, y: 50}], 512, 100, null);
-  const s = new THREE.Mesh(new THREE.PlaneGeometry(2.8, .55), new THREE.MeshBasicMaterial({map: t, transparent: true}));
-  s.position.set(-.5, FL + 3.45, 10.11); shop.add(s);
+  const t = textTexture([{text: 'NATRAJ JEWELS', font: '800 64px ' + FONT, color: '#E7D3AE', x: 256, y: 50}], 512, 100, null);
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(2.4, .47), new THREE.MeshBasicMaterial({map: t, transparent: true}));
+  s.position.set(GX, FL + 3.45, HZ + .41); shop.add(s);
 }
-for(const [x, a] of [[-1.55, -1.25], [.55, 1.25]]){
-  const door = new THREE.Group(); door.position.set(x, FL, 9.85); door.rotation.y = a; shop.add(door);
-  const gold = mat(0xD9B24C, {metalness: .7, roughness: .35});
-  for(let i = 0; i < 6; i++) add(door, new THREE.BoxGeometry(.05, 2.5, .05), gold, (x < 0 ? 1 : -1) * (.1 + i * .17), 1.25, 0);
-  for(const y of [.15, 1.25, 2.4]) add(door, new THREE.BoxGeometry(.95, .05, .05), gold, (x < 0 ? 1 : -1) * .52, y, 0);
+for(const [x, a] of [[-1.35, -1.25], [.4, 1.25]]){
+  const door = new THREE.Group(); door.position.set(x, FL, HZ + .15); door.rotation.y = a; shop.add(door);
+  const gold = mat(0xD9B24C, goldO);
+  for(let i = 0; i < 5; i++) add(door, new THREE.BoxGeometry(.05, 2.5, .05), gold, (x < 0 ? 1 : -1) * (.08 + i * .17), 1.25, 0);
+  for(const y of [.15, 1.25, 2.4]) add(door, new THREE.BoxGeometry(.85, .05, .05), gold, (x < 0 ? 1 : -1) * .43, y, 0);
 }
-// the path to the gate and lamps on either side
-for(let i = 0; i < 4; i++) block(shop, 1.6, .06, .7, 0xC9BFAE, -.5, 0, 10.6 + i * .85, {r: .05, shadow: false});
-for(const x of [-2.9, 1.9]){
-  block(shop, .14, 2.1, .14, 0x2B2438, x, 0, 11.2, {r: .04});
-  add(shop, new THREE.SphereGeometry(.22, 14, 10), new THREE.MeshStandardMaterial({color: 0xFFE7A8, emissive: 0xFFD27A, emissiveIntensity: 1.8}), x, 2.25, 11.2, false);
+// the path to the gate, and lamps
+for(let i = 0; i < 4; i++) block(shop, 1.6, .06, .7, BR_.goldSoft, GX, 0, HZ + .8 + i * .85, {r: .05, shadow: false});
+for(const x of [-2.1, 1.2]){
+  block(shop, .14, 2.1, .14, BR_.cocoa, x, 0, HZ + 1.1, {r: .04});
+  add(shop, new THREE.SphereGeometry(.22, 14, 10), new THREE.MeshStandardMaterial({color: 0xFFE7A8, emissive: 0xFFD27A, emissiveIntensity: 1.8}), x, 2.25, HZ + 1.1, false);
 }
 
-// counters: rounded white bases, a red velvet top under glass, gold pieces on show
-const counters = [];
+// counters: maroon bases, deep maroon velvet under glass, a gold frame, gold and silver pieces on show
 function counter(x0, x1, z0, z1){
   const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-  block(shop, w, .85, d, 0xF4F1EC, cx, FL, cz, {r: .12, seg: 3});
-  block(shop, w - .1, .06, d - .1, 0xB3243A, cx, FL + .85, cz, {r: .02});
-  const glass = add(shop, rbox(w - .04, .42, d - .04, .05), new THREE.MeshStandardMaterial({color: 0xD9F3FF, transparent: true, opacity: .22, roughness: .05, metalness: 0, depthWrite: false}), cx, FL + .85 + .21, cz, false);
+  block(shop, w, .85, d, MAROON, cx, FL, cz, {r: .1, seg: 3});
+  block(shop, w + .02, .06, d + .02, TRIM, cx, FL + .06, cz, {r: .02, mo: goldO, shadow: false});
+  block(shop, w - .1, .06, d - .1, BR_.deep, cx, FL + .85, cz, {r: .02});
+  const glass = add(shop, rbox(w - .04, .42, d - .04, .05), new THREE.MeshStandardMaterial({color: 0xFFF6EA, transparent: true, opacity: .2, roughness: .05, depthWrite: false}), cx, FL + .85 + .21, cz, false);
   glass.renderOrder = 2;
-  // a thin gold frame around the glass
-  const gm = {r: .015, mo: {metalness: .7, roughness: .3}, shadow: false};
+  const gm = {r: .015, mo: goldO, shadow: false};
   block(shop, w, .05, .06, TRIM, cx, FL + 1.25, z0 + .03, gm); block(shop, w, .05, .06, TRIM, cx, FL + 1.25, z1 - .03, gm);
   block(shop, .06, .05, d, TRIM, x0 + .03, FL + 1.25, cz, gm); block(shop, .06, .05, d, TRIM, x1 - .03, FL + 1.25, cz, gm);
-  const long = w > d, n = Math.max(1, Math.floor((long ? w : d) / .9)), goldM = mat(0xF2C14E, {metalness: .9, roughness: .22});
+  const long = w > d, n = Math.max(1, Math.floor((long ? w : d) / .75)), goldM = mat(0xF2C14E, {metalness: .9, roughness: .22});
   for(let i = 0; i < n; i++){
-    const t = (i + .5) / n, px = long ? x0 + t * w : cx, pz = long ? cz : z0 + t * d;
-    const k = i % 3;
-    if(k === 0){ const m = add(shop, new THREE.TorusGeometry(.16, .035, 8, 20), goldM, px, FL + 1.03, pz, false); m.rotation.x = -1.2; }
-    else if(k === 1){ for(let j = 0; j < 3; j++) add(shop, new THREE.SphereGeometry(.07, 10, 8), goldM, px + (long ? (j - 1) * .14 : 0), FL + .97, pz + (long ? 0 : (j - 1) * .14), false); }
-    else { const m = add(shop, new THREE.TorusGeometry(.12, .045, 8, 18), mat(0xE8E8F0, {metalness: .9, roughness: .2}), px, FL + .99, pz, false); m.rotation.x = -Math.PI / 2; }
+    const t = (i + .5) / n, px = long ? x0 + t * w : cx, pz = long ? cz : z0 + t * d, k = i % 3;
+    if(k === 0){ const m = add(shop, new THREE.TorusGeometry(.15, .033, 8, 20), goldM, px, FL + 1.02, pz, false); m.rotation.x = -1.2; m.rotation.z = long ? 0 : Math.PI / 2; }
+    else if(k === 1){ for(let j = 0; j < 3; j++) add(shop, new THREE.SphereGeometry(.065, 10, 8), goldM, px + (long ? (j - 1) * .13 : 0), FL + .96, pz + (long ? 0 : (j - 1) * .13), false); }
+    else { const m = add(shop, new THREE.TorusGeometry(.11, .042, 8, 18), mat(0xE8E8F0, {metalness: .9, roughness: .2}), px, FL + .98, pz, false); m.rotation.x = -Math.PI / 2; }
   }
-  counters.push({x0, x1, z0, z1});
 }
-counter(-3.9, -3.0, -4.8, 4.6);    // left
-counter(3.0, 3.9, -7.1, 4.1);      // right
-counter(-1.9, 3.9, -8.0, -7.1);    // back, joining the right counter
-// stools for customers
-for(const [x, z] of [[-2.45, 3.3], [-2.45, .2], [-2.45, -3], [2.45, 2.6], [2.45, -.6], [2.45, -3.8], [.2, -6.6], [2.6, -6.6]]){
-  block(shop, .1, .45, .1, 0xC9C2B6, x, FL, z, {r: .03});
-  add(shop, new THREE.CylinderGeometry(.26, .26, .1, 18), mat(0xB3243A, {roughness: .6}), x, FL + .5, z);
+counter(-2.05, -1.35, -6.1, 5.9);     // left
+counter(1.35, 2.05, -9.85, 5.3);      // right
+counter(-1.1, 2.05, -10.6, -9.85);    // back, joining the right counter
+// stools for customers: soft gold seats on gold legs
+for(const [x, z] of [[-1.1, 4.5], [-1.1, 1.5], [-1.1, -1.5], [-1.1, -4.5], [1.1, 3.8], [1.1, .8], [1.1, -2.2], [1.1, -5.2], [1.1, -8], [.3, -9.4], [1.05, -9.4]]){
+  block(shop, .08, .45, .08, TRIM, x, FL, z, {r: .03, mo: goldO});
+  add(shop, new THREE.CylinderGeometry(.22, .22, .09, 18), mat(BR_.goldSoft, {roughness: .7}), x, FL + .49, z);
 }
 
-// the three store computers: chunky white desks with bright blue screens
+// the three store computers (where the sketch shows them): cream desks, a gold-lit screen and charging pad when in use
 const DESKS = [
-  {desk: [-3.65, 7.6], seat: [-4.45, 7.6], face: Math.PI / 2, near: 'C1a'},
-  {desk: [3.3, 6.45], seat: [3.3, 5.6], face: 0, near: 'C2a'},
-  {desk: [-3.65, -8.4], seat: [-4.45, -8.4], face: Math.PI / 2, near: 'C3a'}
+  {desk: [-2.6, 9.8], seat: [-1.8, 9.8], face: -Math.PI / 2, near: 'C1a'},
+  {desk: [2.6, 7.0], seat: [1.8, 7.0], face: Math.PI / 2, near: 'C2a'},
+  {desk: [-2.6, -11.4], seat: [-1.8, -11.4], face: -Math.PI / 2, near: 'Bg'}
 ];
-const padOff = new THREE.MeshStandardMaterial({color: 0x5E6A86, emissive: 0x2E5BBF, emissiveIntensity: .3});
-const padOn = new THREE.MeshStandardMaterial({color: 0x7FD3FF, emissive: 0x3BB4FF, emissiveIntensity: 2.4});
-const screenOff = new THREE.MeshStandardMaterial({color: 0x1B2340, emissive: 0x1E3A8A, emissiveIntensity: .25, roughness: .3});
+const padOff = new THREE.MeshStandardMaterial({color: BR_.gold, emissive: 0x845E22, emissiveIntensity: .35});
+const padOn = new THREE.MeshStandardMaterial({color: 0xFFE2A0, emissive: 0xFFC24A, emissiveIntensity: 2.4});
+const screenOff = new THREE.MeshStandardMaterial({color: 0x2A1A17, emissive: 0x4A2723, emissiveIntensity: .4, roughness: .3});
+const screenOn = new THREE.MeshStandardMaterial({color: 0xFFE2A0, emissive: 0xFFC24A, emissiveIntensity: 1.8, roughness: .3});
 DESKS.forEach(d => {
-  const g = new THREE.Group(); g.position.set(d.desk[0], FL, d.desk[1]); g.rotation.y = d.face; shop.add(g);
-  block(g, 1.25, .1, .7, 0xF7F7FA, 0, .74, 0, {r: .04});
-  for(const sx of [-.52, .52]) block(g, .12, .74, .58, 0xE6E6EE, sx, 0, 0, {r: .04});
-  block(g, .08, .32, .08, 0xDADAE4, 0, .84, .15, {r: .02});
-  block(g, .78, .48, .07, 0xF7F7FA, 0, 1.08, .17, {r: .04});
-  const scr = add(g, new THREE.PlaneGeometry(.68, .38), screenOff, 0, 1.32, .13, false); scr.rotation.y = Math.PI;
-  block(g, .5, .03, .18, 0xDADAE4, 0, .84, -.1, {r: .01});
-  d.screen = scr;
-  // a charging pad where a robot docks to work
-  add(shop, new THREE.CylinderGeometry(.5, .54, .05, 32), mat(0x3A4256), d.seat[0], FL + .025, d.seat[1]);
-  d.pad = add(shop, new THREE.TorusGeometry(.44, .03, 8, 40), padOff, d.seat[0], FL + .06, d.seat[1], false); d.pad.rotation.x = -Math.PI / 2;
+  // the desk sits beyond the robot, in the direction it faces
+  const g = new THREE.Group(); g.position.set(d.desk[0], FL, d.desk[1]); g.rotation.y = d.face + Math.PI; shop.add(g);
+  block(g, 1.2, .1, .66, BR_.cream, 0, .74, 0, {r: .04});
+  for(const sx of [-.5, .5]) block(g, .12, .74, .56, BR_.deep, sx, 0, 0, {r: .04});
+  block(g, .08, .32, .08, TRIM, 0, .84, -.15, {r: .02, mo: goldO});
+  block(g, .76, .48, .07, BR_.cream, 0, 1.08, -.17, {r: .04});
+  d.screen = add(g, new THREE.PlaneGeometry(.66, .38), screenOff, 0, 1.32, -.13, false);
+  block(g, .5, .03, .18, BR_.line, 0, .84, .1, {r: .01});
+  add(shop, new THREE.CylinderGeometry(.46, .5, .05, 32), mat(BR_.cocoa), d.seat[0], FL + .025, d.seat[1]);
+  d.pad = add(shop, new THREE.TorusGeometry(.4, .03, 8, 40), padOff, d.seat[0], FL + .06, d.seat[1], false); d.pad.rotation.x = -Math.PI / 2;
 });
-const screenOn = new THREE.MeshStandardMaterial({color: 0x56B4FF, emissive: 0x3B9BFF, emissiveIntensity: 2.2, roughness: .3});
 
-// plants and trees around the shop
+// trees and planters around the shop, in muted greens that sit with the brand colours
 function tree(parent, x, z, s, seed){
   const r = rng(seed);
   block(parent, .22 * s, 1.1 * s, .22 * s, 0x6B4A33, x, 0, z, {r: .05});
-  const leaf = mat([0x4CAF6E, 0x3E9E62, 0x5DBB75][seed % 3], {flatShading: true, roughness: .8});
+  const leaf = mat([0x5E7D4F, 0x6E8B57, 0x4F6E45][seed % 3], {flatShading: true, roughness: .85});
   for(let i = 0; i < 3; i++) add(parent, new THREE.IcosahedronGeometry((.75 - i * .14) * s, 0), leaf, x + (r() - .5) * .3 * s, (1.3 + i * .55) * s, z + (r() - .5) * .3 * s).rotation.set(r() * 3, r() * 3, 0);
 }
 function plant(parent, x, z){
-  add(parent, new THREE.CylinderGeometry(.28, .2, .45, 10), mat(0xF4F1EC), x, .225 + FL, z);
-  add(parent, new THREE.IcosahedronGeometry(.38, 0), mat(0x4CAF6E, {flatShading: true}), x, .8 + FL, z);
+  add(parent, new THREE.CylinderGeometry(.24, .18, .42, 10), mat(BR_.maroon), x, .21 + FL, z);
+  add(parent, new THREE.IcosahedronGeometry(.32, 0), mat(0x5E7D4F, {flatShading: true}), x, .72 + FL, z);
 }
-tree(shop, -8.5, 5.5, 1.3, 1); tree(shop, 8.3, -4, 1.5, 2); tree(shop, -8.2, -6.5, 1.2, 3); tree(shop, 7.8, 6.5, 1.1, 4); tree(shop, 9.6, 1, .9, 5);
-plant(shop, 4.6, 8.9); plant(shop, -4.6, -4.9);
-for(const [x, z] of [[-7, 9], [6.5, 9.4], [-9.8, 0], [10, -6]]) add(shop, new THREE.DodecahedronGeometry(.45, 0), mat(0x6E6888, {flatShading: true}), x, .2, z);
+[[-6, 9, 1.3, 1], [6.5, -3, 1.5, 2], [-6.5, -8, 1.2, 3], [6, 10, 1.1, 4], [7.5, 4, .9, 5], [-7, 1, 1.1, 6], [5.5, -12, 1.2, 7], [-5.5, -14, 1, 8], [8, -8, 1, 9]].forEach(([x, z, sc, sd]) => tree(shop, x, z, sc, sd));
+plant(shop, 2.65, 11.6); plant(shop, -2.65, 11.6);
+for(const [x, z] of [[-5, 13], [4.5, 13.5], [-8.5, -3], [9, -1], [3.5, -15]]) add(shop, new THREE.DodecahedronGeometry(.45, 0), mat(0x7A5A4E, {flatShading: true}), x, .2, z);
 
 /* ---------- the small island: a bench for those away today ---------- */
 {
-  const f = parkFace, wood = mat(0xA0663C), dark = mat(0x3A3046);
+  const f = parkFace, wood = mat(BR_.maroon), dark = mat(BR_.cocoa);
   for(const [z, len] of [[.9, 4.4], [-.95, 4.4]]){
     const b = new THREE.Group(); b.position.set(0, 0, z); f.add(b);
-    block(b, len, .1, .55, 0xA0663C, 0, .42, 0, {r: .03, m: wood});
-    block(b, len, .5, .08, 0xA0663C, 0, .58, -.3, {r: .03, m: wood});
-    for(const x of [-len / 2 + .25, len / 2 - .25]) block(b, .1, .42, .5, 0x3A3046, x, 0, 0, {r: .02, m: dark});
+    block(b, len, .1, .55, BR_.maroon, 0, .42, 0, {r: .03, m: wood});
+    block(b, len, .5, .08, BR_.maroon, 0, .58, -.3, {r: .03, m: wood});
+    for(const x of [-len / 2 + .25, len / 2 - .25]) block(b, .1, .42, .5, BR_.cocoa, x, 0, 0, {r: .02, m: dark});
   }
   tree(f, 2.8, -2.6, 1.1, 6); tree(f, -3.6, -2, .9, 7);
-  block(f, .12, 1.7, .12, 0x6B4A33, -3.4, 0, 2.3, {r: .03});
-  const t = textTexture([{text: 'Away today', font: '800 56px ' + FONT, color: '#3A2E52', x: 256, y: 64}], 512, 128, '#F6F1FF', {radius: 24});
-  const s = new THREE.Mesh(new RoundedBoxGeometry(1.8, .46, .08, 2, .04), [mat(0xF6F1FF), mat(0xF6F1FF), mat(0xF6F1FF), mat(0xF6F1FF), new THREE.MeshStandardMaterial({map: t}), mat(0xF6F1FF)]);
+  block(f, .12, 1.7, .12, BR_.cocoa, -3.4, 0, 2.3, {r: .03});
+  const t = textTexture([{text: 'Away today', font: '800 56px ' + FONT, color: '#E7D3AE', x: 256, y: 64}], 512, 128, '#8E2A2A', {radius: 24});
+  const m0 = mat(BR_.maroon);
+  const s = new THREE.Mesh(new RoundedBoxGeometry(1.8, .46, .08, 2, .04), [m0, m0, m0, m0, new THREE.MeshStandardMaterial({map: t}), m0]);
   s.position.set(-3.4, 1.55, 2.38); s.castShadow = true; f.add(s);
-  block(f, .12, 2.3, .12, 0x2B2438, 3.7, 0, 1.6, {r: .03});
+  block(f, .12, 2.3, .12, BR_.cocoa, 3.7, 0, 1.6, {r: .03});
   add(f, new THREE.SphereGeometry(.2, 14, 10), new THREE.MeshStandardMaterial({color: 0xFFE7A8, emissive: 0xFFD27A, emissiveIntensity: 1.8}), 3.7, 2.42, 1.6, false);
-  for(const [x, z] of [[-1.8, 3.2], [1.2, 3.6], [4.2, -.6]]) add(f, new THREE.IcosahedronGeometry(.28, 0), mat([0xF28AB2, 0xFFD166, 0xC3A6FF][(x + 9 | 0) % 3], {flatShading: true}), x, .2, z);
+  for(const [x, z] of [[-1.8, 3.2], [1.2, 3.6], [4.2, -.6]]) add(f, new THREE.IcosahedronGeometry(.28, 0), mat([0xC98276, 0xE9C46A, 0xF8EFE2][(x + 9 | 0) % 3], {flatShading: true}), x, .2, z);
 }
 
 // clouds drifting by
 const clouds = [];
 {
-  const r = rng(31), m = new THREE.MeshStandardMaterial({color: 0xF2EEFF, roughness: 1, transparent: true, opacity: .9, flatShading: true});
+  const r = rng(31), m = new THREE.MeshStandardMaterial({color: BR_.cream, roughness: 1, transparent: true, opacity: .8, flatShading: true});
   for(let i = 0; i < 6; i++){
     const c = new THREE.Group();
     for(let j = 0; j < 4; j++) add(c, new THREE.IcosahedronGeometry(1 + r() * 1.2, 0), m, j * 1.4 - 2, r() * .6, (r() - .5) * 1.2, false);
-    const a = Math.atan2(HOME.pos.z, HOME.pos.x) + Math.PI + (r() - .5) * 2.6, d = 45 + r() * 25;
+    const a = Math.atan2(HOME.pos.z, HOME.pos.x) + Math.PI + (r() - .5) * 2.6, d = 50 + r() * 25;
     c.position.set(Math.cos(a) * d, 4 + r() * 14, Math.sin(a) * d); c.userData.v = .4 + r() * .5; scene.add(c); clouds.push(c);
   }
 }
 
-/* ---------- where people walk in the shop: a small network of points ---------- */
+/* ---------- where people move in the shop: a small network of points ---------- */
 const NODES = {
-  G: [-.5, 10.8], A0: [-.5, 8.2], A1: [0, 5.5], A2: [0, 2], A3: [0, -1.5], A4: [0, -4.6], A5: [-1, -5.8], A6: [1.8, -5.8],
-  Lf: [-2.4, 5.6], Lff: [-4.45, 5.6], L1: [-4.45, 2.6], L2: [-4.45, -.6], L3: [-4.45, -3.8], Lbb: [-4.45, -5.7], Lb: [-2.6, -5.7],
-  Bg: [-2.7, -7.3], B3: [-1.6, -8.85], B2: [.8, -8.85], B1: [2.9, -8.85], Rc: [4.45, -8.85], R3: [4.45, -5.2], R2: [4.45, -1.8], R1: [4.45, 1.6],
-  Rff: [4.45, 4.75], Rf: [2.2, 4.75], C1a: [-4.45, 6.65], C2a: [2.1, 5.6], C3a: [-4.45, -7.05]
+  G: [GX, HZ + 1.6], A0: [-.3, 11.2], C1a: [-.9, 9.8], A1: [0, 8.2], C2a: [.9, 7], Lf: [-.9, 6.7], Lff: [-2.55, 6.7], Rf: [.9, 5.9], Rff: [2.55, 5.9],
+  A2: [0, 4], A3: [0, 0], A4: [0, -4], A5: [0, -7.2], A6: [-.4, -9],
+  L1: [-2.55, 4.3], L2: [-2.55, 1.2], L3: [-2.55, -1.9], L4: [-2.55, -5], Lbb: [-2.55, -6.8], Lb: [-.9, -6.8], Lc: [-2.3, -9.2], Bg: [-1.75, -10],
+  B3: [-.6, -11.4], B2: [.7, -11.4], B1: [1.6, -11.4], Rc: [2.55, -11.4], R4: [2.55, -8.2], R3: [2.55, -4.6], R2: [2.55, -1], R1: [2.55, 2.6]
 };
-const EDGES = 'G-A0 A0-A1 A0-Lf A1-A2 A2-A3 A3-A4 A4-A5 A4-A6 A5-A6 A1-Lf Lf-Lff Lf-C1a Lff-C1a Lff-L1 L1-L2 L2-L3 L3-Lbb Lbb-Lb Lb-A4 Lb-A5 Lb-Bg Lbb-C3a Bg-C3a Bg-B3 B3-B2 B2-B1 B1-Rc Rc-R3 R3-R2 R2-R1 R1-Rff Rff-Rf Rf-A1 Rf-C2a A1-C2a';
+const EDGES = 'G-A0 A0-C1a A0-A1 C1a-A1 C1a-Lf A1-Lf A1-C2a C2a-Rf A1-Rf A1-A2 Rf-A2 Lf-A2 Lf-Lff Rf-Rff Lff-L1 L1-L2 L2-L3 L3-L4 L4-Lbb Lbb-Lb Lbb-Lc Lc-Bg Lb-A4 Lb-A5 A2-A3 A3-A4 A4-A5 A5-A6 A6-Bg Lb-Bg Bg-B3 B3-B2 B2-B1 B1-Rc Rc-R4 R4-R3 R3-R2 R2-R1 R1-Rff';
 const ADJ = {};
 EDGES.split(' ').forEach(e => { const [a, b] = e.split('-'); (ADJ[a] = ADJ[a] || []).push(b); (ADJ[b] = ADJ[b] || []).push(a); });
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 // spots where staff stand behind the counters, and which way they face
-const SPOTS = {L1: Math.PI / 2, L2: Math.PI / 2, L3: Math.PI / 2, R1: -Math.PI / 2, R2: -Math.PI / 2, R3: -Math.PI / 2, B1: 0, B2: 0, B3: 0};
-const AISLE = ['A1', 'A2', 'A3', 'A4', 'A6'];
+const SPOTS = {L1: Math.PI / 2, L2: Math.PI / 2, L3: Math.PI / 2, L4: Math.PI / 2, R1: -Math.PI / 2, R2: -Math.PI / 2, R3: -Math.PI / 2, R4: -Math.PI / 2, B1: 0, B2: 0, B3: 0};
+const AISLE = ['A1', 'A2', 'A3', 'A4', 'A5'];
 function nearestNode(p){ let best = null, bd = 1e9; for(const k in NODES){ const d = dist(p, NODES[k]); if(d < bd){ bd = d; best = k; } } return best; }
 function route(from, to, final){
   const start = nearestNode(from), D = {[start]: 0}, prev = {}, todo = new Set(Object.keys(NODES));
@@ -376,8 +383,8 @@ function route(from, to, final){
   if(path.length && dist(path[0], from) < .15) path.shift();
   return path;
 }
-const WAIT = Array.from({length: 14}, (_, i) => [-3.4 + (i % 7) * .95, 11.6 + Math.floor(i / 7) * .95]);
-const BENCH = [...Array.from({length: 5}, (_, i) => [-1.9 + i * .95, 1.08]), ...Array.from({length: 5}, (_, i) => [-1.9 + i * .95, -.77]), ...Array.from({length: 8}, (_, i) => [-2.4 + i * .7, 2.6])];
+const WAIT = Array.from({length: 16}, (_, i) => [-3.3 + (i % 8) * .9, HZ + 2 + Math.floor(i / 8) * .95]);
+const BENCH = [...Array.from({length: 5}, (_, i) => [-1.6 + i * .8, 1.08]), ...Array.from({length: 5}, (_, i) => [-1.6 + i * .8, -.77]), ...Array.from({length: 8}, (_, i) => [-2.4 + i * .7, 2.6])];
 const AWAYSPOTS = Array.from({length: 8}, (_, i) => [2.4 + (i % 2) * .9, -1.6 + Math.floor(i / 2) * .9]);
 
 /* ---------- the little people ---------- */
@@ -414,19 +421,20 @@ const G = {
 };
 // eye light for each mood
 const EYE = {
-  idle: new THREE.MeshBasicMaterial({color: 0xFFC56B}),
-  work: new THREE.MeshBasicMaterial({color: 0x5CC8FF}),
-  sleep: new THREE.MeshBasicMaterial({color: 0x6A5A50}),
-  happy: new THREE.MeshBasicMaterial({color: 0xFF7AA8})
+  idle: new THREE.MeshBasicMaterial({color: 0xFFE6B0}),
+  work: new THREE.MeshBasicMaterial({color: 0xFFC24A}),
+  sleep: new THREE.MeshBasicMaterial({color: 0x6A4A40}),
+  happy: new THREE.MeshBasicMaterial({color: 0xFF8FA3})
 };
-const HOLO = new THREE.MeshBasicMaterial({color: 0x6CD4FF, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false});
-const COLORS = [0xF08A24, 0x2E86DE, 0x17A398, 0xD62246, 0x8E44AD, 0x3FA34D, 0xE0B000, 0x4E5D9C, 0xE0607E, 0x1F9AA8];
+const HOLO = new THREE.MeshBasicMaterial({color: 0xFFD27A, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false});
+// each robot's own colour, from the jewels in the shop: ruby, emerald, sapphire, gold, rose gold, amethyst, topaz, garnet, turquoise, onyx
+const COLORS = [0xB3243A, 0x1F7A5A, 0x2E5AAC, 0xC9A04E, 0xC98276, 0x7B4B94, 0xE0A030, 0x7A1F2B, 0x2A9D8F, 0x3A3A3A];
 const people = new Map();
 let shirtNext = 0;
 function makePerson(id, name){
   const h = hash(name), colorC = COLORS[(shirtNext++) % COLORS.length], color = toon(colorC);
-  const white = toon(0xF7F4EE), grey = toon(0xA9AFBA), dark = toon(0x2E3440), steel = toon(0x6E7686);
-  const g = new THREE.Group(), droid = new THREE.Group(); droid.scale.setScalar(1.25); g.add(droid);
+  const white = toon(BR_.cream), grey = toon(BR_.goldSoft), dark = toon(BR_.cocoa), steel = toon(0xC9A04E);
+  const g = new THREE.Group(), droid = new THREE.Group(); droid.scale.setScalar(1); g.add(droid);
   // the ball rolls; its panels face six ways
   const ball = new THREE.Group(); ball.position.y = BR; droid.add(ball);
   part(ball, G.ball, white, 0, 0, 0, true);
@@ -443,7 +451,7 @@ function makePerson(id, name){
   part(head, G.skirt, dark, 0, -.005, 0);
   part(head, G.band, color, 0, .035, 0, true);
   part(head, G.dome, white, 0, .07, 0, true);
-  const cap = add(head, G.cap, toon(0x5D7BA8), 0, .3, 0, false); cap.rotation.x = Math.PI / 2;
+  const cap = add(head, G.cap, toon(BR_.maroon), 0, .3, 0, false); cap.rotation.x = Math.PI / 2;
   // one big eye and a small lens
   const eyeG = new THREE.Group(); eyeG.position.set(0, .2, .2); head.add(eyeG);
   part(eyeG, G.eye, new THREE.MeshStandardMaterial({color: 0x15151C, roughness: .15, metalness: .4}), 0, 0, 0, true);
@@ -454,9 +462,9 @@ function makePerson(id, name){
   const tip = add(head, new THREE.SphereGeometry(.022, 10, 8), EYE.idle, -.08, .61, -.04, false);
   // a little hologram screen when they are on a phone
   const holo = add(head, G.holo, HOLO, 0, .22, .5, false); holo.rotation.x = -.25; holo.visible = false;
-  const ring = new THREE.Mesh(new THREE.RingGeometry(.58, .72, 36), new THREE.MeshBasicMaterial({color: 0xF4C542, transparent: true, opacity: .9, depthWrite: false}));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.46, .58, 36), new THREE.MeshBasicMaterial({color: 0xE7C27A, transparent: true, opacity: .95, depthWrite: false}));
   ring.rotation.x = -Math.PI / 2; ring.position.y = .03; ring.visible = false; g.add(ring);
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({depthTest: false, transparent: true, sizeAttenuation: false})); label.position.y = 2.2; label.renderOrder = 10; g.add(label);
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({depthTest: false, transparent: true, sizeAttenuation: false})); label.position.y = 1.85; label.renderOrder = 10; g.add(label);
   g.traverse(o => { o.userData.pid = id; });
   return {id, name, color: '#' + colorC.toString(16).padStart(6, '0'), g, droid, ball, head, eyeG, glow, tip, holo, ring, label, moved: 0,
     pos: [0, 0], angle: 0, island: null, want: null, mode: 'idle', path: [], wait: 0, spot: null, desk: null, pose: 'stand',
@@ -470,7 +478,7 @@ function setLabel(p, line2, color){
   const c = document.createElement('canvas'); c.width = 520; c.height = 150; const g = c.getContext('2d');
   g.font = '800 46px ' + FONT; const w1 = g.measureText(p.name).width; g.font = '600 32px ' + FONT; const w2 = g.measureText(line2).width;
   const w = Math.min(510, Math.max(w1, w2 + 30) + 48), x0 = (520 - w) / 2;
-  g.fillStyle = 'rgba(255,255,255,.94)'; g.beginPath(); g.roundRect(x0, 6, w, 132, 30); g.fill();
+  g.fillStyle = 'rgba(248,239,226,.96)'; g.beginPath(); g.roundRect(x0, 6, w, 132, 30); g.fill(); g.strokeStyle = 'rgba(132,94,34,.55)'; g.lineWidth = 3; g.stroke();
   g.fillStyle = '#2A1E1B'; g.font = '800 46px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(p.name, 260, 50, 480);
   g.fillStyle = color; g.beginPath(); g.arc(260 - w2 / 2 - 6, 104, 9, 0, Math.PI * 2); g.fill();
   g.font = '600 32px ' + FONT; g.fillText(line2, 260 + 12, 104, 460);
@@ -571,7 +579,7 @@ function pose(p, dt, t){
   p.head.rotation.x += (tilt - p.head.rotation.x) * k;
   p.head.rotation.y += (look - p.head.rotation.y) * k * .6;
   p.head.rotation.z += (roll - p.head.rotation.z) * k;
-  p.droid.position.y += (bob * 1.25 - p.droid.position.y) * Math.min(1, k * 2);
+  p.droid.position.y += (bob - p.droid.position.y) * Math.min(1, k * 2);
   p.holo.visible = !!phone;
   if(phone) p.holo.material.opacity = .45 + Math.sin(t * 6) * .1;
   // the eye blinks now and then, and the antenna light pulses
@@ -647,8 +655,8 @@ function want(r, p){
 }
 function describe(r, w){
   const app = r.page || 'the apps';
-  if(w.where === 'desk') return ['Working · ' + app, '#1F9D55'];
-  if(w.phone) return ['On phone · ' + app, '#1F9D55'];
+  if(w.where === 'desk') return ['Working · ' + app, '#2E7D4F'];
+  if(w.phone) return ['On phone · ' + app, '#2E7D4F'];
   if(w.where === 'shop') return [WORK[r.code] || 'Present', '#8E2A2A'];
   if(w.where === 'away') return [AWAY[r.code], '#3D5A99'];
   if(w.where === 'bench') return [OFF[r.code], '#B3261E'];
