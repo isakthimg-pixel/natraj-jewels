@@ -217,6 +217,7 @@ parkFace.rotation.y = Math.atan2(HOME.pos.x - park.position.x, HOME.pos.z - park
 /* ---------- the shop: 20 x 80 ft (about 6.1 x 24.4 m), laid out from the floor plan:
    the gate at the front, counters along the left and right walls and across the back, three store computers ---------- */
 const SW = 6.1, SL = 24.4, HX = SW / 2, HZ = SL / 2;   // shop width and length, x across and z along
+const DOORS = [];
 PAINT = true;
 // the store is built as drawn in the sketch, then mirrored left to right (the corrected layout)
 const store = new THREE.Group(); store.scale.x = -1; shop.add(store);
@@ -308,7 +309,7 @@ block(store, 2.6, .5, .5, MAROON, GX, FL + 3.2, HZ + .15, {r: .12});
   s.position.set(GX, FL + 3.45, HZ + .41); s.scale.x = -1; store.add(s);
 }
 for(const [x, a] of [[-1.35, -1.25], [.4, 1.25]]){
-  const door = new THREE.Group(); door.position.set(x, FL, HZ + .15); door.rotation.y = a; store.add(door);
+  const door = new THREE.Group(); door.position.set(x, FL, HZ + .15); door.rotation.y = a; door.userData.open = a; store.add(door); DOORS.push(door);
   const gold = mat(0xD9B24C, goldO);
   for(let i = 0; i < 5; i++) add(door, new THREE.BoxGeometry(.05, 2.5, .05), gold, (x < 0 ? 1 : -1) * (.08 + i * .17), 1.25, 0);
   for(const y of [.15, 1.25, 2.4]) add(door, new THREE.BoxGeometry(.85, .05, .05), gold, (x < 0 ? 1 : -1) * .43, y, 0);
@@ -804,13 +805,21 @@ function step(p, dt, t){
 
 /* ---------- live data: who is marked present, and who is signed in now ---------- */
 const WORK = {P: 'Present', H: 'Half day'}, AWAY = {HM: 'At home', T: 'At thottam'}, OFF = {A: 'Absent', LA: 'On leave', WO: 'Week off'};
-let lastData = [];
+let lastData = [], HOURS = {opens: '10:00', closes: '20:30'};
+// before opening, open, or after closing (shop time, India)
+function phase(){
+  const now = new Date().toLocaleTimeString('en-GB', {timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false});
+  return now < HOURS.opens ? 'before' : now >= HOURS.closes ? 'after' : 'open';
+}
+const hm = v => new Date('2000-01-01T' + v).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
 async function load(){
   const [s, a, pr, ps] = await Promise.all([
     sb.from('staff').select('id,name,active,designation').order('name'),
     sb.from('attendance').select('staff_id,status').eq('day', todayIso()),
     sb.from('profiles').select('user_id,name,staff_id,is_owner'),
     sb.from('presence').select('*')]);
+  const set = (await sb.from('settings').select('shop_opens,shop_closes').eq('id', 1).maybeSingle()).data || {};
+  HOURS = {opens: String(set.shop_opens || '10:00').slice(0, 5), closes: String(set.shop_closes || '20:30').slice(0, 5)};
   // the shop computers given a desk in People & settings
   const devs = (await sb.from('approved_devices').select('id,name,live_desk')).data || [];
   const staff = (must(s) || []).filter(x => x.active !== false), att = must(a) || [], profs = must(pr) || [], pres = must(ps) || [];
@@ -826,9 +835,14 @@ async function load(){
   profs.filter(x => !x.is_owner && !x.staff_id).forEach(prof => { const r = one('u:' + prof.user_id, prof.name, null, prof); if(r.online) rows.push(r); });
   lastData = rows;
   apply(rows);
-  $('liveText').textContent = 'Live · ' + new Date().toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
+  const ph = phase();
+  $('liveText').textContent = 'Live · ' + new Date().toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'}) +
+    (ph === 'open' ? ' · open till ' + hm(HOURS.closes) : ' · Closed · opens ' + hm(HOURS.opens));
+  shopOpen = ph === 'open';
 }
 function want(r, p){
+  // after closing, those not signed in have gone home
+  if(phase() === 'after' && !r.online && (WORK[r.code] || !r.code)) return {where: 'home', gone: true};
   if(r.online){
     // signed in on one of the store computers: sit at its desk (any other device: a floating screen)
     if(r.desk != null){
@@ -844,11 +858,12 @@ function want(r, p){
 }
 function describe(r, w){
   const app = r.page || 'the apps';
-  if(w.where === 'desk') return ['Working · ' + app, '#2E7D4F'];
-  if(w.phone) return ['On phone · ' + app, '#2E7D4F'];
+  const late = phase() === 'after' ? 'Working late · ' : '';
+  if(w.where === 'desk') return [(late || 'Working · ') + app, '#2E7D4F'];
+  if(w.phone) return [(late || 'On phone · ') + app, '#2E7D4F'];
   if(w.where === 'shop') return [WORK[r.code] || 'Present', '#8E2A2A'];
   if(w.where === 'farm') return ['At thottam', '#3E7D3A'];
-  if(w.where === 'home') return ['At home', '#3D5A99'];
+  if(w.where === 'home') return [w.gone ? (r.code ? 'Gone home' : 'Not in today') : 'At home', '#3D5A99'];
   if(w.where === 'bench') return [OFF[r.code], '#B3261E'];
   return ['Not marked yet', '#9A6A12'];
 }
@@ -920,6 +935,7 @@ if(renderer){
 }
 
 /* ---------- the loop ---------- */
+let shopOpen = true;
 const clock = new THREE.Clock();
 let visible = true, sized = '', framed = false;
 const home = () => stage.clientWidth < 600 ? HOME_NARROW : HOME;
@@ -942,6 +958,7 @@ function tick(){
   homeIsl.position.y = -.6 + Math.sin(t * .6 + 3) * (reduce ? 0 : .15);
   if(!reduce) clouds.forEach(c => { const a = c.userData.v * dt * .012; const x = c.position.x, z = c.position.z; c.position.x = x * Math.cos(a) - z * Math.sin(a); c.position.z = x * Math.sin(a) + z * Math.cos(a); });
   people.forEach(p => { step(p, dt, t); pose(p, dt, t); });
+  DOORS.forEach(d => { d.rotation.y += ((shopOpen ? d.userData.open : 0) - d.rotation.y) * (1 - Math.exp(-dt * 2)); });
   if(selected && people.get(selected)){
     people.get(selected).g.getWorldPosition(tmp); tmp.y += 1;
     const k = 1 - Math.exp(-dt * 3), d = tmp.sub(controls.target).multiplyScalar(k);

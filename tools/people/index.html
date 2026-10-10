@@ -116,6 +116,17 @@
           <input class="input" id="rateDue" type="time">
         </label>
         <div class="bar"><button class="btn btn-maroon" type="button" id="rateSave">Save</button></div>
+        <h3 style="margin-top:12px">Shop hours</h3>
+        <p>The Live shop shows the shop open or closed; after closing, staff who are not signed in have gone home.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <label class="field" style="flex:1;min-width:140px">Opens
+            <input class="input" id="shopOpens" type="time">
+          </label>
+          <label class="field" style="flex:1;min-width:140px">Closes
+            <input class="input" id="shopCloses" type="time">
+          </label>
+        </div>
+        <div class="bar"><button class="btn btn-maroon" type="button" id="hoursSave">Save</button></div>
       </div>
       <div class="form panel" id="tsPanel">
         <h3>Two-step sign-in</h3>
@@ -181,6 +192,8 @@ async function load(){
   const set = shop = must(st) || {weekly_off: 0};
   $('setOff').value = String(set.weekly_off);
   $('rateDue').value = String(set.rate_due || '10:30').slice(0, 5);
+  $('shopOpens').value = String(set.shop_opens || '10:00').slice(0, 5);
+  $('shopCloses').value = String(set.shop_closes || '20:30').slice(0, 5);
 }
 function render(){
   if(curTab === 'people') renderPeople();
@@ -408,6 +421,13 @@ $('setOff').addEventListener('change', async e => {
   try{ must(await sb.from('settings').update({weekly_off: Number(e.target.value)}).eq('id', 1)); toast('Saved'); }
   catch(x){ toast(x.message); }
 });
+$('hoursSave').onclick = async () => {
+  const o = $('shopOpens').value, c = $('shopCloses').value;
+  if(!o || !c || o >= c){ toast('The closing time must be after the opening time.'); return; }
+  const t = v => new Date('2000-01-01T' + v).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
+  try{ must(await sb.from('settings').update({shop_opens: o, shop_closes: c}).eq('id', 1)); toast('Shop hours: ' + t(o) + ' to ' + t(c)); }
+  catch(x){ toast(x.message); }
+};
 $('rateSave').onclick = async () => {
   try{ must(await sb.from('settings').update({rate_due: $('rateDue').value || '10:30'}).eq('id', 1)); toast('The daily rate is due by ' + $('rateDue').value); }
   catch(x){ toast(x.message); }
