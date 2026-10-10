@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v33';
+const KEY = 'natraj-demo-db-v34';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -41,7 +41,7 @@ function seed(){
     });
   }
   // today: two people already marked
-  [[0, 'P'], [3, 'P']].forEach(([i, st]) => db.attendance.push({staff_id: staff[i].id, day: today, status: st, note: '', leave_id: null, marked_by: manager.user_id, marked_by_name: 'Sample Manager', marked_at: now()}));
+  [[0, 'P'], [1, 'P'], [2, 'A'], [3, 'P']].forEach(([i, st]) => db.attendance.push({staff_id: staff[i].id, day: today, status: st, note: '', leave_id: null, marked_by: manager.user_id, marked_by_name: 'Sample Manager', marked_at: now()}));
   // leave waiting for approval
   const leave = (s, from, to, half, reason, status) => ({id: uid(), staff_id: s.id, from_day: from, to_day: to, half, reason, status, created_at: now(), decided_by_name: status === 'pending' ? '' : 'Owner', decided_at: status === 'pending' ? null : now()});
   db.leave_requests.push(
@@ -285,10 +285,10 @@ function seed(){
   [C[0], C[1], C[2], C[4]].forEach((cu, i) => contact(dip, cu, i < 2 ? {sent_at: addDays(today, -2) + 'T11:00:00Z', sent_by_name: manager.name} : {}));
   cost(dip, addDays(today, -3), 'Radio', '20 radio spots, Hello FM', 18000);
   cost(dip, addDays(today, -2), 'Instagram', 'Boosted post, 7 days', 3500);
-  // who is online: Sample Staff 2 is always on the tasks page on a phone; the manager was here 40 minutes ago
+  // who is online: Sample Staff 2 is always on the tasks page on a phone, the manager on a store computer
   const ago = m => new Date(Date.now() - m * 60000).toISOString();
   db.presence.push({user_id: worker.user_id, page: 'Tasks', device: 'Phone', signed_in_at: ago(25), last_seen: ago(0), signed_out_at: null, demo_live: true},
-    {user_id: manager.user_id, page: 'Chit scheme', device: 'Computer', signed_in_at: ago(95), last_seen: ago(40), signed_out_at: null});
+    {user_id: manager.user_id, page: 'Expenses', device: 'Computer', signed_in_at: ago(95), last_seen: ago(0), signed_out_at: null, demo_live: true});
   const chitBank = {};
   let skipped = false;
   db.chit_payments.filter(p => p.mode !== 'Cash' && p.paid_on >= monthAgo(1)).forEach(p => {

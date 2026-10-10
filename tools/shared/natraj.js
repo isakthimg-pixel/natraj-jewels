@@ -26,6 +26,7 @@ const APPS = {
 
 /* Line icons for the app tiles (24×24, drawn with the current text colour). New apps add one here. */
 const ICONS = {
+  live: '<path d="M12 2.8l8 4.6v9.2l-8 4.6-8-4.6V7.4z"/><circle cx="12" cy="10" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/>',
   report: '<rect x="4.5" y="3" width="15" height="18" rx="2"/><path d="M8.5 3v2.5h7V3"/><path d="m12 9.3 1.1 2.2 2.4.4-1.7 1.7.4 2.4-2.2-1.1-2.2 1.1.4-2.4-1.7-1.7 2.4-.4z"/>',
   dashboard: '<rect x="3.5" y="3.5" width="7" height="9" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="15.5" width="7" height="5" rx="1.5"/>',
   people: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6"/><path d="M18 14.8c2 .7 3.2 2.4 3.5 5.2"/>',
@@ -330,7 +331,7 @@ function touch(){
 const canUse = app => !!me && (me.is_owner || (me.apps || []).includes(app));
 
 /* ---------- who is online: while a page is open and on screen, check in about once a minute ---------- */
-const PAGES = {dashboard: 'Dashboard', people: 'People & settings', report: 'Report card'};
+const PAGES = {dashboard: 'Dashboard', people: 'People & settings', report: 'Report card', live: 'Live shop'};
 function pageName(){
   const parts = location.pathname.split('/').filter(Boolean);
   if(parts.length && /\.html?$/.test(parts[parts.length - 1])) parts.pop();

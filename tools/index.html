@@ -99,6 +99,7 @@ async function render(me){
   if(me.is_owner){
     h += tile('dashboard/', 'Dashboard', 'Today at a glance: attendance, leave waiting and this month’s totals.', 'owner', 'dashboard');
     h += tile('people/', 'People & settings', 'Who can sign in, which apps they use, the staff list and shop settings.', 'owner', 'people');
+    h += tile('live/', 'Live shop', 'A live 3D view of the shop: who is in, who is working on a computer or phone, and who is away today.', 'owner', 'live');
     h += tile('report/', 'Staff report card', 'Each staff member’s month: attendance, tasks and work in the apps, with your ratings and remarks.', 'owner', 'report');
   }
   h += apps.map(([k, a]) => tile(a.path, a.name, a.desc, '', k)).join('');
