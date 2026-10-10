@@ -495,6 +495,7 @@ const G = {
   holo: new THREE.PlaneGeometry(.34, .22)
 };
 const HEIGHT = {pawn: .97, rook: 1.12, bishop: 1.27, knight: 1.26};
+const STRETCH = 1.45, WIDEN = 1.1;   // pieces stand tall
 // the gem's light for each mood
 const EYE = {
   idle: new THREE.MeshBasicMaterial({color: 0xFFE6B0}),
@@ -511,7 +512,7 @@ function makePerson(id, name, kind){
   const h = hash(name), colorC = COLORS[(shirtNext++) % COLORS.length], color = toon(colorC);
   const ivory = toon(0xF4E8D0), gold = toon(0xD4A24C), dark = toon(BR_.cocoa);
   const g = new THREE.Group(), droid = new THREE.Group(); g.add(droid);
-  const piece = new THREE.Group(); droid.add(piece);
+  const piece = new THREE.Group(); piece.scale.set(WIDEN, STRETCH, WIDEN); droid.add(piece);
   add(piece, G.rim, gold, 0, .07, 0, false).rotation.x = Math.PI / 2;
   const gems = [];
   if(kind === 'pawn'){
@@ -540,9 +541,9 @@ function makePerson(id, name, kind){
   }
   gems.forEach(m => m.scale.setScalar(kind === 'knight' ? .6 : 1));
   const holo = add(piece, G.holo, HOLO, 0, HEIGHT[kind] * .75, .5, false); holo.rotation.x = -.25; holo.visible = false;
-  const ring = new THREE.Mesh(new THREE.RingGeometry(.42, .54, 36), new THREE.MeshBasicMaterial({color: 0xE7C27A, transparent: true, opacity: .95, depthWrite: false}));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.46, .58, 36), new THREE.MeshBasicMaterial({color: 0xE7C27A, transparent: true, opacity: .95, depthWrite: false}));
   ring.rotation.x = -Math.PI / 2; ring.position.y = .03; ring.visible = false; g.add(ring);
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({depthTest: false, transparent: true, sizeAttenuation: false})); label.position.y = HEIGHT[kind] + .55; label.renderOrder = 10; g.add(label);
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({depthTest: false, transparent: true, sizeAttenuation: false})); label.position.y = HEIGHT[kind] * STRETCH + .5; label.renderOrder = 10; g.add(label);
   g.traverse(o => { o.userData.pid = id; });
   return {id, name, kind, color: '#' + colorC.toString(16).padStart(6, '0'), g, droid, piece, gems, holo, ring, label, stepT: 0,
     pos: [0, 0], angle: 0, island: null, want: null, mode: 'idle', path: [], wait: 0, spot: null, desk: null, pose: 'stand',
