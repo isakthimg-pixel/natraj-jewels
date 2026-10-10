@@ -36,6 +36,8 @@
 .calc .total{font:700 1.6rem/1.1 var(--display);color:var(--ink)}
 .calc .total small{font:600 .8rem var(--body);color:var(--muted);margin-left:6px}
 .kind-sale .purchase-only,.kind-purchase .sale-only{display:none!important}
+.lab-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.lab-row .linkish{font-size:.8rem;letter-spacing:0;min-height:0}
 
 /* lists */
 .box{background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden}
@@ -110,7 +112,7 @@
           <button type="button" class="bubble" data-s="supplier" aria-pressed="false">Stock from a supplier</button>
         </div>
         <div class="two">
-          <label>Item<select class="input" id="fItem"></select></label>
+          <label><span class="lab-row">Item <button type="button" class="linkish" id="fItemAdd">+ New item</button></span><select class="input" id="fItem"></select></label>
           <label><span id="fPartyT">Customer</span><input class="input" id="fParty" maxlength="80" list="custList" placeholder="optional"><datalist id="custList"></datalist></label>
         </div>
         <label id="fItemNewL" hidden>New item<input class="input" id="fItemNew" maxlength="60" placeholder="e.g. Silver kolusu"></label>
@@ -121,8 +123,8 @@
         <div class="three">
           <label class="unit" data-u="g">Weight<input class="input" id="fWeight" inputmode="decimal" placeholder="e.g. 45.200"></label>
           <label class="unit purchase-only" data-u="%">Touch (purity)<input class="input" id="fTouch" inputmode="decimal" value="92.5"></label>
-          <label class="unit purchase-only" data-u="₹/g"><span id="fRateT">Rate per fine gram</span><input class="input" id="fRate" inputmode="decimal"></label>
-          <label class="unit sale-only" data-u="₹">Final amount<input class="input" id="fAmount" inputmode="decimal" placeholder="e.g. 2470"></label>
+          <label class="unit" data-u="₹/g" hidden><span id="fRateT">Rate per fine gram</span><input class="input" id="fRate" inputmode="decimal"></label>
+          <label class="unit" data-u="₹"><span id="fAmountT">Final amount</span><input class="input" id="fAmount" inputmode="decimal" placeholder="e.g. 2470"></label>
           <label class="field check sale-only" style="align-self:end;padding-bottom:12px"><input type="checkbox" id="fGst" checked> Includes 3% GST</label>
         </div>
         <div class="calc" id="calc" aria-live="polite"></div>
@@ -237,6 +239,7 @@ window.addEventListener('hashchange', route);
 
 /* ---------- the form ---------- */
 fillItems('');
+$('fItemAdd').addEventListener('click', e => { e.preventDefault(); $('fItem').value = NEW_ITEM; $('fItemNewL').hidden = false; $('fItemNew').focus(); });
 $('fItem').addEventListener('change', () => { $('fItemNewL').hidden = $('fItem').value !== NEW_ITEM; if($('fItem').value === NEW_ITEM) $('fItemNew').focus(); });
 $('fMode').innerHTML = MODES.map(m => '<button type="button" class="bubble" data-mode="' + m + '" aria-pressed="' + (m === mode) + '">' + m + '</button>').join('');
 function setKind(k, keepTouch){
@@ -245,6 +248,7 @@ function setKind(k, keepTouch){
   $('fKind').querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k));
   $('fPartyT').textContent = k === 'sale' ? 'Customer' : src === 'supplier' ? 'Supplier' : 'Customer';
   $('fModeT').textContent = k === 'sale' ? 'Paid by (customer)' : 'We paid by';
+  $('fAmountT').textContent = k === 'sale' ? 'Final amount' : 'Final amount paid';
   $('fAccT').textContent = k === 'sale' ? 'Into account' : 'From account';
   if(!keepTouch) $('fTouch').value = k === 'sale' ? '92.5' : '';
   syncSave(k);
@@ -272,10 +276,10 @@ function calc(){
     $('calc').innerHTML = '<span class="line">' + (gst ? 'GST 3% in this: ' + inr(f.tax) + ' · ' : '') + 'works out to ' + inr(f.rate) + ' per gram' + (gst ? ' before GST' : '') + '</span><span class="total">' + inr(amt) + '<small>to collect</small></span>';
     return;
   }
-  const t = num($('fTouch').value), rt = num($('fRate').value);
-  if(!(w > 0) || !(t > 0) || !(rt > 0)){ $('calc').innerHTML = '<span class="line">Type the weight, touch and rate to see the amount.</span>'; return; }
-  const x = work(kind, w, t, rt, 0, 0);
-  $('calc').innerHTML = '<span class="line">' + gm(w) + ' at ' + t + '% = ' + gm(x.fine) + ' fine × ' + inr(rt) + '</span><span class="total">' + inr(x.amount) + '<small>to pay</small></span>';
+  const t = num($('fTouch').value), amt = num($('fAmount').value);
+  if(!(w > 0) || !(t > 0) || !(amt > 0)){ $('calc').innerHTML = '<span class="line">Type the weight, touch and the final amount paid.</span>'; return; }
+  const fine = r3(w * t / 100);
+  $('calc').innerHTML = '<span class="line">' + gm(w) + ' at ' + t + '% = ' + gm(fine) + ' fine · works out to ' + inr(r2(amt / fine)) + ' per fine gram</span><span class="total">' + inr(amt) + '<small>to pay</small></span>';
 }
 // a saved customer fills the phone and links to their page in Customers
 $('fParty').addEventListener('input', () => {
@@ -299,7 +303,7 @@ function editEntry(r){
   src = r.from_supplier ? 'supplier' : 'old'; setSrc(src); setKind(r.kind, true);
   fillItems(r.item || ''); $('fParty').value = r.party; $('fPhone').value = r.phone; $('fPieces').value = r.pieces;
   $('fWeight').value = Number(r.weight_g); $('fTouch').value = Number(r.touch); $('fRate').value = Number(r.rate);
-  $('fAmount').value = r.kind === 'sale' ? Number(r.amount) : ''; $('fGst').checked = Number(r.gst_percent) > 0;
+  $('fAmount').value = Number(r.amount) || ''; $('fGst').checked = Number(r.gst_percent) > 0;
   setMode(r.mode); if(r.account_id) $('fAcc').value = r.account_id;
   $('fDay').value = r.day; $('fBill').value = r.bill_no; $('fNote').value = r.note; $('fErr').textContent = '';
   $('fCancel').hidden = false; syncSave(r.kind);
@@ -315,14 +319,13 @@ $('fDay').addEventListener('change', () => syncSave());
 $('sf').addEventListener('submit', async e => {
   e.preventDefault(); const err = t => { $('fErr').textContent = t; }; err('');
   const sale = kind === 'sale', w = num($('fWeight').value), pcs = num($('fPieces').value), day = $('fDay').value;
-  const t = sale ? (editing && editing.kind === 'sale' ? Number(editing.touch) : 92.5) : num($('fTouch').value), amt = sale ? num($('fAmount').value) : null, gst = sale && $('fGst').checked ? 3 : 0;
+  const t = sale ? (editing && editing.kind === 'sale' ? Number(editing.touch) : 92.5) : num($('fTouch').value), amt = num($('fAmount').value), gst = sale && $('fGst').checked ? 3 : 0;
   let item = $('fItem').value === NEW_ITEM ? $('fItemNew').value.trim().replace(/\s+/g, ' ') : $('fItem').value;
   if($('fItem').value === NEW_ITEM && !item) return err('Type the new item’s name.');
   if(!(w > 0)) return err('Type the weight in grams, e.g. 45.200.');
   if(!sale && (!(t > 0) || t > 100)) return err('Type the touch (purity) as a percentage, e.g. 80.');
-  if(sale && !(amt > 0)) return err('Type the final amount the customer pays, e.g. 2470.');
-  const rt = sale ? saleFigures(w, amt, gst).rate : num($('fRate').value);
-  if(!sale && !(rt > 0)) return err('Type the rate per fine gram.');
+  if(!(amt > 0)) return err(sale ? 'Type the final amount the customer pays, e.g. 2470.' : 'Type the final amount paid, e.g. 9800.');
+  const rt = sale ? saleFigures(w, amt, gst).rate : r2(amt / r3(w * t / 100));
   if(!(rt > 0 && rt < 100000)) return err('Check the weight and the amount: they work out to ' + inr(rt) + ' per gram.');
   if(!pcs || !Number.isInteger(pcs) || pcs > 9999) return err('Type how many pieces, e.g. 1.');
   if(!day || day > todayIso()) return err('Choose a date that is not in the future.');
@@ -331,7 +334,7 @@ $('sf').addEventListener('submit', async e => {
   if(mode !== 'Cash' && accounts.length && !acc && !(editing && editing.account_name && !editing.account_id)) return err('Choose the bank account.');
   if(rate && Math.abs(rt - Number(rate.silver)) / Number(rate.silver) > (sale ? 0.6 : 0.25) && !await ask(sale ? 'That is ' + inr(rt) + ' per gram' : 'Rate ' + inr(rt) + ' per gram?',
     'Today’s silver rate is ' + inr(rate.silver) + ' per gram. Check the ' + (sale ? 'weight and amount' : 'rate') + ' before saving.', 'Save')) return;
-  const x = sale ? {amount: amt} : work(kind, w, t, rt, 0, 0);
+  const x = {amount: amt};
   if(x.amount > BIG && !await ask('Save ' + inr(x.amount) + '?', 'This is a large amount. Check there is no extra zero.', 'Save')) return;
   // a new item joins the shared list for everyone
   if($('fItem').value === NEW_ITEM){
@@ -339,7 +342,7 @@ $('sf').addEventListener('submit', async e => {
     catch(x2){ return err(x2.message); }
   }
   const row = {kind, from_supplier: kind === 'purchase' && src === 'supplier', item, party: $('fParty').value.trim(), phone, customer_id: linkedId, pieces: pcs,
-    weight_g: w, touch: t, rate: rt, making: 0, gst_percent: gst, amount: sale ? amt : 0, mode, day,
+    weight_g: w, touch: t, rate: rt, making: 0, gst_percent: gst, amount: amt, mode, day,
     bill_no: $('fBill').value.trim(), note: $('fNote').value.trim()};
   if(acc || mode === 'Cash' || !editing) row.account_id = acc || null;
   if(NJ.needsApproval(day, editing && editing.day)){

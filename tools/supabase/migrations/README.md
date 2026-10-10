@@ -42,4 +42,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `029_change_requests.sql` — staff add, change and remove entries dated today or yesterday only (Expenses, Banking, Silver, Chit payments); older days go to the owner as change requests to approve. Applied.
 - `030_device_site.sql` — records the web address each device was approved at, so the blocked screen can say which address to use. Applied.
 - `031_silver_final_amount.sql` — silver sales keep the final amount typed (rate per gram worked out from it); a shared silver item list anyone with the app can add to. Applied.
+- `032_silver_purchase_final_amount.sql` — silver purchases keep the final amount typed too (rate per fine gram worked out from it). Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

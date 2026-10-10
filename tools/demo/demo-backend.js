@@ -939,7 +939,7 @@ function silverFigures(r){
   if(r.kind === 'sale') r.from_supplier = false; else { r.making = 0; r.gst_percent = 0; }
   r.fine_g = Math.round(r.weight_g * r.touch / 100 * 1000) / 1000;
   // a sale with a final amount keeps it, and the rate per gram is worked out from it (migration 031)
-  r.amount = r.kind === 'sale' && Number(r.amount) > 0 ? (r.amount = r2(Number(r.amount)), r.rate = Math.max(r2((r.amount / (1 + r.gst_percent / 100) - Number(r.making)) / r.weight_g), 0.01), r.amount) : r.kind === 'sale' ? r2((r.weight_g * r.rate + Number(r.making)) * (1 + r.gst_percent / 100)) : r2(r.fine_g * r.rate);
+  r.amount = Number(r.amount) > 0 ? (r.amount = r2(Number(r.amount)), r.rate = Math.max(r.kind === 'sale' ? r2((r.amount / (1 + r.gst_percent / 100) - Number(r.making)) / r.weight_g) : r2(r.amount / r.fine_g), 0.01), r.amount) : r.kind === 'sale' ? r2((r.weight_g * r.rate + Number(r.making)) * (1 + r.gst_percent / 100)) : r2(r.fine_g * r.rate);
   return r;
 }
 function silverRow(x, d){
