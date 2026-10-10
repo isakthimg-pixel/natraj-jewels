@@ -148,8 +148,8 @@ try{
 }
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(36, 1, .5, 500);
-const HOME = {pos: new THREE.Vector3(22, 22, 24), target: new THREE.Vector3(-3, -1, 1)};
-const HOME_NARROW = {pos: new THREE.Vector3(22, 34, 30), target: new THREE.Vector3(-2, -1, 1)};
+const HOME = {pos: new THREE.Vector3(-22, 22, 24), target: new THREE.Vector3(3, -1, 1)};
+const HOME_NARROW = {pos: new THREE.Vector3(-22, 34, 30), target: new THREE.Vector3(2, -1, 1)};
 camera.position.copy(HOME.pos);
 let controls = null;
 if(renderer){
@@ -171,11 +171,11 @@ const BR_ = {maroon: 0x8E2A2A, deep: 0x6E1F1F, cocoa: 0x3B2420, gold: 0x845E22, 
   metal: 0xC9A04E, line: 0xE2D6C4};
 scene.add(new THREE.HemisphereLight(0xDCEEFF, 0x7A6A4E, .95));
 const sun = new THREE.DirectionalLight(0xFFEBC8, 3.1);
-sun.position.set(16, 34, 18); sun.target.position.set(-6, 0, 2); scene.add(sun, sun.target);
+sun.position.set(-16, 34, 18); sun.target.position.set(6, 0, 2); scene.add(sun, sun.target);
 sun.castShadow = true; sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
-Object.assign(sun.shadow.camera, {left: -40, right: 34, top: 34, bottom: -34, near: 1, far: 120});
+Object.assign(sun.shadow.camera, {left: -37, right: 37, top: 34, bottom: -34, near: 1, far: 120});
 sun.shadow.bias = -.0004; sun.shadow.normalBias = .03;
-const fill = new THREE.DirectionalLight(0xBFDFFF, .45); fill.position.set(-30, 18, -20); scene.add(fill);
+const fill = new THREE.DirectionalLight(0xBFDFFF, .45); fill.position.set(30, 18, -20); scene.add(fill);
 
 // (stars only at night)
 if(false){
@@ -210,7 +210,7 @@ function island(R, seed){
 }
 const shop = island(18, 11);
 const park = island(6.6, 23);
-park.position.set(-21, 1.5, -19);
+park.position.set(21, 1.5, -19);
 const parkFace = new THREE.Group(); park.add(parkFace);
 parkFace.rotation.y = Math.atan2(HOME.pos.x - park.position.x, HOME.pos.z - park.position.z);
 
@@ -218,6 +218,8 @@ parkFace.rotation.y = Math.atan2(HOME.pos.x - park.position.x, HOME.pos.z - park
    the gate at the front, counters along the left and right walls and across the back, three store computers ---------- */
 const SW = 6.1, SL = 24.4, HX = SW / 2, HZ = SL / 2;   // shop width and length, x across and z along
 PAINT = true;
+// the store is built as drawn in the sketch, then mirrored left to right (the corrected layout)
+const store = new THREE.Group(); store.scale.x = -1; shop.add(store);
 // hand-painted floor tiles: warm cream, uneven brush lines between them
 const TILE = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d'), r = rng(9);
@@ -230,24 +232,24 @@ const TILE = (() => {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(SW / 2.4, SL / 2.4); return t;
 })();
 const FL = .15;   // floor top
-add(shop, new THREE.BoxGeometry(SW + .3, FL, SL + .3), new THREE.MeshToonMaterial({map: TILE, gradientMap: PAINT_STEPS}), 0, FL / 2, 0);
+add(store, new THREE.BoxGeometry(SW + .3, FL, SL + .3), new THREE.MeshToonMaterial({map: TILE, gradientMap: PAINT_STEPS}), 0, FL / 2, 0);
 const WALL = 0xEFD9B4, TRIM = 0xD49A3C, MAROON = BR_.maroon, goldO = {metalness: .75, roughness: .3};
-block(shop, .3, 3.6, SL + .6, WALL, -HX - .15, FL, 0, {r: .08});                // left wall, tall, with arched alcoves
-block(shop, SW + .6, 3.6, .3, WALL, 0, FL, -HZ - .15, {r: .08});               // back wall (holds the sign)
-block(shop, .3, .5, SL + .6, WALL, HX + .15, FL, 0, {r: .08});                  // right wall, cut away low
+block(store, .3, 3.6, SL + .6, WALL, -HX - .15, FL, 0, {r: .08});                // left wall, tall, with arched alcoves
+block(store, SW + .6, 3.6, .3, WALL, 0, FL, -HZ - .15, {r: .08});               // back wall (holds the sign)
+block(store, .3, .5, SL + .6, WALL, HX + .15, FL, 0, {r: .08});                  // right wall, cut away low
 // front wall either side of the gate (gate opening x -1.35 to 0.4)
-block(shop, 1.85, .5, .3, WALL, -2.38, FL, HZ + .15, {r: .08});
-block(shop, 2.75, .5, .3, WALL, 1.98, FL, HZ + .15, {r: .08});
-block(shop, .32, .1, SL + .6, TRIM, -HX - .15, FL + 3.6, 0, {mo: goldO});
-block(shop, SW + .6, .08, .32, TRIM, 0, FL + 3.6, -HZ - .15, {mo: goldO});
-block(shop, .06, .12, SL, BR_.maroon, -HX + .02, FL + .1, 0, {r: .02, shadow: false});   // maroon skirting
+block(store, 1.85, .5, .3, WALL, -2.38, FL, HZ + .15, {r: .08});
+block(store, 2.75, .5, .3, WALL, 1.98, FL, HZ + .15, {r: .08});
+block(store, .32, .1, SL + .6, TRIM, -HX - .15, FL + 3.6, 0, {mo: goldO});
+block(store, SW + .6, .08, .32, TRIM, 0, FL + 3.6, -HZ - .15, {mo: goldO});
+block(store, .06, .12, SL, BR_.maroon, -HX + .02, FL + .1, 0, {r: .02, shadow: false});   // maroon skirting
 // the logo on the back wall, on a maroon board with a gold frame
 {
-  block(shop, 4.3, 1.95, .08, MAROON, 0, FL + 1.35, -HZ + .04, {r: .04});
-  block(shop, 4.45, 2.1, .04, TRIM, 0, FL + 1.28, -HZ + .01, {r: .02, mo: goldO, shadow: false});
+  block(store, 4.3, 1.95, .08, MAROON, 0, FL + 1.35, -HZ + .04, {r: .04});
+  block(store, 4.45, 2.1, .04, TRIM, 0, FL + 1.28, -HZ + .01, {r: .02, mo: goldO, shadow: false});
   const logo = new THREE.TextureLoader().load('../img/logo-cream.png'); logo.colorSpace = THREE.SRGBColorSpace; logo.anisotropy = 4;
   const s = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 3.8 * 517 / 1200), new THREE.MeshBasicMaterial({map: logo, transparent: true}));
-  s.position.set(0, FL + 2.32, -HZ + .09); shop.add(s);
+  s.position.set(0, FL + 2.32, -HZ + .09); s.scale.x = -1; store.add(s);   // text reads the right way
 }
 // arched alcoves along the left wall, each with a maroon banner and gold rings, pilasters and glowing sconces between
 function archShape(w, h){ const r = w / 2, sh = new THREE.Shape(); sh.moveTo(-r, 0); sh.lineTo(-r, h - r); sh.absarc(0, h - r, r, Math.PI, 0, true); sh.lineTo(r, 0); sh.lineTo(-r, 0); return sh; }
@@ -256,7 +258,7 @@ const ALCOVES = [-8.6, -4.6, -.6, 3.4, 7.3];
 const recess = mat(0xB98A55), wallLight = mat(0xF6E6C8), banner = mat(BR_.maroon), ochre = mat(0xD4A24C);
 const flameM = new THREE.MeshStandardMaterial({color: 0xFFD27A, emissive: 0xFFB43A, emissiveIntensity: 2.6});
 for(const z of ALCOVES){
-  const g = new THREE.Group(); g.position.set(-HX + .005, FL, z); g.rotation.y = Math.PI / 2; shop.add(g);
+  const g = new THREE.Group(); g.position.set(-HX + .005, FL, z); g.rotation.y = Math.PI / 2; store.add(g);
   add(g, new THREE.ShapeGeometry(archShape(2.1, 3.05), 16), recess, 0, .2, 0, false).receiveShadow = true;
   const band = add(g, new THREE.ExtrudeGeometry(archBand(1.25, 1.05), {depth: .12, bevelEnabled: false, curveSegments: 20}), wallLight, 0, .2 + 3.05 - 1.05, 0);
   for(const sx of [-1.15, 1.15]) add(g, rbox(.2, 2.0, .12, .03), wallLight, sx, .2 + 1.0, .06);
@@ -269,15 +271,15 @@ for(const z of ALCOVES){
 // pilasters and sconces between the alcoves
 for(let i = 0; i < ALCOVES.length - 1; i++){
   const z = (ALCOVES[i] + ALCOVES[i + 1]) / 2;
-  block(shop, .2, 3.6, .55, 0xF6E6C8, -HX + .1, FL, z, {r: .04});
-  block(shop, .26, .14, .66, 0xD4A24C, -HX + .13, FL + 3.25, z, {r: .03});
-  add(shop, rbox(.12, .2, .16, .03), ochre, -HX + .26, FL + 2.15, z);
-  const fl = add(shop, new THREE.SphereGeometry(.07, 10, 8), flameM, -HX + .3, FL + 2.36, z, false); fl.scale.y = 1.6;
+  block(store, .2, 3.6, .55, 0xF6E6C8, -HX + .1, FL, z, {r: .04});
+  block(store, .26, .14, .66, 0xD4A24C, -HX + .13, FL + 3.25, z, {r: .03});
+  add(store, rbox(.12, .2, .16, .03), ochre, -HX + .26, FL + 2.15, z);
+  const fl = add(store, new THREE.SphereGeometry(.07, 10, 8), flameM, -HX + .3, FL + 2.36, z, false); fl.scale.y = 1.6;
 }
 // iron ring chandeliers with candles over the aisle
 const iron = mat(0x3B2420), wax = mat(0xFBF1DC);
 for(const z of [7, 0, -7]){
-  const c = new THREE.Group(); c.position.set(0, FL + 3.9, z); shop.add(c);
+  const c = new THREE.Group(); c.position.set(0, FL + 3.9, z); store.add(c);
   add(c, new THREE.TorusGeometry(.75, .05, 8, 40), iron, 0, 0, 0).rotation.x = Math.PI / 2;
   for(let i = 0; i < 8; i++){ const a = i / 8 * Math.PI * 2, x = Math.cos(a) * .75, zz = Math.sin(a) * .75;
     add(c, new THREE.CylinderGeometry(.035, .035, .16, 8), wax, x, .1, zz, false);
@@ -289,52 +291,52 @@ for(const z of [7, 0, -7]){
   add(c, new THREE.CylinderGeometry(.015, .015, 3, 5), iron, 0, .9 + 1.5, 0, false);
 }
 // a maroon carpet with gold edges along the aisle, from the gate to the back counter
-block(shop, 1.2, .025, 21.2, BR_.maroon, 0, FL, 1.2, {r: .005, shadow: false});
-for(const x of [-.57, .57]) block(shop, .05, .03, 21.2, 0xD4A24C, x, FL, 1.2, {r: .005, shadow: false});
+block(store, 1.2, .025, 21.2, BR_.maroon, 0, FL, 1.2, {r: .005, shadow: false});
+for(const x of [-.57, .57]) block(store, .05, .03, 21.2, 0xD4A24C, x, FL, 1.2, {r: .005, shadow: false});
 // a lamp shelf in the back-right corner
-block(shop, .8, .1, .35, WALL, 2.4, FL + 1.9, -HZ + .18, {r: .03});
-add(shop, new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({color: 0xFFB347, emissive: 0xFFA020, emissiveIntensity: 2.4}), 2.4, FL + 2.12, -HZ + .22, false);
+block(store, .8, .1, .35, WALL, 2.4, FL + 1.9, -HZ + .18, {r: .03});
+add(store, new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({color: 0xFFB347, emissive: 0xFFA020, emissiveIntensity: 2.4}), 2.4, FL + 2.12, -HZ + .22, false);
 
 // the gate: two pillars, a maroon arch with the name, and the two gold doors folded open
 const GX = -.47;
-block(shop, .4, 3.2, .45, WALL, -1.55, FL, HZ + .15, {r: .1});
-block(shop, .4, 3.2, .45, WALL, .6, FL, HZ + .15, {r: .1});
-block(shop, 2.6, .5, .5, MAROON, GX, FL + 3.2, HZ + .15, {r: .12});
+block(store, .4, 3.2, .45, WALL, -1.55, FL, HZ + .15, {r: .1});
+block(store, .4, 3.2, .45, WALL, .6, FL, HZ + .15, {r: .1});
+block(store, 2.6, .5, .5, MAROON, GX, FL + 3.2, HZ + .15, {r: .12});
 {
   const t = textTexture([{text: 'NATRAJ JEWELS', font: '800 64px ' + FONT, color: '#E7D3AE', x: 256, y: 50}], 512, 100, null);
   const s = new THREE.Mesh(new THREE.PlaneGeometry(2.4, .47), new THREE.MeshBasicMaterial({map: t, transparent: true}));
-  s.position.set(GX, FL + 3.45, HZ + .41); shop.add(s);
+  s.position.set(GX, FL + 3.45, HZ + .41); s.scale.x = -1; store.add(s);
 }
 for(const [x, a] of [[-1.35, -1.25], [.4, 1.25]]){
-  const door = new THREE.Group(); door.position.set(x, FL, HZ + .15); door.rotation.y = a; shop.add(door);
+  const door = new THREE.Group(); door.position.set(x, FL, HZ + .15); door.rotation.y = a; store.add(door);
   const gold = mat(0xD9B24C, goldO);
   for(let i = 0; i < 5; i++) add(door, new THREE.BoxGeometry(.05, 2.5, .05), gold, (x < 0 ? 1 : -1) * (.08 + i * .17), 1.25, 0);
   for(const y of [.15, 1.25, 2.4]) add(door, new THREE.BoxGeometry(.85, .05, .05), gold, (x < 0 ? 1 : -1) * .43, y, 0);
 }
 // the path to the gate, and lamps
-for(let i = 0; i < 4; i++) block(shop, 1.6, .06, .7, 0xD8D2C4, GX, 0, HZ + .8 + i * .85, {r: .05, shadow: false});
+for(let i = 0; i < 4; i++) block(store, 1.6, .06, .7, 0xD8D2C4, GX, 0, HZ + .8 + i * .85, {r: .05, shadow: false});
 for(const x of [-2.1, 1.2]){
-  block(shop, .14, 2.1, .14, BR_.cocoa, x, 0, HZ + 1.1, {r: .04});
-  add(shop, new THREE.SphereGeometry(.22, 14, 10), new THREE.MeshStandardMaterial({color: 0xFFE7A8, emissive: 0xFFD27A, emissiveIntensity: 1.8}), x, 2.25, HZ + 1.1, false);
+  block(store, .14, 2.1, .14, BR_.cocoa, x, 0, HZ + 1.1, {r: .04});
+  add(store, new THREE.SphereGeometry(.22, 14, 10), new THREE.MeshStandardMaterial({color: 0xFFE7A8, emissive: 0xFFD27A, emissiveIntensity: 1.8}), x, 2.25, HZ + 1.1, false);
 }
 
 // counters: maroon bases, deep maroon velvet under glass, a gold frame, gold and silver pieces on show
 function counter(x0, x1, z0, z1){
   const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-  block(shop, w, .85, d, MAROON, cx, FL, cz, {r: .1, seg: 3});
-  block(shop, w + .02, .06, d + .02, TRIM, cx, FL + .06, cz, {r: .02, mo: goldO, shadow: false});
-  block(shop, w - .1, .06, d - .1, BR_.deep, cx, FL + .85, cz, {r: .02});
-  const glass = add(shop, rbox(w - .04, .42, d - .04, .05), new THREE.MeshStandardMaterial({color: 0xFFF6EA, transparent: true, opacity: .2, roughness: .05, depthWrite: false}), cx, FL + .85 + .21, cz, false);
+  block(store, w, .85, d, MAROON, cx, FL, cz, {r: .1, seg: 3});
+  block(store, w + .02, .06, d + .02, TRIM, cx, FL + .06, cz, {r: .02, mo: goldO, shadow: false});
+  block(store, w - .1, .06, d - .1, BR_.deep, cx, FL + .85, cz, {r: .02});
+  const glass = add(store, rbox(w - .04, .42, d - .04, .05), new THREE.MeshStandardMaterial({color: 0xFFF6EA, transparent: true, opacity: .2, roughness: .05, depthWrite: false}), cx, FL + .85 + .21, cz, false);
   glass.renderOrder = 2;
   const gm = {r: .015, mo: goldO, shadow: false};
-  block(shop, w, .05, .06, TRIM, cx, FL + 1.25, z0 + .03, gm); block(shop, w, .05, .06, TRIM, cx, FL + 1.25, z1 - .03, gm);
-  block(shop, .06, .05, d, TRIM, x0 + .03, FL + 1.25, cz, gm); block(shop, .06, .05, d, TRIM, x1 - .03, FL + 1.25, cz, gm);
+  block(store, w, .05, .06, TRIM, cx, FL + 1.25, z0 + .03, gm); block(store, w, .05, .06, TRIM, cx, FL + 1.25, z1 - .03, gm);
+  block(store, .06, .05, d, TRIM, x0 + .03, FL + 1.25, cz, gm); block(store, .06, .05, d, TRIM, x1 - .03, FL + 1.25, cz, gm);
   const long = w > d, n = Math.max(1, Math.floor((long ? w : d) / .75)), goldM = mat(0xF2C14E, {metalness: .9, roughness: .22});
   for(let i = 0; i < n; i++){
     const t = (i + .5) / n, px = long ? x0 + t * w : cx, pz = long ? cz : z0 + t * d, k = i % 3;
-    if(k === 0){ const m = add(shop, new THREE.TorusGeometry(.15, .033, 8, 20), goldM, px, FL + 1.02, pz, false); m.rotation.x = -1.2; m.rotation.z = long ? 0 : Math.PI / 2; }
-    else if(k === 1){ for(let j = 0; j < 3; j++) add(shop, new THREE.SphereGeometry(.065, 10, 8), goldM, px + (long ? (j - 1) * .13 : 0), FL + .96, pz + (long ? 0 : (j - 1) * .13), false); }
-    else { const m = add(shop, new THREE.TorusGeometry(.11, .042, 8, 18), mat(0xE8E8F0, {metalness: .9, roughness: .2}), px, FL + .98, pz, false); m.rotation.x = -Math.PI / 2; }
+    if(k === 0){ const m = add(store, new THREE.TorusGeometry(.15, .033, 8, 20), goldM, px, FL + 1.02, pz, false); m.rotation.x = -1.2; m.rotation.z = long ? 0 : Math.PI / 2; }
+    else if(k === 1){ for(let j = 0; j < 3; j++) add(store, new THREE.SphereGeometry(.065, 10, 8), goldM, px + (long ? (j - 1) * .13 : 0), FL + .96, pz + (long ? 0 : (j - 1) * .13), false); }
+    else { const m = add(store, new THREE.TorusGeometry(.11, .042, 8, 18), mat(0xE8E8F0, {metalness: .9, roughness: .2}), px, FL + .98, pz, false); m.rotation.x = -Math.PI / 2; }
   }
 }
 counter(-2.05, -1.35, -6.1, 5.9);     // left
@@ -342,13 +344,13 @@ counter(1.35, 2.05, -9.85, 5.3);      // right
 counter(-1.1, 2.05, -10.6, -9.85);    // back, joining the right counter
 // stools for customers: soft gold seats on gold legs
 for(const [x, z] of [[-1.1, 4.5], [-1.1, 1.5], [-1.1, -1.5], [-1.1, -4.5], [1.1, 3.8], [1.1, .8], [1.1, -2.2], [1.1, -5.2], [1.1, -8], [.3, -9.4], [1.05, -9.4]]){
-  block(shop, .08, .45, .08, TRIM, x, FL, z, {r: .03, mo: goldO});
-  add(shop, new THREE.CylinderGeometry(.22, .22, .09, 18), mat(BR_.goldSoft, {roughness: .7}), x, FL + .49, z);
+  block(store, .08, .45, .08, TRIM, x, FL, z, {r: .03, mo: goldO});
+  add(store, new THREE.CylinderGeometry(.22, .22, .09, 18), mat(BR_.goldSoft, {roughness: .7}), x, FL + .49, z);
 }
 
 // the three store computers (where the sketch shows them): cream desks, a gold-lit screen and charging pad when in use
 const DESKS = [
-  {desk: [-1.75, 9.8], seat: [-2.55, 9.8], face: Math.PI / 2, near: 'Lff'},   // faces into the shop, reached along the staff lane
+  {desk: [-1.75, 9.8], seat: [-2.55, 9.8], face: Math.PI / 2, near: 'Lff'},   // faces into the store, reached along the staff lane
   {desk: [2.6, 7.0], seat: [1.8, 7.0], face: Math.PI / 2, near: 'C2a'},
   {desk: [-2.6, -11.4], seat: [-1.8, -11.4], face: -Math.PI / 2, near: 'Bg'}
 ];
@@ -358,18 +360,19 @@ const screenOff = new THREE.MeshStandardMaterial({color: 0x2A1A17, emissive: 0x4
 const screenOn = new THREE.MeshStandardMaterial({color: 0xFFE2A0, emissive: 0xFFC24A, emissiveIntensity: 1.8, roughness: .3});
 DESKS.forEach(d => {
   // the desk sits beyond the robot, in the direction it faces
-  const g = new THREE.Group(); g.position.set(d.desk[0], FL, d.desk[1]); g.rotation.y = d.face + Math.PI; shop.add(g);
+  const g = new THREE.Group(); g.position.set(d.desk[0], FL, d.desk[1]); g.rotation.y = d.face + Math.PI; store.add(g);
   block(g, 1.2, .1, .66, BR_.cream, 0, .74, 0, {r: .04});
   for(const sx of [-.5, .5]) block(g, .12, .74, .56, BR_.deep, sx, 0, 0, {r: .04});
   block(g, .08, .32, .08, TRIM, 0, .84, -.15, {r: .02, mo: goldO});
   block(g, .76, .48, .07, BR_.cream, 0, 1.08, -.17, {r: .04});
   d.screen = add(g, new THREE.PlaneGeometry(.66, .38), screenOff, 0, 1.32, -.13, false);
   block(g, .5, .03, .18, BR_.line, 0, .84, .1, {r: .01});
-  add(shop, new THREE.CylinderGeometry(.46, .5, .05, 32), mat(BR_.cocoa), d.seat[0], FL + .025, d.seat[1]);
-  d.pad = add(shop, new THREE.TorusGeometry(.4, .03, 8, 40), padOff, d.seat[0], FL + .06, d.seat[1], false); d.pad.rotation.x = -Math.PI / 2;
+  add(store, new THREE.CylinderGeometry(.46, .5, .05, 32), mat(BR_.cocoa), d.seat[0], FL + .025, d.seat[1]);
+  d.pad = add(store, new THREE.TorusGeometry(.4, .03, 8, 40), padOff, d.seat[0], FL + .06, d.seat[1], false); d.pad.rotation.x = -Math.PI / 2;
 });
 
 PAINT = false;
+DESKS.forEach(d => { d.seat = [-d.seat[0], d.seat[1]]; d.face = -d.face; });   // where people stand, in the mirrored store
 // trees and planters around the shop, in muted greens that sit with the brand colours
 function tree(parent, x, z, s, seed){
   const r = rng(seed);
@@ -425,11 +428,12 @@ const NODES = {
   B3: [-.6, -11.4], B2: [.7, -11.4], B1: [1.6, -11.4], Rc: [2.55, -11.4], R4: [2.55, -8.2], R3: [2.55, -4.6], R2: [2.55, -1], R1: [2.55, 2.6]
 };
 const EDGES = 'G-A0 A0-C1a A0-A1 C1a-A1 C1a-Lf A1-Lf A1-C2a C2a-Rf A1-Rf A1-A2 Rf-A2 Lf-A2 Lf-Lff Rf-Rff Lff-L1 L1-L2 L2-L3 L3-L4 L4-Lbb Lbb-Lb Lbb-Lc Lc-Bg Lb-A4 Lb-A5 A2-A3 A3-A4 A4-A5 A5-A6 A6-Bg Lb-Bg Bg-B3 B3-B2 B2-B1 B1-Rc Rc-R4 R4-R3 R3-R2 R2-R1 R1-Rff';
+for(const k in NODES) NODES[k][0] = -NODES[k][0];   // mirrored with the store
 const ADJ = {};
 EDGES.split(' ').forEach(e => { const [a, b] = e.split('-'); (ADJ[a] = ADJ[a] || []).push(b); (ADJ[b] = ADJ[b] || []).push(a); });
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 // spots where staff stand behind the counters, and which way they face
-const SPOTS = {L1: Math.PI / 2, L2: Math.PI / 2, L3: Math.PI / 2, L4: Math.PI / 2, R1: -Math.PI / 2, R2: -Math.PI / 2, R3: -Math.PI / 2, R4: -Math.PI / 2, B1: 0, B2: 0, B3: 0};
+const SPOTS = {L1: -Math.PI / 2, L2: -Math.PI / 2, L3: -Math.PI / 2, L4: -Math.PI / 2, R1: Math.PI / 2, R2: Math.PI / 2, R3: Math.PI / 2, R4: Math.PI / 2, B1: 0, B2: 0, B3: 0};   // mirrored
 const AISLE = ['A1', 'A2', 'A3', 'A4', 'A5'];
 function nearestNode(p){ let best = null, bd = 1e9; for(const k in NODES){ const d = dist(p, NODES[k]); if(d < bd){ bd = d; best = k; } } return best; }
 function route(from, to, final){
