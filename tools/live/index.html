@@ -73,7 +73,7 @@
       </div>
       <div class="card" id="card" hidden></div>
     </div>
-    <p class="keynote">Each staff member is a little rolling robot in their own colour. Drag to turn, pinch or scroll to zoom, tap a robot to follow it. Signed in on a computer: it docks at a store computer and its eye turns blue. On a phone: a small hologram screen floats in front of it. Not marked yet: it waits at the gate. Away today: it naps on the bench on the small island.</p>
+    <p class="keynote">Each staff member is a chess piece, from their designation in People &amp; settings: gate keeper a pawn, accountant and manager a rook, sales a bishop, all-rounders a knight. Drag to turn, pinch or scroll to zoom, tap a piece to follow it. Signed in on a computer: it stands at a store computer and its gem glows gold. On a phone: a small screen floats in front of it. Not marked yet: it waits at the gate. Away today: it rests on the bench on the small island.</p>
     <div class="people" id="people"></div>
   </div>
 </main>
@@ -449,8 +449,9 @@ const BENCH = [...Array.from({length: 5}, (_, i) => [-1.6 + i * .8, 1.08]), ...A
 const AWAYSPOTS = Array.from({length: 8}, (_, i) => [2.4 + (i % 2) * .9, -1.6 + Math.floor(i / 2) * .9]);
 
 /* ---------- the little people ---------- */
-/* the staff are little rolling robots: a ball body with panels in their own colour and a dome head with one big eye.
-   Flat toon shading in three tones and dark ink outlines. */
+/* the staff are chess pieces, by their designation on the staff list:
+   gate keeper a pawn, accountant and manager a rook, sales a bishop, all-rounders (and anyone else) a knight.
+   Ivory with gold trim and a collar in each person's own jewel colour; a small gem shows their mood. */
 const TOON = (() => { const t = new THREE.DataTexture(new Uint8Array([110, 195, 255]), 3, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
 const TMATS = new Map();
 const toon = c => { if(!TMATS.has(c)) TMATS.set(c, new THREE.MeshToonMaterial({color: c, gradientMap: TOON})); return TMATS.get(c); };
@@ -461,26 +462,40 @@ function part(parent, geo, material, x, y, z, line){
   if(line) m.add(new THREE.Mesh(geo, OUTLINE));
   return m;
 }
-const BR = .38;                 // ball radius
-const HEAD_Y = BR * 2 + .03;    // where the dome sits
-const PANEL_A = .62;            // how big each round panel is
+function pieceFor(designation){
+  const d = String(designation || '').toLowerCase();
+  if(/gate|security|watch|guard|door/.test(d)) return 'pawn';
+  if(/manager|account/.test(d)) return 'rook';
+  if(/sales/.test(d)) return 'bishop';
+  return 'knight';
+}
+const PIECE_NAME = {pawn: 'Pawn', rook: 'Rook', bishop: 'Bishop', knight: 'Knight'};
+const lathe = pts => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 32);
+const BASE = [[0, 0], [.34, 0], [.34, .06], [.3, .1], [.27, .14], [.27, .19], [.22, .23]];
 const G = {
-  ball: new THREE.SphereGeometry(BR, 40, 28),
-  ring: new THREE.TorusGeometry(BR * Math.sin(PANEL_A) + .005, .03, 8, 40),
-  inner: new THREE.SphereGeometry(BR + .004, 28, 6, 0, Math.PI * 2, 0, PANEL_A * .78),
-  dot: new THREE.SphereGeometry(BR + .007, 16, 4, 0, Math.PI * 2, 0, .16),
-  dome: new THREE.SphereGeometry(.27, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2),
-  band: new THREE.CylinderGeometry(.272, .26, .07, 32),
-  skirt: new THREE.CylinderGeometry(.25, .2, .05, 32),
-  cap: new THREE.TorusGeometry(.12, .022, 8, 28),
-  eye: new THREE.SphereGeometry(.085, 20, 14),
-  glow: new THREE.SphereGeometry(.04, 14, 10),
-  lens: new THREE.SphereGeometry(.042, 14, 10),
-  ant1: new THREE.CylinderGeometry(.008, .008, .32, 6),
-  ant2: new THREE.CylinderGeometry(.01, .01, .18, 6),
+  pawn: lathe([...BASE, [.15, .32], [.11, .5], [.11, .56], [.2, .58], [.2, .63], [.1, .66], [0, .66]]),
+  pawnHead: new THREE.SphereGeometry(.17, 28, 20),
+  rook: lathe([...BASE, [.2, .3], [.19, .7], [.24, .76], [.28, .8], [.28, .98], [0, .98]]),
+  merlon: new RoundedBoxGeometry(.13, .14, .09, 2, .02),
+  bishop: lathe([...BASE, [.17, .3], [.12, .6], [.2, .64], [.2, .69], [.1, .72], [0, .72]]),
+  mitre: lathe([[0, .7], [.13, .74], [.18, .86], [.17, .98], [.11, 1.08], [.04, 1.15], [0, 1.16]]),
+  slit: new THREE.BoxGeometry(.03, .2, .38),
+  knightBase: lathe([[0, 0], [.34, 0], [.34, .06], [.3, .1], [.27, .14], [.27, .22], [0, .22]]),
+  // the horse's head, drawn side-on and given thickness; it looks along +z
+  knight: (() => {
+    const sh = new THREE.Shape(), P = [[-.2, .2], [.17, .2], [.2, .44], [.12, .6], [.33, .72], [.38, .84], [.25, .98], [.13, 1.07], [.09, 1.22], [.01, 1.09], [-.12, 1.03], [-.22, .82], [-.25, .52]];
+    sh.moveTo(...P[0]); P.slice(1).forEach(q => sh.lineTo(...q)); sh.lineTo(...P[0]);
+    const g = new THREE.ExtrudeGeometry(sh, {depth: .22, bevelEnabled: true, bevelThickness: .04, bevelSize: .03, bevelSegments: 2, curveSegments: 4});
+    g.translate(0, 0, -.11); g.rotateY(-Math.PI / 2); g.computeVertexNormals(); return g;
+  })(),
+  collar: new THREE.TorusGeometry(.2, .035, 10, 32),
+  knightCollar: new THREE.TorusGeometry(.26, .035, 10, 32),
+  rim: new THREE.TorusGeometry(.33, .025, 8, 40),
+  gem: new THREE.OctahedronGeometry(.055, 0),
   holo: new THREE.PlaneGeometry(.34, .22)
 };
-// eye light for each mood
+const HEIGHT = {pawn: .97, rook: 1.12, bishop: 1.27, knight: 1.26};
+// the gem's light for each mood
 const EYE = {
   idle: new THREE.MeshBasicMaterial({color: 0xFFE6B0}),
   work: new THREE.MeshBasicMaterial({color: 0xFFC24A}),
@@ -488,48 +503,50 @@ const EYE = {
   happy: new THREE.MeshBasicMaterial({color: 0xFF8FA3})
 };
 const HOLO = new THREE.MeshBasicMaterial({color: 0xFFD27A, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false});
-// each robot's own colour, from the jewels in the shop: ruby, emerald, sapphire, gold, rose gold, amethyst, topaz, garnet, turquoise, onyx
+// each person's own colour, from the jewels in the shop: ruby, emerald, sapphire, gold, rose gold, amethyst, topaz, garnet, turquoise, onyx
 const COLORS = [0xB3243A, 0x1F7A5A, 0x2E5AAC, 0xC9A04E, 0xC98276, 0x7B4B94, 0xE0A030, 0x7A1F2B, 0x2A9D8F, 0x3A3A3A];
 const people = new Map();
 let shirtNext = 0;
-function makePerson(id, name){
+function makePerson(id, name, kind){
   const h = hash(name), colorC = COLORS[(shirtNext++) % COLORS.length], color = toon(colorC);
-  const white = toon(BR_.cream), grey = toon(BR_.goldSoft), dark = toon(BR_.cocoa), steel = toon(0xC9A04E);
-  const g = new THREE.Group(), droid = new THREE.Group(); droid.scale.setScalar(1); g.add(droid);
-  // the ball rolls; its panels face six ways
-  const ball = new THREE.Group(); ball.position.y = BR; droid.add(ball);
-  part(ball, G.ball, white, 0, 0, 0, true);
-  const dirs = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
-  dirs.forEach((d, i) => {
-    const n = new THREE.Vector3(...d), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
-    const inner = add(ball, G.inner, i % 2 ? steel : grey, 0, 0, 0, false); inner.quaternion.copy(q);
-    const dot = add(ball, G.dot, color, 0, 0, 0, false); dot.quaternion.copy(q);
-    const ring = add(ball, G.ring, color, 0, 0, 0, false);
-    ring.position.copy(n.clone().multiplyScalar(BR * Math.cos(PANEL_A))); ring.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), n));
-  });
-  // the dome head stays upright and looks about
-  const head = new THREE.Group(); head.position.y = HEAD_Y; droid.add(head);
-  part(head, G.skirt, dark, 0, -.005, 0);
-  part(head, G.band, color, 0, .035, 0, true);
-  part(head, G.dome, white, 0, .07, 0, true);
-  const cap = add(head, G.cap, toon(BR_.maroon), 0, .3, 0, false); cap.rotation.x = Math.PI / 2;
-  // one big eye and a small lens
-  const eyeG = new THREE.Group(); eyeG.position.set(0, .2, .2); head.add(eyeG);
-  part(eyeG, G.eye, new THREE.MeshStandardMaterial({color: 0x15151C, roughness: .15, metalness: .4}), 0, 0, 0, true);
-  const glow = add(eyeG, G.glow, EYE.idle, 0, 0, .06, false);
-  part(head, G.lens, dark, .15, .12, .2, true);
-  add(head, G.ant1, steel, -.08, .44, -.04, false);
-  add(head, G.ant2, steel, .02, .38, -.08, false);
-  const tip = add(head, new THREE.SphereGeometry(.022, 10, 8), EYE.idle, -.08, .61, -.04, false);
-  // a little hologram screen when they are on a phone
-  const holo = add(head, G.holo, HOLO, 0, .22, .5, false); holo.rotation.x = -.25; holo.visible = false;
-  const ring = new THREE.Mesh(new THREE.RingGeometry(.46, .58, 36), new THREE.MeshBasicMaterial({color: 0xE7C27A, transparent: true, opacity: .95, depthWrite: false}));
+  const ivory = toon(0xF4E8D0), gold = toon(0xD4A24C), dark = toon(BR_.cocoa);
+  const g = new THREE.Group(), droid = new THREE.Group(); g.add(droid);
+  const piece = new THREE.Group(); droid.add(piece);
+  add(piece, G.rim, gold, 0, .07, 0, false).rotation.x = Math.PI / 2;
+  const gems = [];
+  if(kind === 'pawn'){
+    part(piece, G.pawn, ivory, 0, 0, 0, true);
+    part(piece, G.pawnHead, ivory, 0, .8, 0, true);
+    add(piece, G.collar, color, 0, .6, 0, false).rotation.x = Math.PI / 2;
+    gems.push(add(piece, G.gem, EYE.idle, 0, 1.03, 0, false));
+  } else if(kind === 'rook'){
+    part(piece, G.rook, ivory, 0, 0, 0, true);
+    for(let i = 0; i < 5; i++){ const a = i / 5 * Math.PI * 2, m = part(piece, G.merlon, ivory, Math.sin(a) * .22, 1.04, Math.cos(a) * .22, true); m.rotation.y = a; }
+    add(piece, new THREE.CircleGeometry(.2, 24), dark, 0, .985, 0, false).rotation.x = -Math.PI / 2;
+    add(piece, G.collar, color, 0, .76, 0, false).rotation.x = Math.PI / 2;
+    gems.push(add(piece, G.gem, EYE.idle, 0, 1.08, 0, false));
+  } else if(kind === 'bishop'){
+    part(piece, G.bishop, ivory, 0, 0, 0, true);
+    part(piece, G.mitre, ivory, 0, 0, 0, true);
+    add(piece, G.slit, dark, 0, .98, 0, false).rotation.x = .6;
+    add(piece, G.collar, color, 0, .66, 0, false).rotation.x = Math.PI / 2;
+    gems.push(add(piece, G.gem, EYE.idle, 0, 1.24, 0, false));
+  } else {
+    part(piece, G.knightBase, ivory, 0, 0, 0, true);
+    part(piece, G.knight, ivory, 0, 0, 0, true);
+    add(piece, G.knightCollar, color, 0, .26, 0, false).rotation.x = Math.PI / 2;
+    // the horse's eyes are the gems
+    for(const s of [-1, 1]) gems.push(add(piece, G.gem, EYE.idle, .15 * s, .93, .2, false));
+  }
+  gems.forEach(m => m.scale.setScalar(kind === 'knight' ? .6 : 1));
+  const holo = add(piece, G.holo, HOLO, 0, HEIGHT[kind] * .75, .5, false); holo.rotation.x = -.25; holo.visible = false;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.42, .54, 36), new THREE.MeshBasicMaterial({color: 0xE7C27A, transparent: true, opacity: .95, depthWrite: false}));
   ring.rotation.x = -Math.PI / 2; ring.position.y = .03; ring.visible = false; g.add(ring);
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({depthTest: false, transparent: true, sizeAttenuation: false})); label.position.y = 1.85; label.renderOrder = 10; g.add(label);
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({depthTest: false, transparent: true, sizeAttenuation: false})); label.position.y = HEIGHT[kind] + .55; label.renderOrder = 10; g.add(label);
   g.traverse(o => { o.userData.pid = id; });
-  return {id, name, color: '#' + colorC.toString(16).padStart(6, '0'), g, droid, ball, head, eyeG, glow, tip, holo, ring, label, moved: 0,
+  return {id, name, kind, color: '#' + colorC.toString(16).padStart(6, '0'), g, droid, piece, gems, holo, ring, label, stepT: 0,
     pos: [0, 0], angle: 0, island: null, want: null, mode: 'idle', path: [], wait: 0, spot: null, desk: null, pose: 'stand',
-    blink: 2 + Math.random() * 3, hop: null, labelKey: '', info: null, seed: h % 1000};
+    hop: null, labelKey: '', info: null, seed: h % 1000};
 }
 const LH = () => small ? .062 : .05;
 function labelSize(p, big){ const h = LH() * (big ? 1.25 : 1); p.label.scale.set(h * 520 / 150, h, 1); }
@@ -625,35 +642,29 @@ function endHop(p){
 const lerpA = (a, b, k) => { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * k; };
 function pose(p, dt, t){
   const k = 1 - Math.exp(-dt * 7), P = p.pose, w = p.want || {}, sd = p.seed;
-  // the ball rolls by the distance moved
-  if(p.moved){ p.ball.rotation.x += p.moved / BR; p.moved = 0; }
-  let tilt = 0, look = 0, bob = 0, roll = 0, eye = EYE.idle;
-  if(P === 'walk'){ tilt = -.12; bob = Math.abs(Math.sin(t * 9 + sd)) * .015; look = Math.sin(t * .9 + sd) * .25; }
-  else if(P === 'type'){ tilt = .2 + Math.sin(t * 5 + sd) * .05; look = Math.sin(t * 1.3 + sd) * .12; eye = EYE.work; }
-  else if(P === 'bench'){ tilt = .42; roll = Math.sin(t * .5 + sd) * .1; eye = EYE.sleep; }
-  else if(P === 'hop'){ eye = EYE.happy; }
-  else { look = Math.sin(t * .55 + sd) * .7; bob = Math.sin(t * 2 + sd) * .008; roll = Math.sin(t * .8 + sd) * .04; }
+  let tilt = 0, roll = 0, turn = 0, lift = 0, gem = EYE.idle;
+  if(P === 'walk'){ p.stepT += dt * 5.5; lift = Math.abs(Math.sin(p.stepT)) * .14; tilt = .12; }            // hop along, like a move on the board
+  else if(P === 'type'){ tilt = .14 + Math.sin(t * 5 + sd) * .04; gem = EYE.work; }
+  else if(P === 'bench'){ roll = .1 + Math.sin(t * .5 + sd) * .04; tilt = -.08; gem = EYE.sleep; }       // resting, half asleep
+  else if(P === 'hop'){ gem = EYE.happy; }
+  else { turn = Math.sin(t * .5 + sd) * .3; roll = Math.sin(t * .8 + sd) * .025; }
   const phone = w.phone && P !== 'type' && P !== 'hop';
-  if(phone){ tilt = .28; look = 0; eye = EYE.work; }
-  if(w.where === 'wait' && P !== 'walk'){ look = Math.sin(t * 1.1 + sd) * .9; }
-  if(p.wave > 0){ p.wave -= dt; eye = EYE.happy; look = Math.sin(t * 11) * .55; bob = Math.abs(Math.sin(t * 9)) * .14; }
-  p.head.rotation.x += (tilt - p.head.rotation.x) * k;
-  p.head.rotation.y += (look - p.head.rotation.y) * k * .6;
-  p.head.rotation.z += (roll - p.head.rotation.z) * k;
-  p.droid.position.y += (bob - p.droid.position.y) * Math.min(1, k * 2);
+  if(phone){ tilt = .16; turn = 0; gem = EYE.work; }
+  if(w.where === 'wait' && P !== 'walk') turn = Math.sin(t * 1.1 + sd) * .6;
+  if(p.wave > 0){ p.wave -= dt; gem = EYE.happy; turn = Math.sin(t * 11) * .45; lift = Math.abs(Math.sin(t * 9)) * .25; }
+  p.piece.rotation.x += (tilt - p.piece.rotation.x) * k;
+  p.piece.rotation.z += (roll - p.piece.rotation.z) * k;
+  p.piece.rotation.y += (turn - p.piece.rotation.y) * k * .6;
+  p.droid.position.y = P === 'walk' || p.wave > 0 ? lift : p.droid.position.y + (lift - p.droid.position.y) * k;
   p.holo.visible = !!phone;
   if(phone) p.holo.material.opacity = .45 + Math.sin(t * 6) * .1;
-  // the eye blinks now and then, and the antenna light pulses
-  p.blink -= dt; if(p.blink < -.14) p.blink = 2.5 + Math.random() * 3.5;
-  p.eyeG.scale.y = p.blink < 0 && P !== 'bench' ? .2 : P === 'bench' ? .45 : 1;
-  if(p.glow.material !== eye){ p.glow.material = eye; p.tip.material = eye; }
-  p.tip.visible = P === 'bench' || Math.sin(t * 3 + sd) > -.3;
+  p.gems.forEach(m => { if(m.material !== gem) m.material = gem; m.rotation.y += dt * 1.5; });
 }
 function step(p, dt, t){
   if(p.mode === 'hop'){
     const h = p.hop; h.t += dt / h.dur; const u = Math.min(1, h.t);
     p.g.position.lerpVectors(h.from, h.to, u); p.g.position.y += Math.sin(u * Math.PI) * h.h;
-    if(!reduce){ p.g.rotation.y = h.spin + u * Math.PI * 2; p.ball.rotation.x += dt * 9; }
+    if(!reduce) p.g.rotation.y = h.spin + u * Math.PI * 2;
     if(u >= 1) endHop(p);
     return;
   }
@@ -682,17 +693,17 @@ const WORK = {P: 'Present', H: 'Half day'}, AWAY = {HM: 'At home', T: 'At thotta
 let lastData = [];
 async function load(){
   const [s, a, pr, ps] = await Promise.all([
-    sb.from('staff').select('id,name,active').order('name'),
+    sb.from('staff').select('id,name,active,designation').order('name'),
     sb.from('attendance').select('staff_id,status').eq('day', todayIso()),
     sb.from('profiles').select('user_id,name,staff_id,is_owner'),
     sb.from('presence').select('*')]);
   const staff = (must(s) || []).filter(x => x.active !== false), att = must(a) || [], profs = must(pr) || [], pres = must(ps) || [];
   const rows = [];
-  const one = (id, name, code, prof) => {
+  const one = (id, name, code, prof, designation) => {
     const r = prof && pres.find(x => x.user_id === prof.user_id), st = NJ.presenceText(r);
-    return {id, name, code, online: !!(prof && st.online), page: r && r.page || '', device: r && r.device || '', presText: prof ? st.text : 'No sign-in account'};
+    return {id, name, code, designation: designation || '', kind: pieceFor(designation), online: !!(prof && st.online), page: r && r.page || '', device: r && r.device || '', presText: prof ? st.text : 'No sign-in account'};
   };
-  staff.forEach(st => rows.push(one(st.id, st.name, (att.find(x => x.staff_id === st.id) || {}).status || null, profs.find(x => x.staff_id === st.id && !x.is_owner))));
+  staff.forEach(st => rows.push(one(st.id, st.name, (att.find(x => x.staff_id === st.id) || {}).status || null, profs.find(x => x.staff_id === st.id && !x.is_owner), st.designation)));
   // people who sign in but are not on the staff list show up while they are signed in
   profs.filter(x => !x.is_owner && !x.staff_id).forEach(prof => { const r = one('u:' + prof.user_id, prof.name, null, prof); if(r.online) rows.push(r); });
   lastData = rows;
@@ -731,8 +742,10 @@ function apply(rows){
   rows.forEach(r => { const p = people.get(r.id); if(p && p.want && p.want.where === 'desk' && !(r.online && r.device === 'Computer')) p.want = {where: 'leaving'}; });
   rows.slice().sort((x, y) => (y.online && y.device === 'Computer') - (x.online && x.device === 'Computer')).forEach(r => {
     let p = people.get(r.id);
+    // a new designation means a different piece
+    if(p && p.kind !== r.kind){ p.g.parent && p.g.parent.remove(p.g); people.delete(r.id); p = null; }
     const isNew = !p;
-    if(!p){ p = makePerson(r.id, r.name); people.set(r.id, p); }
+    if(!p){ p = makePerson(r.id, r.name, r.kind); people.set(r.id, p); if(selected === r.id) p.ring.visible = true; }
     p.info = r;
     const w = want(r, p), same = p.want && p.want.where === w.where && p.want.desk === w.desk && !!p.want.phone === !!w.phone;
     p.want = w;
@@ -750,7 +763,7 @@ function renderLists(rows){
   $('counts').innerHTML = '<span><b>' + (n('shop') + n('desk')) + '</b> in the shop</span><span><b>' + online + '</b> signed in now</span>' +
     '<span><b>' + n('wait') + '</b> not marked yet</span><span><b>' + (n('bench') + n('away')) + '</b> away today</span>';
   $('people').innerHTML = rows.map(r => { const p = people.get(r.id), w = p && p.want || {}, [l2] = describe(r, w);
-    return '<button class="person" type="button" data-id="' + esc(r.id) + '" aria-pressed="' + (selected === r.id) + '"><i style="background:' + (p ? p.color : '#999') + '"></i><b>' + esc(r.name) + '</b><span>' + esc(l2) + (r.online ? '' : ' · ' + r.presText) + '</span></button>'; }).join('');
+    return '<button class="person" type="button" data-id="' + esc(r.id) + '" aria-pressed="' + (selected === r.id) + '"><i style="background:' + (p ? p.color : '#999') + '"></i><b>' + esc(r.name) + '</b><span>' + esc(PIECE_NAME[r.kind]) + ' · ' + esc(l2) + (r.online ? '' : ' · ' + r.presText) + '</span></button>'; }).join('');
 }
 
 /* ---------- choosing and following a person ---------- */
@@ -759,7 +772,7 @@ function showCard(id){
   const p = people.get(id), card = $('card');
   if(!p){ card.hidden = true; return; }
   const r = p.info, [l2] = describe(r, p.want);
-  card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button><b>' + esc(r.name) + '</b><span>' + esc(l2) + '</span><span>Attendance today: ' + esc(WORK[r.code] || AWAY[r.code] || OFF[r.code] || 'not marked yet') + '</span><span>' + esc(r.presText) + '</span>';
+  card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button><b>' + esc(r.name) + '</b><span>' + esc(PIECE_NAME[r.kind] + (r.designation ? ' · ' + r.designation : '')) + '</span><span>' + esc(l2) + '</span><span>Attendance today: ' + esc(WORK[r.code] || AWAY[r.code] || OFF[r.code] || 'not marked yet') + '</span><span>' + esc(r.presText) + '</span>';
   card.hidden = false;
 }
 function select(id){
