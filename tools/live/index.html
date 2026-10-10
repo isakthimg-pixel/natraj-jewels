@@ -19,6 +19,9 @@
 .not-owner main{display:none!important}
 .stage{position:relative;height:clamp(420px,74vh,860px);border-radius:18px;overflow:hidden;border:1px solid var(--line);
   background:linear-gradient(180deg,#6FB7EA 0%,#A9DAF7 45%,#E4F4FC 100%)}
+.stage::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0B1330 0%,#1B2550 55%,#33315C 100%);opacity:0;transition:opacity 2.5s ease;pointer-events:none}
+.stage.night::before{opacity:1}
+.stage canvas{position:relative}
 .stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 .stage canvas:active{cursor:grabbing}
 .stage .tools{position:absolute;top:12px;right:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -169,7 +172,7 @@ if(renderer){
    soft gold #E7D3AE, paper #F5F2ED, cream #F8EFE2, ink #2A1E1B */
 const BR_ = {maroon: 0x8E2A2A, deep: 0x6E1F1F, cocoa: 0x3B2420, gold: 0x845E22, goldSoft: 0xE7D3AE, paper: 0xF5F2ED, cream: 0xF8EFE2, ink: 0x2A1E1B,
   metal: 0xC9A04E, line: 0xE2D6C4};
-scene.add(new THREE.HemisphereLight(0xDCEEFF, 0x7A6A4E, .95));
+const hemi = new THREE.HemisphereLight(0xDCEEFF, 0x7A6A4E, .95); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xFFEBC8, 3.1);
 sun.position.set(-16, 34, 18); sun.target.position.set(6, 0, 2); scene.add(sun, sun.target);
 sun.castShadow = true; sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
@@ -177,12 +180,13 @@ Object.assign(sun.shadow.camera, {left: -37, right: 37, top: 34, bottom: -34, ne
 sun.shadow.bias = -.0004; sun.shadow.normalBias = .03;
 const fill = new THREE.DirectionalLight(0xBFDFFF, .45); fill.position.set(30, 18, -20); scene.add(fill);
 
-// (stars only at night)
-if(false){
+// stars, seen at night
+let stars;
+{
   const r = rng(7), pts = [];
   for(let i = 0; i < 260; i++){ const a = r() * Math.PI * 2, e = r() * .9 - .15, d = 170 + r() * 80; pts.push(Math.cos(a) * Math.cos(e) * d, Math.sin(e) * d, Math.sin(a) * Math.cos(e) * d); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({color: BR_.cream, size: 1.1, sizeAttenuation: false, transparent: true, opacity: .6})));
+  stars = new THREE.Points(g, new THREE.PointsMaterial({color: 0xFFF6E0, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0})); scene.add(stars);
 }
 
 /* ---------- floating hexagon islands ---------- */
@@ -493,7 +497,11 @@ function palm(parent, x, z, h, lean, seed){
   signBoard(f, 'Home', 3.8, 2.2, '#3D5A99', '#FFF6DF');
 }
 const FARM_SPOTS = []; for(const z of [-1.15, -.35, .45]) for(let i = 0; i < 5; i++) FARM_SPOTS.push([-2.2 + i * 1.1, z]);
-const HOME_SPOTS = [[-.8, 1.0], [0, 1.0], [.8, 1.0], [-2.0, 2.3], [2.0, 2.3], [-2.6, 1.6], [2.6, 1.6], [-1.4, 2.9], [1.4, 2.9]];
+// three on the bench, then the garden, the path and beside the house (room for the whole team after closing)
+const HOME_SPOTS = [[-.8, 1.0], [0, 1.0], [.8, 1.0]];
+for(const z of [1.75, 2.5, 3.15]) for(const x of [-3.1, -2.3, -1.5, 1.5, 2.3, 3.1]) HOME_SPOTS.push([x, z]);
+for(const z of [3.95, 4.6]) for(const x of [-1.2, -.4, .4, 1.2]) HOME_SPOTS.push([x, z]);
+for(const x of [-2.6, -3.4, 2.6, 3.4]) HOME_SPOTS.push([x, -.3]);
 
 // clouds drifting by
 const clouds = [];
@@ -839,10 +847,18 @@ async function load(){
   $('liveText').textContent = 'Live · ' + new Date().toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'}) +
     (ph === 'open' ? ' · open till ' + hm(HOURS.closes) : ' · Closed · opens ' + hm(HOURS.opens));
   shopOpen = ph === 'open';
+  const clockNow = new Date().toLocaleTimeString('en-GB', {timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false});
+  night = ph === 'after' || clockNow < '06:00';
+  stage.classList.toggle('night', night);
 }
 function want(r, p){
-  // after closing, those not signed in have gone home
-  if(phase() === 'after' && !r.online && (WORK[r.code] || !r.code)) return {where: 'home', gone: true};
+  // outside shop hours the shop is empty: everyone who would be in it is at home (before opening, those
+  // not marked yet still wait at the gate, outside)
+  const ph = phase();
+  if(ph !== 'open' && !AWAY[r.code] && !OFF[r.code]){
+    if(ph === 'before' && !r.code && !r.online) return {where: 'wait'};
+    return {where: 'home', gone: true, phone: r.online || undefined};
+  }
   if(r.online){
     // signed in on one of the store computers: sit at its desk (any other device: a floating screen)
     if(r.desk != null){
@@ -858,12 +874,17 @@ function want(r, p){
 }
 function describe(r, w){
   const app = r.page || 'the apps';
-  const late = phase() === 'after' ? 'Working late · ' : '';
-  if(w.where === 'desk') return [(late || 'Working · ') + app, '#2E7D4F'];
-  if(w.phone) return [(late || 'On phone · ') + app, '#2E7D4F'];
+  const ph = phase();
+  if(w.where === 'home' && w.gone){
+    if(w.phone) return [(ph === 'after' ? 'Working late · ' : 'Online · ') + app, '#2E7D4F'];
+    if(ph === 'before') return [r.code ? 'Present · opens ' + hm(HOURS.opens) : 'At home', '#3D5A99'];
+    return [r.code ? 'Gone home' : 'Not in today', '#3D5A99'];
+  }
+  if(w.where === 'desk') return ['Working · ' + app, '#2E7D4F'];
+  if(w.phone) return ['On phone · ' + app, '#2E7D4F'];
   if(w.where === 'shop') return [WORK[r.code] || 'Present', '#8E2A2A'];
   if(w.where === 'farm') return ['At thottam', '#3E7D3A'];
-  if(w.where === 'home') return [w.gone ? (r.code ? 'Gone home' : 'Not in today') : 'At home', '#3D5A99'];
+  if(w.where === 'home') return ['At home', '#3D5A99'];
   if(w.where === 'bench') return [OFF[r.code], '#B3261E'];
   return ['Not marked yet', '#9A6A12'];
 }
@@ -935,7 +956,16 @@ if(renderer){
 }
 
 /* ---------- the loop ---------- */
-let shopOpen = true;
+let shopOpen = true, night = false, nightK = 0;
+const DAY = {hemi: [new THREE.Color(0xDCEEFF), new THREE.Color(0x7A6A4E), .95], sun: [new THREE.Color(0xFFEBC8), 3.1], fill: .45, cloud: new THREE.Color(0xFFFFFF)};
+const NIGHT = {hemi: [new THREE.Color(0x4A5A9A), new THREE.Color(0x1E1A2E), .55], sun: [new THREE.Color(0xA8BCFF), .9], fill: .25, cloud: new THREE.Color(0x5A6288)};
+function lightFor(k){
+  hemi.color.copy(DAY.hemi[0]).lerp(NIGHT.hemi[0], k); hemi.groundColor.copy(DAY.hemi[1]).lerp(NIGHT.hemi[1], k); hemi.intensity = DAY.hemi[2] + (NIGHT.hemi[2] - DAY.hemi[2]) * k;
+  sun.color.copy(DAY.sun[0]).lerp(NIGHT.sun[0], k); sun.intensity = DAY.sun[1] + (NIGHT.sun[1] - DAY.sun[1]) * k;   // the sun becomes moonlight
+  fill.intensity = DAY.fill + (NIGHT.fill - DAY.fill) * k;
+  stars.material.opacity = k * .9;
+  if(clouds[0]) clouds[0].children[0].material.color.copy(DAY.cloud).lerp(NIGHT.cloud, k);
+}
 const clock = new THREE.Clock();
 let visible = true, sized = '', framed = false;
 const home = () => stage.clientWidth < 600 ? HOME_NARROW : HOME;
@@ -958,6 +988,7 @@ function tick(){
   homeIsl.position.y = -.6 + Math.sin(t * .6 + 3) * (reduce ? 0 : .15);
   if(!reduce) clouds.forEach(c => { const a = c.userData.v * dt * .012; const x = c.position.x, z = c.position.z; c.position.x = x * Math.cos(a) - z * Math.sin(a); c.position.z = x * Math.sin(a) + z * Math.cos(a); });
   people.forEach(p => { step(p, dt, t); pose(p, dt, t); });
+  const nk = night ? 1 : 0; if(Math.abs(nk - nightK) > .001){ nightK += (nk - nightK) * (1 - Math.exp(-dt * 1.2)); lightFor(nightK); }
   DOORS.forEach(d => { d.rotation.y += ((shopOpen ? d.userData.open : 0) - d.rotation.y) * (1 - Math.exp(-dt * 2)); });
   if(selected && people.get(selected)){
     people.get(selected).g.getWorldPosition(tmp); tmp.y += 1;
