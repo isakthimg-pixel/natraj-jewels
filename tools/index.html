@@ -105,7 +105,7 @@ async function render(me){
   if(!apps.length && !me.is_owner) h += '<div class="form panel"><h3>No apps yet</h3><p>Ask the owner to give you access to the apps you need.</p></div>';
   h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.', '', 'leave');
   box.className = '';
-  box.innerHTML = '<p class="notice" id="due" hidden></p><div class="notice taskmeter" id="taskDue" hidden></div><p class="notice" id="fuDue" hidden></p><p class="notice" id="desDue" hidden></p><p class="notice" id="jobDue" hidden></p><div class="tiles">' + h + '</div>';
+  box.innerHTML = '<p class="notice" id="due" hidden></p><div class="notice taskmeter" id="taskDue" hidden></div><p class="notice" id="fuDue" hidden></p><p class="notice" id="desDue" hidden></p><p class="notice" id="jobDue" hidden></p><p class="notice" id="qDue" hidden></p><div class="tiles">' + h + '</div>';
   // staff see their report card once the owner has shared one
   if(!me.is_owner && me.staff_id) NJ.sb.from('report_cards').select('id').eq('shared', true).limit(1).then(r => {
     const grid = box.querySelector('.tiles');
@@ -117,6 +117,7 @@ async function render(me){
   followReminder(me).catch(() => {});
   designReminder(me).catch(() => {});
   jobReminder(me).catch(() => {});
+  queryReminder(me).catch(() => {});
 }
 
 /* Today's 22K gold and silver rate, at the top, as soon as it is entered */
@@ -215,6 +216,19 @@ async function jobReminder(me){
   if(late) box.style.cssText = 'border-color:var(--a);background:var(--a-bg);color:var(--a);font-weight:600';
   box.innerHTML = bits.join(', ').replace(/^./, c => c.toUpperCase()) + '.' +
     ' <a href="' + NJ.APPS.jobs.path + (late ? '#late' : ready && !dueToday ? '#ready' : '') + '" style="color:inherit;font-weight:600">Open repairs ›</a>';
+}
+
+/* Queries on entries: staff see what the owner asked them; the owner sees the explanations waiting to be read. */
+async function queryReminder(me){
+  const list = (await NJ.loadQueries(null, false)).filter(q => me.is_owner ? q.status === 'answered' : q.status === 'open' && q.asked_of === me.user_id);
+  const box = document.getElementById('qDue');
+  if(!box || !list.length) return;
+  const n = list.length, q = list[list.length - 1], page = {banking: 'banking', silver: 'silver', chits: 'chits'}[q.app] || 'expenses';
+  box.hidden = false;
+  box.style.cssText = 'border-color:var(--maroon);color:var(--maroon);font-weight:600';
+  box.innerHTML = (me.is_owner ? n + (n > 1 ? ' queries have' : ' query has') + ' been answered. Read and close ' + (n > 1 ? 'them' : 'it') + '.'
+      : 'The owner has ' + (n > 1 ? n + ' questions' : 'a question') + ' about your entries. Please explain.') +
+    ' <a href="' + NJ.APPS[page].path + '#q=' + NJ.esc(q.id) + '" style="color:inherit">Open ›</a>';
 }
 
 NJ.start({home: true, onReady: render});

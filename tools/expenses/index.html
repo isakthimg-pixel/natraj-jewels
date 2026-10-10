@@ -380,6 +380,20 @@ async function loadRecent(){
 }
 
 /* ---------- add tab ---------- */
+// the query on an entry, or the owner's Query button on entries made by someone else
+let qmap = new Map();
+function qHtml(r){
+  const q = qmap.get(r.id);
+  if(q) return NJ.queryChip(q);
+  return NJ.me.is_owner && r.created_by && r.created_by !== NJ.me.user_id ? '<button class="btn mini" data-act="query">Query</button>' : '';
+}
+async function loadQueryMap(){
+  qmap = NJ.queryMap(await NJ.loadQueries('expenses', true));
+  renderRecent();
+  if(curTab === 'month' && monthRows.length) renderMonth();
+  if(curTab === 'gst') renderGst();
+  if(curTab === 'bank') loadBank().catch(() => {});
+}
 function row(r, showDay){
   const sub = [showDay ? fmtDay(r.day) : '', r.mode + (r.mode !== 'Cash' && r.account_name ? ' from ' + r.account_name : ''), r.paid_to && ('to ' + r.paid_to), covers(r), r.note].filter(Boolean).join(' · ');
   const gst = r.gst_claimable ? 'GST ' + Number(r.gst_rate) + '%: ' + inr(r.gst_amount) + (r.gst_claimed_on ? ' · claimed' : ' · to claim') + (r.bill_no ? ' · bill ' + r.bill_no : '') : '';
@@ -388,7 +402,7 @@ function row(r, showDay){
     (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + (gst ? '<div class="sub gtag">' + esc(gst) + '</div>' : '') + (by ? '<div class="sub" style="font-size:.78rem">' + esc(by) + '</div>' : '') + '</div>' +
     '<div class="amt">' + esc(inr(r.amount)) + '</div>' +
     '<div class="acts">' + (canChange(r) ? '<button class="btn mini" data-act="edit">Edit</button><button class="btn mini btn-danger" data-act="del">Delete</button>'
-      : canAsk(r) ? '<button class="btn mini" data-act="edit">Ask to change</button><button class="btn mini" data-act="del">Ask to delete</button>' : '') + '</div></div>';
+      : canAsk(r) ? '<button class="btn mini" data-act="edit">Ask to change</button><button class="btn mini" data-act="del">Ask to delete</button>' : '') + qHtml(r) + '</div></div>';
 }
 function renderRecent(){
   const t = todayIso(), wk = addDays(t, -6), m = t.slice(0, 7);
@@ -527,6 +541,7 @@ async function onListClick(e){
   if(!el || !act) return;
   const r = recent.find(x => x.id === el.dataset.id) || monthRows.find(x => x.id === el.dataset.id) || bankExp.find(x => x.id === el.dataset.id) || gstOpen.concat(gstDone).find(x => x.id === el.dataset.id);
   if(!r) return;
+  if(act.dataset.act === 'query'){ NJ.askQuery({app: 'expenses', target: r.id, summary: expSummary(r), who: r.created_by_name}).then(ok => ok && loadQueryMap()).catch(x => toast(x.message)); return; }
   if(act.dataset.act === 'del' && NJ.needsApproval(r.day)){
     NJ.requestChange({app: 'expenses', action: 'delete', target: r.id, summary: expSummary(r)}).catch(x => toast(x.message));
     return;
@@ -884,7 +899,7 @@ document.addEventListener('visibilitychange', () => {
     loadRecent().then(() => curTab === 'month' && loadMonth()).catch(e => toast(e.message));
 });
 
-let reqBar = null;
+let reqBar = null, qBar = null;
 NJ.start({onReady: async me => {
   const ok = !!me && NJ.canUse('expenses');
   document.body.classList.toggle('no-access', !!me && !ok);
@@ -893,6 +908,10 @@ NJ.start({onReady: async me => {
   // changes to older days waiting for the owner; after one is approved, show the lists again
   if(!reqBar) reqBar = NJ.requestsBar('expenses', () => { loadRecent().catch(() => {}); if(curTab === 'month') loadMonth().catch(() => {}); if(curTab === 'gst') loadGst().catch(() => {}); });
   else reqBar.load();
+  // the owner's queries on entries, and the staff member's explanations
+  if(!qBar) qBar = NJ.queriesBar('expenses', () => loadQueryMap().catch(() => {}));
+  else qBar.load();
+  loadQueryMap().catch(() => {});
   showTab(location.hash === '#month' ? 'month' : location.hash === '#running' ? 'running' : location.hash === '#bank' ? 'bank' : location.hash === '#gst' ? 'gst' : curTab);
 }});
 })();

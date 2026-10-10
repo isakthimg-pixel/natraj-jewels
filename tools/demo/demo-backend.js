@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v32';
+const KEY = 'natraj-demo-db-v33';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -23,7 +23,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -301,6 +301,21 @@ function seed(){
   const note = (u, kind, title, body, mins) => db.notifications.push({id: uid(), user_id: u.user_id, kind, title, body, link: 'todo/#all', created_at: new Date(Date.now() - mins * 60000).toISOString(), read_at: null});
   note(manager, 'task_done', 'Sample Staff 2 completed a task', 'Clean the hallmark machine', 60 * 20);
   note(owner, 'tasks_all_done', 'Sample Staff 3 finished all their tasks', '3 done today. Last one: Arrange the silver anklets tray', 45);
+  // queries on entries: one the manager has answered (waiting for the owner to close), one waiting for the manager
+  const mexp = db.expenses.filter(e => e.created_by === manager.user_id && e.day < today).sort((x, y) => y.amount - x.amount);
+  const qAt = m => new Date(Date.now() - m * 60000).toISOString(), qsum = e => e.category + ' · ₹' + Number(e.amount).toLocaleString('en-IN') + ' · ' + new Date(e.day + 'T00:00:00').toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+  if(mexp.length > 1){
+    const q1 = {id: uid(), app: 'expenses', target_id: mexp[0].id, summary: qsum(mexp[0]), asked_of: manager.user_id, asked_of_name: manager.name, status: 'answered',
+      messages: [{by: owner.user_id, by_name: owner.name, owner: true, body: 'This is more than usual. What was it for?', at: qAt(300)},
+        {by: manager.user_id, by_name: manager.name, owner: false, body: 'Two cartons of ring boxes for the festival stock. The bill is in the expense file.', at: qAt(120)}],
+      created_by: owner.user_id, created_by_name: owner.name, created_at: qAt(300), updated_at: qAt(120), closed_at: null, closed_by_name: ''};
+    const q2 = {id: uid(), app: 'expenses', target_id: mexp[1].id, summary: qsum(mexp[1]), asked_of: manager.user_id, asked_of_name: manager.name, status: 'open',
+      messages: [{by: owner.user_id, by_name: owner.name, owner: true, body: 'Please share the bill for this.', at: qAt(50)}],
+      created_by: owner.user_id, created_by_name: owner.name, created_at: qAt(50), updated_at: qAt(50), closed_at: null, closed_by_name: ''};
+    db.entry_queries.push(q1, q2);
+    db.notifications.push({id: uid(), user_id: owner.user_id, kind: 'query', title: manager.name + ' answered your query', body: q1.summary + ': ' + q1.messages[1].body, link: 'expenses/#q=' + q1.id, created_at: qAt(120), read_at: null});
+    db.notifications.push({id: uid(), user_id: manager.user_id, kind: 'query', title: owner.name + ' has a question about your entry', body: q2.summary + ': ' + q2.messages[0].body, link: 'expenses/#q=' + q2.id, created_at: qAt(50), read_at: null});
+  }
   return db;
 }
 let db;
@@ -541,7 +556,40 @@ function changeRpc(name, a, me, headers){
     return {status: 200, body: {status: q.status, result_id: res}};
   }
 }
+/* queries on entries (migration 034) */
+function queryRpc(name, a, me){
+  const nowIso = now(), TBL = {expenses: 'expenses', banking: 'bank_entries', silver: 'silver_entries', chits: 'chit_payments'};
+  const bad = m => ({status: 400, body: {code: '22023', message: m}});
+  const note = (u, title, body, q) => db.notifications.push({id: uid(), user_id: u, kind: 'query', title, body: body.slice(0, 300), link: (q.app === 'expenses' ? 'expenses/' : q.app + '/') + '#q=' + q.id, created_at: nowIso, read_at: null});
+  const msg = (body, owner) => ({by: me.user_id, by_name: me.name, owner, body, at: nowIso});
+  if(name === 'ask_query'){
+    if(!me.is_owner) return {status: 403, body: {code: '42501', message: 'Only the owner can raise a query.'}};
+    const r = (db[TBL[a.p_app]] || []).find(x => x.id === a.p_target); if(!r) return bad('That entry no longer exists.');
+    const qq = String(a.p_question || '').trim(); if(!qq) return bad('Write your question (up to 500 letters).');
+    if(!r.created_by || r.created_by === me.user_id) return bad('You made this entry yourself.');
+    if(db.entry_queries.some(q => q.app === a.p_app && q.target_id === a.p_target && q.status !== 'closed')) return {status: 409, body: {code: '23505', message: 'There is already an open query on this entry.'}};
+    const who = db.profiles.find(p => p.user_id === r.created_by);
+    const q = {id: uid(), app: a.p_app, target_id: a.p_target, summary: a.p_summary || '', asked_of: r.created_by, asked_of_name: who ? who.name : '', status: 'open', messages: [msg(qq, true)],
+      created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_at: nowIso, closed_at: null, closed_by_name: ''};
+    db.entry_queries.push(q); note(q.asked_of, me.name + ' has a question about your entry', q.summary + ': ' + qq, q);
+    return {status: 200, body: q.id};
+  }
+  const q = db.entry_queries.find(x => x.id === a.p_id); if(!q) return bad('That query no longer exists.');
+  if(name === 'reply_query'){
+    const b = String(a.p_body || '').trim(); if(!b) return bad('Write a message (up to 500 letters).');
+    if(me.is_owner){ q.messages.push(msg(b, true)); q.status = 'open'; q.closed_at = null; q.closed_by_name = ''; q.updated_at = nowIso; note(q.asked_of, me.name + ' replied to the query', q.summary + ': ' + b, q); }
+    else if(q.asked_of === me.user_id){ if(q.status === 'closed') return bad('The owner has closed this query.');
+      q.messages.push(msg(b, false)); q.status = 'answered'; q.updated_at = nowIso; db.profiles.filter(p => p.is_owner).forEach(p => note(p.user_id, me.name + ' answered your query', q.summary + ': ' + b, q)); }
+    else return {status: 403, body: {code: '42501', message: 'This query is not for you.'}};
+    return {status: 204, body: null};
+  }
+  if(!me.is_owner) return {status: 403, body: {code: '42501', message: 'Only the owner can close a query.'}};
+  if(q.status !== 'closed'){ const n = String(a.p_note || '').trim(); if(n) q.messages.push(msg(n, true));
+    q.status = 'closed'; q.closed_at = nowIso; q.closed_by_name = me.name; q.updated_at = nowIso; note(q.asked_of, 'Query closed: ' + me.name + ' is okay with it', q.summary + (n ? ': ' + n : ''), q); }
+  return {status: 204, body: null};
+}
 function rpc(name, a, me, headers){
+  if(['ask_query', 'reply_query', 'close_query'].includes(name)) return queryRpc(name, a, me);
   if(['request_change', 'cancel_change_request', 'decide_change_request'].includes(name)) return changeRpc(name, a, me, headers);
   if(name === 'add_job_service'){
     if(!canUse(me, 'jobs')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Repairs & orders.'}};
@@ -650,7 +698,7 @@ function rest(method, table, params, body, headers, me){
     campaign_contacts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_costs: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     jobs: {read: canUse(me, 'jobs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'jobs')},
-    tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}
+    tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}, entry_queries: {read: true, write: false}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
   if(method === 'GET' ? !rule.read : !rule.write) return denied;
@@ -667,6 +715,10 @@ function rest(method, table, params, body, headers, me){
     if(method !== 'GET') return denied;
     db.presence.forEach(r => { if(r.demo_live && !r.signed_out_at) r.last_seen = now(); });   // the sample person stays online in the demo
     return {status: 200, body: db.presence.filter(r => me.is_owner || r.user_id === me.user_id).map(r => Object.assign({}, r))};
+  }
+  if(table === 'entry_queries'){
+    const out = sortBy(db.entry_queries.filter(q => me.is_owner || q.asked_of === me.user_id).filter(q => matches(q, params)), params.get('order'));
+    return {status: 200, body: single ? out[0] || null : out.slice(0, Number(params.get('limit') || 1000))};
   }
   if(table === 'change_requests'){
     const out = sortBy(db.change_requests.filter(q => me.is_owner || q.requested_by === me.user_id).filter(q => matches(q, params)), params.get('order'));

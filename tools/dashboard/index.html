@@ -473,11 +473,18 @@ async function loadExpenses(){
 
 /* changes to older days that staff asked for, in every app */
 async function loadApprovals(){
-  const list = await NJ.loadRequests(null);
-  $('apprTitle').textContent = 'Waiting for your approval' + (list.length ? ' (' + list.length + ')' : '');
-  $('apprBox').innerHTML = list.length ? '<div class="reqs">' + list.map(q => NJ.reqItem(q, true)).join('') + '</div>'
-    : '<small>Nothing waiting. When staff need to add, change or delete an entry older than yesterday, it comes here for you to approve.</small>';
+  const [list, qs] = await Promise.all([NJ.loadRequests(null), NJ.loadQueries(null, false).catch(() => [])]);
+  const answered = qs.filter(q => q.status === 'answered'), waiting = qs.filter(q => q.status === 'open');
+  const APPN = {expenses: 'Expenses', banking: 'Banking', silver: 'Silver', chits: 'Chit scheme'};
+  const qItem = q => { const last = (q.messages || [])[q.messages.length - 1] || {};
+    return '<div class="req"><div class="reqmain"><b>' + esc(APPN[q.app] + ' · ' + q.summary) + '</b><span>' + esc((last.by_name || '') + ': “' + (last.body || '') + '”') + '</span></div><div class="acts">' + NJ.queryChip(q) + '</div></div>'; };
+  $('apprTitle').textContent = 'Waiting for your approval' + (list.length + answered.length ? ' (' + (list.length + answered.length) + ')' : '');
+  $('apprBox').innerHTML = (list.length ? '<div class="reqs">' + list.map(q => NJ.reqItem(q, true)).join('') + '</div>' : '') +
+    (answered.length ? '<div class="reqs"><h4 style="margin:14px 0 0">Queries answered: read and close</h4>' + answered.map(qItem).join('') + '</div>' : '') +
+    (waiting.length ? '<p style="margin:12px 0 0"><small>' + waiting.length + (waiting.length > 1 ? ' queries are' : ' query is') + ' waiting for staff to explain.</small></p>' : '') +
+    (list.length || answered.length || waiting.length ? '' : '<small>Nothing waiting. When staff need to add, change or delete an entry older than yesterday, it comes here for you to approve. Answers to your queries on entries come here too.</small>');
 }
+NJ.queryListen(() => loadApprovals().catch(x => toast(x.message)));
 $('apprBox').addEventListener('click', e => NJ.reqClick(e, () => loadApprovals().catch(x => toast(x.message))));
 
 /* GST to claim: GST in expense bills marked claimable and not marked claimed yet, by supplier */

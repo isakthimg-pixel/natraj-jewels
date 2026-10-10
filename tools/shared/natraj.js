@@ -130,10 +130,11 @@ function dialog(o){
     else h += '<input class="input" id="' + id + '" type="' + (x.type || 'text') + '" autocomplete="off" maxlength="' + (x.maxlength || 60) + '" value="' + esc(x.value || '') + '"' + ph + '>';
     h += '</label>';
   });
-  if(o.extra) h += '<button type="button" class="linkish" data-extra>' + esc(o.extra.label) + '</button>';
+  if(o.extra && !o.extra.btn) h += '<button type="button" class="linkish" data-extra>' + esc(o.extra.label) + '</button>';
   h += '<p class="err" role="alert"></p><div class="actions">' +
     (o.cancel === null ? '' : '<button type="button" class="btn" data-cancel>' + esc(o.cancel || 'Cancel') + '</button>') +
-    '<button type="submit" class="btn ' + (o.danger ? 'btn-red' : 'btn-maroon') + '" data-ok>' + esc(o.ok || 'OK') + '</button></div>';
+    (o.extra && o.extra.btn ? '<button type="button" class="btn ' + esc(o.extra.btn) + '" data-extra>' + esc(o.extra.label) + '</button>' : '') +
+    (o.ok === null ? '' : '<button type="submit" class="btn ' + (o.danger ? 'btn-red' : 'btn-maroon') + '" data-ok>' + esc(o.ok || 'OK') + '</button>') + '</div>';
   f.innerHTML = h; d.appendChild(f); document.body.appendChild(d);
   f.addEventListener('click', e => { const b = e.target.closest('.bubble[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
   const err = f.querySelector('.err'), ok = f.querySelector('[data-ok]');
@@ -155,7 +156,7 @@ function dialog(o){
     d.addEventListener('close', () => { d.remove(); res(result); });
     d.addEventListener('cancel', () => { result = null; });
     const c = f.querySelector('[data-cancel]'); if(c) c.onclick = () => close(null);
-    const ex = f.querySelector('[data-extra]'); if(ex) ex.onclick = () => close(o.extra.value);
+    const ex = f.querySelector('[data-extra]'); if(ex) ex.onclick = () => close(o.extra.withValues ? Object.assign(values(), {extra: o.extra.value}) : o.extra.value);
     f.addEventListener('submit', async e => {
       e.preventDefault();
       const v = values();
@@ -618,7 +619,7 @@ function matchExpenses(expenses, bank, from, to){
   return {matched, missing, waiting, noAccount, extra};
 }
 
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs', 'change_requests', 'jobs'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs', 'change_requests', 'jobs', 'entry_queries'];
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
   for(const t of TABLES) out.tables[t] = must(await sb.from(t).select('*'));
@@ -734,7 +735,118 @@ async function reqClick(e, after){
   b.disabled = false;
 }
 
+/* ---------- queries on entries (migration 034) ----------
+   The owner asks about an entry; the staff member who made it explains; the owner closes it when satisfied. */
+const qBars = [];
+const qWhen = t => new Date(t).toLocaleString('en-IN', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+async function loadQueries(app, all){
+  let q = sb.from('entry_queries').select('*').order('updated_at', {ascending: false}).limit(500);
+  if(app) q = q.eq('app', app);
+  q = all ? q.or('status.neq.closed,updated_at.gte.' + new Date(Date.now() - 90 * 864e5).toISOString()) : q.neq('status', 'closed');
+  return must(await q) || [];
+}
+// target id -> its query (an open one first, else the latest closed one)
+function queryMap(list){
+  const m = new Map();
+  list.slice().reverse().forEach(q => { const cur = m.get(q.target_id); if(!cur || cur.status === 'closed' || q.status !== 'closed') m.set(q.target_id, q); });
+  return m;
+}
+function queryState(q){
+  if(q.status === 'closed') return 'Query closed';
+  if(q.status === 'answered') return me && me.is_owner ? 'Answered: read and close' : 'Answered · waiting for the owner';
+  return me && me.is_owner ? 'Query · waiting for ' + (q.asked_of_name || 'staff') : 'The owner asked: please explain';
+}
+// the small button on an entry that opens its query
+function queryChip(q){
+  return '<button type="button" class="qchip ' + esc(q.status) + (q.status === 'open' && me && !me.is_owner || q.status === 'answered' && me && me.is_owner ? ' mine' : '') + '" data-q-open="' + esc(q.id) + '">' + esc(queryState(q)) + '</button>';
+}
+async function askQuery(o){
+  const v = await dialog({title: 'Query this entry', ok: 'Send query',
+    msg: (o.who ? o.who + ' made this entry. They' : 'The person who made this entry') + ' will be told and asked to explain. You close the query when you are okay with it.',
+    html: '<p class="reqsum">' + esc(o.summary) + '</p>',
+    fields: [{id: 'q', label: 'Your question', type: 'textarea', maxlength: 500, placeholder: 'e.g. What is this interest for? Please share the bill.'}],
+    validate: async v => {
+      if(!v.q) return 'Write your question.';
+      must(await sb.rpc('ask_query', {p_app: o.app, p_target: o.target, p_question: v.q, p_summary: o.summary}));
+      return '';
+    }});
+  if(v){ toast('Query sent'); qBars.forEach(b => b.load()); }
+  return !!v;
+}
+async function openQuery(id){
+  let q;
+  try{ q = must(await sb.from('entry_queries').select('*').eq('id', id).maybeSingle()); }catch(x){ toast(friendly(x)); return false; }
+  if(!q){ toast('That query is not there any more.'); return false; }
+  const owner = me && me.is_owner, mineToAnswer = !owner && me && q.asked_of === me.user_id && q.status !== 'closed';
+  const thread = '<p class="reqsum">' + esc(q.summary) + '</p><div class="qthread">' + (q.messages || []).map(m =>
+    '<div class="qmsg' + (m.owner ? ' owner' : '') + '"><span>' + esc(m.by_name || (m.owner ? 'Owner' : 'Staff')) + ' · ' + esc(qWhen(m.at)) + '</span><p>' + esc(m.body) + '</p></div>').join('') + '</div>' +
+    (q.status === 'closed' ? '<p class="qclosed">Closed by ' + esc(q.closed_by_name || 'the owner') + (q.closed_at ? ' · ' + esc(qWhen(q.closed_at)) : '') + '</p>' : '');
+  const title = 'Query to ' + (q.asked_of_name || 'staff');
+  let v;
+  if(owner){
+    v = await dialog({title, html: thread, cancel: 'Back',
+      ok: q.status === 'closed' ? 'Open again and send' : 'Send reply',
+      extra: q.status === 'closed' ? null : {label: 'Close: I’m okay with it', value: 'close', btn: 'btn-green', withValues: true},
+      fields: [{id: 'm', label: q.status === 'closed' ? 'Ask again (opens the query again)' : 'Reply (optional when closing)', type: 'textarea', maxlength: 500}],
+      validate: async v => {
+        if(!v.m) return 'Write a reply, or press “Close” if you are okay with it.';
+        must(await sb.rpc('reply_query', {p_id: q.id, p_body: v.m}));
+        return '';
+      }});
+    if(v && v.extra === 'close'){
+      try{ must(await sb.rpc('close_query', {p_id: q.id, p_note: v.m || ''})); toast('Query closed'); }catch(x){ toast(friendly(x)); return false; }
+    } else if(v) toast('Reply sent to ' + (q.asked_of_name || 'staff'));
+  } else if(mineToAnswer){
+    v = await dialog({title: 'The owner asked about your entry', html: thread, ok: 'Send explanation', cancel: 'Later',
+      fields: [{id: 'm', label: q.status === 'answered' ? 'Add more (optional)' : 'Your explanation', type: 'textarea', maxlength: 500, placeholder: 'e.g. Interest paid to Jothimani for August, bill is in the file.'}],
+      validate: async v => {
+        if(!v.m) return 'Write your explanation.';
+        must(await sb.rpc('reply_query', {p_id: q.id, p_body: v.m}));
+        return '';
+      }});
+    if(v) toast('Sent to the owner');
+  } else {
+    await dialog({title, html: thread, ok: 'OK', cancel: null});
+  }
+  if(v) qBars.forEach(b => { b.load(); if(b.changed) b.changed(); });
+  return !!v;
+}
+// a box at the top of an app page with the queries still open; onChange runs after one changes
+function queriesBar(app, onChange){
+  let box = document.getElementById('nj-qry');
+  if(!box){ box = document.createElement('div'); box.id = 'nj-qry'; box.className = 'wrap content reqbar'; box.hidden = true; const m = document.querySelector('main'); if(m) m.prepend(box); else return; }
+  const bar = {list: [], load: async () => {
+    if(!me){ box.hidden = true; return; }
+    try{
+      const list = bar.list = await loadQueries(app, false);
+      const first = (s => list.filter(q => q.status === s));
+      const need = me.is_owner ? first('answered') : first('open'), wait = me.is_owner ? first('open') : first('answered');
+      box.hidden = !list.length;
+      const item = q => { const last = (q.messages || [])[q.messages.length - 1] || {};
+        return '<div class="req"><div class="reqmain"><b>' + esc(q.summary || 'Entry') + '</b><span>' + esc((last.by_name || '') + ': “' + (last.body || '') + '”') + ' · ' + esc(qWhen(q.updated_at)) + '</span></div>' +
+          '<div class="acts">' + queryChip(q) + '</div></div>'; };
+      box.innerHTML = '<div class="form panel reqs">' +
+        (need.length ? '<h3>' + (me.is_owner ? 'Queries answered: read and close (' + need.length + ')' : 'The owner asked about your entries (' + need.length + ')') + '</h3>' + need.map(item).join('') : '') +
+        (wait.length ? '<h3' + (need.length ? ' style="margin-top:14px"' : '') + '>' + (me.is_owner ? 'Queries waiting for staff (' + wait.length + ')' : 'Explained, waiting for the owner (' + wait.length + ')') + '</h3>' + wait.map(item).join('') : '') + '</div>';
+    }catch(e){ box.hidden = true; }
+  }, changed: onChange};
+  qBars.push(bar); bar.load();
+  const fromHash = () => { const m = /^#q=([0-9a-f-]{36})$/.exec(location.hash); if(m){ history.replaceState(null, '', location.pathname + location.search); openQuery(m[1]); } };
+  window.addEventListener('hashchange', fromHash); fromHash();
+  return bar;
+}
+// a page that shows queries some other way hears when one changes
+function queryListen(fn){ qBars.push({load(){}, changed: fn}); }
+// any [data-q-open] button on any page opens that query
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-q-open]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation(); b.disabled = true;
+  await openQuery(b.dataset.qOpen);
+  b.disabled = false;
+}, true);
+
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
   pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
-  liveCheck, deviceCode, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick, get me(){ return me; }};
+  liveCheck, deviceCode, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick,
+  loadQueries, queryMap, queryChip, askQuery, openQuery, queriesBar, queryListen, get me(){ return me; }};
 })();

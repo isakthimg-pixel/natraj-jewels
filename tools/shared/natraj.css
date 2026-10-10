@@ -266,7 +266,7 @@ dialog::backdrop{background:rgba(42,30,27,.5)}
 dialog form{padding:clamp(20px,4vw,28px);display:grid;gap:12px}
 dialog h2{font-size:1.6rem;color:var(--maroon)}
 dialog p{margin:0;color:var(--muted);white-space:pre-line}
-dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+dialog .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;flex-wrap:wrap}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,0);transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .2s ease;background:var(--cocoa);color:var(--on-dark);padding:11px 20px;border-radius:999px;font-weight:600;font-size:.88rem;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:50;max-width:calc(100vw - 32px)}
 
 @media print{
@@ -350,6 +350,20 @@ dialog.notes .actions{display:flex;justify-content:flex-end}
 .req .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:560px){.req{grid-template-columns:1fr}.req .acts{justify-content:flex-start}}
 .reqstate{font-weight:600}
+/* queries on entries */
+.qchip{font:inherit;font-size:.78rem;font-weight:600;line-height:1.2;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;text-align:left}
+.qchip.open{border-color:var(--gold-soft);color:var(--gold);background:var(--h-bg)}
+.qchip.answered{border-color:var(--maroon);color:var(--maroon)}
+.qchip.mine{background:var(--maroon);border-color:var(--maroon);color:#fff}
+.qchip.closed{color:var(--p);border-color:var(--line)}
+.qchip:focus-visible{outline:2px solid var(--maroon);outline-offset:2px}
+.qthread{display:grid;gap:8px;max-height:46vh;overflow:auto;margin:4px 0 12px}
+.qmsg{padding:10px 12px;border-radius:12px;background:var(--paper);margin-right:18%}
+.qmsg.owner{background:var(--card);border:1px solid var(--line);margin:0 0 0 18%}
+.qmsg span{display:block;font-size:.76rem;color:var(--muted);margin-bottom:2px}
+.qmsg p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.qclosed{font-size:.85rem;color:var(--p);font-weight:600;margin:0 0 8px}
+.btn-green{background:var(--p);border-color:var(--p);color:#fff}
 .reqstate.approved{color:var(--p)} .reqstate.rejected{color:var(--a)} .reqstate.cancelled{color:var(--muted)}
 .reqsum{font-weight:600;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
 

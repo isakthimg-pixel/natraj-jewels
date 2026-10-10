@@ -44,6 +44,7 @@ design (see `natraj-jewels-website/index.html`; first built in `staff-attendance
 | 13 | Repairs & orders (built: `tools/jobs/`, pieces customers leave for repair and new pieces ordered to be made; repair slip number, service (shared list, add new ones), customer (linked to Customers), item, metal, weight, photos, work, promised date, estimate and advance; Received → With karigar → Ready → Delivered or Cancelled; karigar and what they were paid, amount collected from the customer; free repairs: bought from us within 15 days, or the owner's friend (nothing collected, karigar cost still recorded); whoever took the job is notified when it is ready; WhatsApp receipt and ready message; home reminder for late, due today and ready to collect; owner's month: collected, paid to karigars, earned, free repairs and their cost, advances held) | customers | open, late, ready to collect, earned this month |
 
 ## Notes
+- Queries on entries: in Expenses the owner presses “Query” on an entry someone else made; that person is notified, sees it on the home page and at the top of Expenses, and writes an explanation; the owner reads it (home page, dashboard “Waiting for your approval”, or the bell), replies if needed, and closes it when okay. The database is ready for the same on Banking, Silver and Chit payments.
 
 - Attendance categories: Present, Home, Thottam, Half day (½), and under one
   Leave button: Absent, Leave applied, Week off. Days worked = Present + Home +
