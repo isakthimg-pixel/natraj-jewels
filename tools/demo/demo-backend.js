@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v30';
+const KEY = 'natraj-demo-db-v31';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -23,7 +23,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -520,6 +520,12 @@ function changeRpc(name, a, me, headers){
 }
 function rpc(name, a, me, headers){
   if(['request_change', 'cancel_change_request', 'decide_change_request'].includes(name)) return changeRpc(name, a, me, headers);
+  if(name === 'add_silver_item'){
+    if(!me || !canUse(me, 'silver')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Silver.'}};
+    const v = String(a.p_name || '').trim().replace(/\s+/g, ' '); if(!v || v.length > 60) return {status: 400, body: {code: '22023', message: 'An item name is 1 to 60 letters.'}};
+    const st = db.settings[0]; st.silver_items = st.silver_items || []; if(!st.silver_items.some(x => x.toLowerCase() === v.toLowerCase())) st.silver_items.push(v);
+    return {status: 200, body: st.silver_items};
+  }
   if(name === 'device_status'){ const k = devKey(headers), d = db.approved_devices.find(x => x.key_hash === k);
     return {status: 200, body: {locked: !!db.settings[0].device_lock, approved: !!d, name: d ? d.name : null, has_key: !!k, ok: deviceOk(me, headers)}}; }
   if(name === 'two_step_people') return {status: 200, body: me && me.is_owner && aalOk(headers)
@@ -932,7 +938,8 @@ function silverFigures(r){
   const r2 = n => Math.round(n * 100) / 100;
   if(r.kind === 'sale') r.from_supplier = false; else { r.making = 0; r.gst_percent = 0; }
   r.fine_g = Math.round(r.weight_g * r.touch / 100 * 1000) / 1000;
-  r.amount = r.kind === 'sale' ? r2((r.weight_g * r.rate + Number(r.making)) * (1 + r.gst_percent / 100)) : r2(r.fine_g * r.rate);
+  // a sale with a final amount keeps it, and the rate per gram is worked out from it (migration 031)
+  r.amount = r.kind === 'sale' && Number(r.amount) > 0 ? (r.amount = r2(Number(r.amount)), r.rate = Math.max(r2((r.amount / (1 + r.gst_percent / 100) - Number(r.making)) / r.weight_g), 0.01), r.amount) : r.kind === 'sale' ? r2((r.weight_g * r.rate + Number(r.making)) * (1 + r.gst_percent / 100)) : r2(r.fine_g * r.rate);
   return r;
 }
 function silverRow(x, d){

@@ -110,21 +110,20 @@
           <button type="button" class="bubble" data-s="supplier" aria-pressed="false">Stock from a supplier</button>
         </div>
         <div class="two">
-          <label>Item<input class="input" id="fItem" maxlength="60" list="itemList" placeholder="e.g. Anklet, Kumkum bowl"><datalist id="itemList"></datalist></label>
+          <label>Item<select class="input" id="fItem"></select></label>
           <label><span id="fPartyT">Customer</span><input class="input" id="fParty" maxlength="80" list="custList" placeholder="optional"><datalist id="custList"></datalist></label>
         </div>
+        <label id="fItemNewL" hidden>New item<input class="input" id="fItemNew" maxlength="60" placeholder="e.g. Silver kolusu"></label>
         <div class="two">
           <label>Phone<input class="input" id="fPhone" type="tel" inputmode="tel" maxlength="20" placeholder="optional"></label>
           <label>Pieces<input class="input" id="fPieces" inputmode="numeric" maxlength="4" value="1"></label>
         </div>
         <div class="three">
           <label class="unit" data-u="g">Weight<input class="input" id="fWeight" inputmode="decimal" placeholder="e.g. 45.200"></label>
-          <label class="unit" data-u="%">Touch (purity)<input class="input" id="fTouch" inputmode="decimal" value="92.5"></label>
-          <label class="unit" data-u="₹/g"><span id="fRateT">Rate per gram</span><input class="input" id="fRate" inputmode="decimal"></label>
-        </div>
-        <div class="two sale-only">
-          <label class="unit" data-u="₹">Making charges<input class="input" id="fMaking" inputmode="decimal" placeholder="optional"></label>
-          <label class="field check" style="align-self:end;padding-bottom:12px"><input type="checkbox" id="fGst" checked> Add 3% GST</label>
+          <label class="unit purchase-only" data-u="%">Touch (purity)<input class="input" id="fTouch" inputmode="decimal" value="92.5"></label>
+          <label class="unit purchase-only" data-u="₹/g"><span id="fRateT">Rate per fine gram</span><input class="input" id="fRate" inputmode="decimal"></label>
+          <label class="unit sale-only" data-u="₹">Final amount<input class="input" id="fAmount" inputmode="decimal" placeholder="e.g. 2470"></label>
+          <label class="field check sale-only" style="align-self:end;padding-bottom:12px"><input type="checkbox" id="fGst" checked> Includes 3% GST</label>
         </div>
         <div class="calc" id="calc" aria-live="polite"></div>
         <div class="field"><span id="fModeT">Paid by</span><div class="bubbles" id="fMode" role="group" aria-label="Paid by"></div></div>
@@ -184,7 +183,16 @@
 const {sb, esc, must, toast, ask, iso, parse, todayIso} = NJ;
 const $ = id => document.getElementById(id);
 const MODES = ['Cash', 'UPI', 'Card', 'Bank transfer', 'Cheque'];
-const ITEMS = ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver', 'Other'];
+let ITEMS = ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'];
+const NEW_ITEM = '__new';
+// the shared item list, plus "+ New item…" which opens a box to type one that is not on the list
+function fillItems(keep){
+  const cur = keep !== undefined ? keep : $('fItem').value;
+  const list = cur && cur !== NEW_ITEM && !ITEMS.includes(cur) ? [...ITEMS, cur] : ITEMS;
+  $('fItem').innerHTML = '<option value="">Choose the item</option>' + list.map(i => '<option value="' + esc(i) + '">' + esc(i) + '</option>').join('') + '<option value="' + NEW_ITEM + '">+ New item…</option>';
+  $('fItem').value = cur || '';
+  $('fItemNewL').hidden = $('fItem').value !== NEW_ITEM;
+}
 const BIG = 200000;   // ask before saving more than this, to catch an extra zero
 let kind = 'sale', src = 'old', mode = 'Cash', accounts = [], customers = [], rate = null, today = [], dayRows = [], monthRows = [], editing = null, linkedId = null;
 let curTab = 'add', dayView = todayIso(), monthView = todayIso().slice(0, 7);
@@ -195,7 +203,8 @@ const num = s => { const v = String(s || '').replace(/[,\s₹]/g, ''); return v 
 // say what is wrong as soon as you leave a box, not only after Save
 NJ.liveCheck($('fWeight'), v => num(v) > 0 ? '' : 'Type the weight in grams, e.g. 45.200.', $('fErr'));
 NJ.liveCheck($('fTouch'), v => num(v) > 0 && num(v) <= 100 ? '' : 'Type the touch (purity) as a percentage, e.g. 92.5.', $('fErr'));
-NJ.liveCheck($('fRate'), v => num(v) > 0 ? '' : 'Type the rate per gram, e.g. 95.', $('fErr'));
+NJ.liveCheck($('fRate'), v => num(v) > 0 ? '' : 'Type the rate per fine gram, e.g. 95.', $('fErr'));
+NJ.liveCheck($('fAmount'), v => num(v) > 0 ? '' : 'Type the final amount in rupees, e.g. 2470.', $('fErr'));
 const r2 = n => Math.round(n * 100) / 100, r3 = n => Math.round(n * 1000) / 1000;
 const fmtDay = d => { const t = todayIso(), y = iso(new Date(Date.now() - 864e5)); return d === t ? 'Today' : d === y ? 'Yesterday' : parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'}); };
 const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
@@ -227,14 +236,14 @@ const route = () => show(location.hash === '#day' ? 'day' : location.hash === '#
 window.addEventListener('hashchange', route);
 
 /* ---------- the form ---------- */
-$('fItem').nextElementSibling.innerHTML = ITEMS.map(i => '<option value="' + esc(i) + '">').join('');
+fillItems('');
+$('fItem').addEventListener('change', () => { $('fItemNewL').hidden = $('fItem').value !== NEW_ITEM; if($('fItem').value === NEW_ITEM) $('fItemNew').focus(); });
 $('fMode').innerHTML = MODES.map(m => '<button type="button" class="bubble" data-mode="' + m + '" aria-pressed="' + (m === mode) + '">' + m + '</button>').join('');
 function setKind(k, keepTouch){
   kind = k;
   document.body.classList.toggle('kind-sale', k === 'sale'); document.body.classList.toggle('kind-purchase', k === 'purchase');
   $('fKind').querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k));
   $('fPartyT').textContent = k === 'sale' ? 'Customer' : src === 'supplier' ? 'Supplier' : 'Customer';
-  $('fRateT').textContent = k === 'sale' ? 'Rate per gram' : 'Rate per fine gram';
   $('fModeT').textContent = k === 'sale' ? 'Paid by (customer)' : 'We paid by';
   $('fAccT').textContent = k === 'sale' ? 'Into account' : 'From account';
   if(!keepTouch) $('fTouch').value = k === 'sale' ? '92.5' : '';
@@ -246,16 +255,27 @@ function setMode(m){ mode = m; $('fMode').querySelectorAll('[data-mode]').forEac
 $('fKind').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if(b && b.dataset.k !== kind) setKind(b.dataset.k); });
 $('fSrc').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if(b) setSrc(b.dataset.s); });
 $('fMode').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if(b) setMode(b.dataset.mode); });
-['fWeight', 'fTouch', 'fRate', 'fMaking'].forEach(id => $(id).addEventListener('input', calc));
+['fWeight', 'fTouch', 'fRate', 'fAmount'].forEach(id => $(id).addEventListener('input', calc));
 $('fGst').addEventListener('change', calc);
 // show the sum as it is typed, the same way the bill is made
+// a sale: the final amount as typed, with the GST in it and the rate per gram it works out to;
+// a purchase: weight × touch = fine silver, × the rate per fine gram
+// the GST inside a sale's final amount
+const gstIn = r => r2(Number(r.amount) * Number(r.gst_percent) / (100 + Number(r.gst_percent)));
+const saleFigures = (w, amt, gst) => { const before = r2(amt / (1 + gst / 100)); return {before, tax: r2(amt - before), rate: r2(before / w)}; };
 function calc(){
-  const w = num($('fWeight').value), t = num($('fTouch').value), rt = num($('fRate').value), mk = num($('fMaking').value) || 0, gst = $('fGst').checked ? 3 : 0;
+  const w = num($('fWeight').value), gst = $('fGst').checked ? 3 : 0;
+  if(kind === 'sale'){
+    const amt = num($('fAmount').value);
+    if(!(w > 0) || !(amt > 0)){ $('calc').innerHTML = '<span class="line">Type the weight and the final amount.</span>'; return; }
+    const f = saleFigures(w, amt, gst);
+    $('calc').innerHTML = '<span class="line">' + (gst ? 'GST 3% in this: ' + inr(f.tax) + ' · ' : '') + 'works out to ' + inr(f.rate) + ' per gram' + (gst ? ' before GST' : '') + '</span><span class="total">' + inr(amt) + '<small>to collect</small></span>';
+    return;
+  }
+  const t = num($('fTouch').value), rt = num($('fRate').value);
   if(!(w > 0) || !(t > 0) || !(rt > 0)){ $('calc').innerHTML = '<span class="line">Type the weight, touch and rate to see the amount.</span>'; return; }
-  const x = work(kind, w, t, rt, kind === 'sale' ? mk : 0, kind === 'sale' ? gst : 0);
-  $('calc').innerHTML = kind === 'sale'
-    ? '<span class="line">' + gm(w) + ' × ' + inr(rt) + ' = ' + inr(x.base) + (mk ? ' + making ' + inr(mk) : '') + (gst ? ' + GST 3% ' + inr(x.tax) : '') + '</span><span class="total">' + inr(x.amount) + '<small>to collect</small></span>'
-    : '<span class="line">' + gm(w) + ' at ' + t + '% = ' + gm(x.fine) + ' fine × ' + inr(rt) + '</span><span class="total">' + inr(x.amount) + '<small>to pay</small></span>';
+  const x = work(kind, w, t, rt, 0, 0);
+  $('calc').innerHTML = '<span class="line">' + gm(w) + ' at ' + t + '% = ' + gm(x.fine) + ' fine × ' + inr(rt) + '</span><span class="total">' + inr(x.amount) + '<small>to pay</small></span>';
 }
 // a saved customer fills the phone and links to their page in Customers
 $('fParty').addEventListener('input', () => {
@@ -266,7 +286,8 @@ $('fParty').addEventListener('input', () => {
 });
 function resetForm(){
   editing = null; linkedId = null;
-  ['fItem', 'fParty', 'fPhone', 'fWeight', 'fMaking', 'fBill', 'fNote'].forEach(id => $(id).value = '');
+  ['fParty', 'fPhone', 'fWeight', 'fAmount', 'fItemNew', 'fBill', 'fNote'].forEach(id => $(id).value = '');
+  fillItems('');
   $('fPieces').value = '1'; $('fDay').value = todayIso(); $('fErr').textContent = ''; $('fCancel').hidden = true;
   $('fRate').value = rate ? String(Number(rate.silver)) : '';
   $('aTitle').textContent = 'Add a sale or purchase'; $('aEyebrow').textContent = 'Silver';
@@ -276,9 +297,9 @@ function editEntry(r){
   editing = r; linkedId = r.customer_id;
   location.hash = ''; show('add'); window.scrollTo(0, 0);
   src = r.from_supplier ? 'supplier' : 'old'; setSrc(src); setKind(r.kind, true);
-  $('fItem').value = r.item; $('fParty').value = r.party; $('fPhone').value = r.phone; $('fPieces').value = r.pieces;
+  fillItems(r.item || ''); $('fParty').value = r.party; $('fPhone').value = r.phone; $('fPieces').value = r.pieces;
   $('fWeight').value = Number(r.weight_g); $('fTouch').value = Number(r.touch); $('fRate').value = Number(r.rate);
-  $('fMaking').value = Number(r.making) || ''; $('fGst').checked = Number(r.gst_percent) > 0;
+  $('fAmount').value = r.kind === 'sale' ? Number(r.amount) : ''; $('fGst').checked = Number(r.gst_percent) > 0;
   setMode(r.mode); if(r.account_id) $('fAcc').value = r.account_id;
   $('fDay').value = r.day; $('fBill').value = r.bill_no; $('fNote').value = r.note; $('fErr').textContent = '';
   $('fCancel').hidden = false; syncSave(r.kind);
@@ -293,21 +314,32 @@ function syncSave(k){
 $('fDay').addEventListener('change', () => syncSave());
 $('sf').addEventListener('submit', async e => {
   e.preventDefault(); const err = t => { $('fErr').textContent = t; }; err('');
-  const w = num($('fWeight').value), t = num($('fTouch').value), rt = num($('fRate').value), mk = num($('fMaking').value), pcs = num($('fPieces').value), day = $('fDay').value;
+  const sale = kind === 'sale', w = num($('fWeight').value), pcs = num($('fPieces').value), day = $('fDay').value;
+  const t = sale ? (editing && editing.kind === 'sale' ? Number(editing.touch) : 92.5) : num($('fTouch').value), amt = sale ? num($('fAmount').value) : null, gst = sale && $('fGst').checked ? 3 : 0;
+  let item = $('fItem').value === NEW_ITEM ? $('fItemNew').value.trim().replace(/\s+/g, ' ') : $('fItem').value;
+  if($('fItem').value === NEW_ITEM && !item) return err('Type the new item’s name.');
   if(!(w > 0)) return err('Type the weight in grams, e.g. 45.200.');
-  if(!(t > 0) || t > 100) return err('Type the touch (purity) as a percentage, e.g. ' + (kind === 'sale' ? '92.5.' : '80.'));
-  if(!(rt > 0)) return err(kind === 'sale' ? 'Type the rate per gram.' : 'Type the rate per fine gram.');
-  if(Number.isNaN(mk) || (mk != null && mk < 0)) return err('Type the making charges in rupees, or leave it empty.');
+  if(!sale && (!(t > 0) || t > 100)) return err('Type the touch (purity) as a percentage, e.g. 80.');
+  if(sale && !(amt > 0)) return err('Type the final amount the customer pays, e.g. 2470.');
+  const rt = sale ? saleFigures(w, amt, gst).rate : num($('fRate').value);
+  if(!sale && !(rt > 0)) return err('Type the rate per fine gram.');
+  if(!(rt > 0 && rt < 100000)) return err('Check the weight and the amount: they work out to ' + inr(rt) + ' per gram.');
   if(!pcs || !Number.isInteger(pcs) || pcs > 9999) return err('Type how many pieces, e.g. 1.');
   if(!day || day > todayIso()) return err('Choose a date that is not in the future.');
   const phone = $('fPhone').value.trim(); if(phone && !/^[0-9+ ]{6,20}$/.test(phone)) return err('Type the phone number with digits only.');
   const acc = mode !== 'Cash' && accounts.length ? $('fAcc').value : '';
   if(mode !== 'Cash' && accounts.length && !acc && !(editing && editing.account_name && !editing.account_id)) return err('Choose the bank account.');
-  if(rate && Math.abs(rt - Number(rate.silver)) / Number(rate.silver) > 0.25 && !await ask('Rate ' + inr(rt) + ' per gram?', 'Today’s silver rate is ' + inr(rate.silver) + '. Check the rate before saving.', 'Save')) return;
-  const x = work(kind, w, t, rt, kind === 'sale' ? (mk || 0) : 0, kind === 'sale' && $('fGst').checked ? 3 : 0);
+  if(rate && Math.abs(rt - Number(rate.silver)) / Number(rate.silver) > (sale ? 0.6 : 0.25) && !await ask(sale ? 'That is ' + inr(rt) + ' per gram' : 'Rate ' + inr(rt) + ' per gram?',
+    'Today’s silver rate is ' + inr(rate.silver) + ' per gram. Check the ' + (sale ? 'weight and amount' : 'rate') + ' before saving.', 'Save')) return;
+  const x = sale ? {amount: amt} : work(kind, w, t, rt, 0, 0);
   if(x.amount > BIG && !await ask('Save ' + inr(x.amount) + '?', 'This is a large amount. Check there is no extra zero.', 'Save')) return;
-  const row = {kind, from_supplier: kind === 'purchase' && src === 'supplier', item: $('fItem').value.trim(), party: $('fParty').value.trim(), phone, customer_id: linkedId, pieces: pcs,
-    weight_g: w, touch: t, rate: rt, making: kind === 'sale' ? (mk || 0) : 0, gst_percent: kind === 'sale' && $('fGst').checked ? 3 : 0, mode, day,
+  // a new item joins the shared list for everyone
+  if($('fItem').value === NEW_ITEM){
+    try{ ITEMS = must(await sb.rpc('add_silver_item', {p_name: item})) || ITEMS; const hit = ITEMS.find(i => i.toLowerCase() === item.toLowerCase()); if(hit) item = hit; fillItems(item); }
+    catch(x2){ return err(x2.message); }
+  }
+  const row = {kind, from_supplier: kind === 'purchase' && src === 'supplier', item, party: $('fParty').value.trim(), phone, customer_id: linkedId, pieces: pcs,
+    weight_g: w, touch: t, rate: rt, making: 0, gst_percent: gst, amount: sale ? amt : 0, mode, day,
     bill_no: $('fBill').value.trim(), note: $('fNote').value.trim()};
   if(acc || mode === 'Cash' || !editing) row.account_id = acc || null;
   if(NJ.needsApproval(day, editing && editing.day)){
@@ -373,7 +405,7 @@ async function loadDay(){
   dayRows = must(await sb.from('silver_entries').select('*').eq('day', dayView).order('created_at')) || [];
   const s = dayRows.filter(r => r.kind === 'sale'), p = dayRows.filter(r => r.kind === 'purchase');
   $('dStats').innerHTML = '<div><span>Sold</span><b>' + gm(sum(s, 'weight_g')) + '</b><em>' + s.length + ' sale' + (s.length === 1 ? '' : 's') + '</em></div>' +
-    '<div><span>Sales</span><b>' + inr(sum(s, 'amount')) + '</b><em>GST ' + inr(sum(s.map(r => ({v: r.amount - r2((r.weight_g * r.rate + Number(r.making)))})), 'v')) + '</em></div>' +
+    '<div><span>Sales</span><b>' + inr(sum(s, 'amount')) + '</b><em>GST ' + inr(sum(s.map(r => ({v: gstIn(r)})), 'v')) + '</em></div>' +
     '<div><span>Bought</span><b>' + gm(sum(p, 'weight_g')) + '</b><em>' + gm(sum(p, 'fine_g')) + ' fine</em></div>' +
     '<div><span>Purchases</span><b>' + inr(sum(p, 'amount')) + '</b><em>' + p.length + ' purchase' + (p.length === 1 ? '' : 's') + '</em></div>';
   $('dList').innerHTML = dayRows.length ? dayRows.map(r => row(r, false)).join('') : '<div class="empty-s">No silver sales or purchases on this day.</div>';
@@ -391,9 +423,9 @@ async function loadMonth(){
   monthRows = must(await sb.from('silver_entries').select('*').gte('day', monthView + '-01').lte('day', monthEnd(monthView)).order('day')) || [];
   const s = monthRows.filter(r => r.kind === 'sale'), p = monthRows.filter(r => r.kind === 'purchase');
   const sg = sum(s, 'weight_g'), pg = sum(p, 'weight_g'), pf = sum(p, 'fine_g');
-  const metal = sum(s.map(r => ({v: r2(r.weight_g * r.rate)})), 'v'), making = sum(s, 'making'), gst = sum(s, 'amount') - metal - making;
+  const gst = sum(s.map(r => ({v: gstIn(r)})), 'v'), metal = sum(s, 'amount') - gst, making = sum(s, 'making');
   $('mStats').innerHTML = '<div><span>Sold</span><b>' + gm(sg) + '</b><em>' + s.length + ' sales · avg ' + (sg ? inr(metal / sg) : '–') + '/g</em></div>' +
-    '<div><span>Sales</span><b>' + inr(sum(s, 'amount')) + '</b><em>making ' + inr(making) + ' · GST ' + inr(gst) + '</em></div>' +
+    '<div><span>Sales</span><b>' + inr(sum(s, 'amount')) + '</b><em>' + (making ? 'making ' + inr(making) + ' · ' : '') + 'GST ' + inr(gst) + '</em></div>' +
     '<div><span>Bought</span><b>' + gm(pg) + '</b><em>' + gm(pf) + ' fine · avg ' + (pf ? inr(sum(p, 'amount') / pf) : '–') + '/fine g</em></div>' +
     '<div><span>Purchases</span><b>' + inr(sum(p, 'amount')) + '</b><em>' + gm(sum(p.filter(r => !r.from_supplier), 'weight_g')) + ' old silver</em></div>';
   // by item
@@ -431,8 +463,10 @@ $('mCsv').onclick = () => {
 
 /* ---------- start ---------- */
 async function loadSupport(){
-  const [a, r] = await Promise.all([sb.rpc('bank_account_choices'), sb.from('rates').select('silver,set_at').order('set_at', {ascending: false}).limit(1)]);
+  const [a, r, st] = await Promise.all([sb.rpc('bank_account_choices'), sb.from('rates').select('silver,set_at').order('set_at', {ascending: false}).limit(1),
+    sb.from('settings').select('silver_items').eq('id', 1).maybeSingle()]);
   accounts = a.data || []; rate = (r.data || [])[0] || null;
+  if(st.data && st.data.silver_items && st.data.silver_items.length){ ITEMS = st.data.silver_items; fillItems(); }
   $('fAcc').innerHTML = '<option value="">Choose the account</option>' + accounts.map(x => '<option value="' + esc(x.id) + '">' + esc(x.name + (x.last4 ? ' ··' + x.last4 : '')) + '</option>').join('');
   if(accounts.length === 1) $('fAcc').value = accounts[0].id;
   const todays = rate && new Date(rate.set_at).toDateString() === new Date().toDateString();
