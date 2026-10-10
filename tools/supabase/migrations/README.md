@@ -43,4 +43,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `030_device_site.sql` — records the web address each device was approved at, so the blocked screen can say which address to use. Applied.
 - `031_silver_final_amount.sql` — silver sales keep the final amount typed (rate per gram worked out from it); a shared silver item list anyone with the app can add to. Applied.
 - `032_silver_purchase_final_amount.sql` — silver purchases keep the final amount typed too (rate per fine gram worked out from it). Applied.
+- `033_jobs.sql` — Repairs & orders: jobs with repair slip number, service, customer, item, weight, photos, promised date, advance, karigar and what they were paid, amount collected, free repairs (bought within 15 days / owner’s friend); stages Received → With karigar → Ready → Delivered; photo bucket "jobs". Applied (as 033, 033a, 033b, 033c).
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

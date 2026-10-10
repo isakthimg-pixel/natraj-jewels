@@ -105,7 +105,7 @@ async function render(me){
   if(!apps.length && !me.is_owner) h += '<div class="form panel"><h3>No apps yet</h3><p>Ask the owner to give you access to the apps you need.</p></div>';
   h += tile('attendance/#leave', 'Apply for leave', 'Send a leave request for approval.', '', 'leave');
   box.className = '';
-  box.innerHTML = '<p class="notice" id="due" hidden></p><div class="notice taskmeter" id="taskDue" hidden></div><p class="notice" id="fuDue" hidden></p><p class="notice" id="desDue" hidden></p><div class="tiles">' + h + '</div>';
+  box.innerHTML = '<p class="notice" id="due" hidden></p><div class="notice taskmeter" id="taskDue" hidden></div><p class="notice" id="fuDue" hidden></p><p class="notice" id="desDue" hidden></p><p class="notice" id="jobDue" hidden></p><div class="tiles">' + h + '</div>';
   // staff see their report card once the owner has shared one
   if(!me.is_owner && me.staff_id) NJ.sb.from('report_cards').select('id').eq('shared', true).limit(1).then(r => {
     const grid = box.querySelector('.tiles');
@@ -116,6 +116,7 @@ async function render(me){
   taskReminder(me).catch(() => {});
   followReminder(me).catch(() => {});
   designReminder(me).catch(() => {});
+  jobReminder(me).catch(() => {});
 }
 
 /* Today's 22K gold and silver rate, at the top, as soon as it is entered */
@@ -194,6 +195,26 @@ async function designReminder(me){
   box.hidden = false;
   box.innerHTML = mine.length + ' customer ' + (mine.length > 1 ? 'pieces have' : 'piece has') + ' arrived. Tell the customer' + (mine.length > 1 ? 's' : '') + '.' +
     ' <a href="' + NJ.APPS.designs.path + '#arrived" style="color:inherit;font-weight:600">Open the list ›</a>';
+}
+
+/* Repairs & orders: pieces ready to collect, and jobs promised for today or already late (the ones they took; the owner sees all). */
+async function jobReminder(me){
+  if(!NJ.canUse('jobs')) return;
+  const {data} = await NJ.sb.from('jobs').select('created_by,status,due').in('status', ['received', 'karigar', 'ready']);
+  const mine = (data || []).filter(j => me.is_owner || j.created_by === me.user_id), today = NJ.todayIso();
+  const ready = mine.filter(j => j.status === 'ready').length;
+  const late = mine.filter(j => j.status !== 'ready' && j.due && j.due < today).length;
+  const dueToday = mine.filter(j => j.status !== 'ready' && j.due === today).length;
+  const box = document.getElementById('jobDue');
+  if(!box || !(ready || late || dueToday)) return;
+  const bits = [];
+  if(late) bits.push(late + ' repair' + (late > 1 ? 's are' : ' is') + ' late');
+  if(dueToday) bits.push(dueToday + ' promised for today');
+  if(ready) bits.push(ready + ' ready for the customer to collect');
+  box.hidden = false;
+  if(late) box.style.cssText = 'border-color:var(--a);background:var(--a-bg);color:var(--a);font-weight:600';
+  box.innerHTML = bits.join(', ').replace(/^./, c => c.toUpperCase()) + '.' +
+    ' <a href="' + NJ.APPS.jobs.path + (late ? '#late' : ready && !dueToday ? '#ready' : '') + '" style="color:inherit;font-weight:600">Open repairs ›</a>';
 }
 
 NJ.start({home: true, onReady: render});

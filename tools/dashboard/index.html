@@ -161,6 +161,10 @@
         <div class="head"><h3>Design library</h3><a href="../designs/">To buy ›</a></div>
         <div class="body" id="desBox"><small>Loading…</small></div>
       </section>
+      <section class="card mod" data-mod="jobs">
+        <div class="head"><h3>Repairs &amp; orders</h3><a href="../jobs/">All jobs ›</a></div>
+        <div class="body" id="jobBox"><small>Loading…</small></div>
+      </section>
       <section class="card mod" data-mod="chits">
         <div class="head"><h3>Chit scheme</h3><a href="../chits/#due">Due ›</a></div>
         <div class="body" id="chitBox"><small>Loading…</small></div>
@@ -213,6 +217,7 @@ const MODS = {
   customers:  {name: 'Customers', box: 'crmBox', load: () => loadCrm()},
   tasks:      {name: 'Tasks today', box: 'taskBox', load: () => loadTasks()},
   designs:    {name: 'Design library', box: 'desBox', load: () => loadDesigns()},
+  jobs:       {name: 'Repairs & orders', box: 'jobBox', load: () => loadJobs()},
   chits:      {name: 'Chit scheme', box: 'chitBox', load: () => loadChits()},
   silver:     {name: 'Silver', box: 'silverBox', load: () => loadSilver()},
   campaigns:  {name: 'Campaigns', box: 'campBox', load: () => loadCampaigns()},
@@ -223,7 +228,7 @@ const DEFAULT = [
   {k: 'attendance', w: 'full'}, {k: 'approvals', w: 'full'}, {k: 'rate', w: 'full'}, {k: 'online', w: 'half'},
   {k: 'expenses', w: 'half'}, {k: 'gst', w: 'half'}, {k: 'bank', w: 'half'},
   {k: 'customers', w: 'half'}, {k: 'tasks', w: 'half'},
-  {k: 'designs', w: 'half'}, {k: 'chits', w: 'half'}, {k: 'silver', w: 'half'}, {k: 'campaigns', w: 'half'},
+  {k: 'designs', w: 'half'}, {k: 'jobs', w: 'half'}, {k: 'chits', w: 'half'}, {k: 'silver', w: 'half'}, {k: 'campaigns', w: 'half'},
   {k: 'worked', w: 'full', hidden: true}
 ];
 const PREF_KEY = 'natraj-dashboard-layout';
@@ -569,6 +574,28 @@ async function loadDesigns(){
     (show.length ? '<div class="list">' + show.map(d => '<div><a href="../designs/#d=' + esc(d.id) + '" style="color:var(--ink);text-decoration:none">' + esc(label(d)) + '</a><small' + (d.status === 'received' ? ' style="color:var(--p);font-weight:600"' : ' style="color:var(--a)"') + '>' +
       (d.status === 'received' ? 'arrived · tell customer' : 'late · needed ' + parse(d.needed_by).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</small></div>').join('') + '</div>'
       : '<small>Nothing late, and nothing waiting to be given to a customer.</small>');
+}
+
+/* repairs & orders: open, late, ready to collect, and this month's money (same counting as the jobs page) */
+async function loadJobs(){
+  const today = todayIso(), month = today.slice(0, 7), inr = n => (n < 0 ? '−₹' : '₹') + Math.round(Math.abs(n)).toLocaleString('en-IN');
+  const js = must(await sb.from('jobs').select('id,job_no,repair_no,kind,status,customer_name,item,due,advance,final_amount,karigar_cost,free_recent_buy,free_owner_friend,delivered_at').neq('status', 'cancelled')) || [];
+  if(!js.length){ $('jobBox').innerHTML = '<small>No repairs or orders yet. <a href="../jobs/#new">Add a job</a>.</small>'; return; }
+  const open = js.filter(j => j.status !== 'delivered'), isLate = j => ['received', 'karigar'].includes(j.status) && j.due && j.due < today;
+  const ready = open.filter(j => j.status === 'ready'), late = open.filter(isLate);
+  const done = js.filter(j => j.status === 'delivered' && j.delivered_at && NJ.iso(new Date(j.delivered_at)).slice(0, 7) === month);
+  const got = done.reduce((s, j) => s + Number(j.final_amount || 0), 0), paid = done.reduce((s, j) => s + Number(j.karigar_cost || 0), 0);
+  const fr = done.filter(j => j.free_recent_buy || j.free_owner_friend), held = open.reduce((s, j) => s + Number(j.advance || 0), 0);
+  const no = j => j.repair_no ? (j.kind === 'order' ? 'Order ' : 'Repair ') + j.repair_no : 'J-' + j.job_no;
+  const show = [...late, ...ready].slice(0, 6);
+  $('jobBox').innerHTML = '<div class="rates" style="margin-bottom:12px">' +
+      '<div><span>Open</span><b>' + open.length + '</b><em>advances held ' + inr(held) + '</em></div>' +
+      '<div><span>Late</span><b' + (late.length ? ' style="color:var(--a)"' : '') + '>' + late.length + '</b></div>' +
+      '<div><span>Ready to collect</span><b' + (ready.length ? ' style="color:var(--p)"' : '') + '>' + ready.length + '</b></div>' +
+      '<div><span>Earned this month</span><b' + (got - paid < 0 ? ' style="color:var(--a)"' : '') + '>' + inr(got - paid) + '</b><em>' + inr(got) + ' collected · ' + inr(paid) + ' to karigars' + (fr.length ? ' · ' + fr.length + ' free' : '') + '</em></div></div>' +
+    (show.length ? '<div class="list">' + show.map(j => '<div><a href="../jobs/#j=' + esc(j.id) + '" style="color:var(--ink);text-decoration:none">' + esc(no(j) + ' · ' + j.item + ' — ' + j.customer_name) + '</a><small' + (j.status === 'ready' ? ' style="color:var(--p);font-weight:600"' : ' style="color:var(--a)"') + '>' +
+      (j.status === 'ready' ? 'ready · tell customer' : 'late · promised ' + parse(j.due).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</small></div>').join('') + '</div>'
+      : '<small>Nothing late, and nothing waiting for a customer to collect.</small>');
 }
 
 /* chit scheme: collected this month, members running, who is behind, who can redeem (same counting as the chits page) */

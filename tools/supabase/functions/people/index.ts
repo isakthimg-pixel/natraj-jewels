@@ -19,7 +19,7 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const APPS = ["attendance", "rates", "todo", "expenses", "banking", "crm", "designs", "chits", "silver", "campaigns"]; // grows as new apps are added
+const APPS = ["attendance", "rates", "todo", "expenses", "banking", "crm", "designs", "chits", "silver", "campaigns", "jobs"]; // grows as new apps are added
 const PIN = /^\d{6}$/;
 const cors = {
   "Access-Control-Allow-Origin": "*",

@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v31';
-const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'];
+const KEY = 'natraj-demo-db-v32';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 // migration 029: staff add, change and remove only entries dated today or yesterday
@@ -20,10 +20,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -194,6 +194,29 @@ function seed(){
   des('restock', 'Gold', 'Pendant', '22K 916', 3, {qty: 4, supplier: 'Sri Murugan Works'}, ['pendant'], 20, 'done').close_note = 'On the counter';
   const arrived = db.designs.find(d => d.kind === 'enquiry' && d.status === 'received');
   db.notifications.push({id: uid(), user_id: manager.user_id, kind: 'design_arrived', title: 'Arrived for ' + arrived.customer_name, body: '22K 916 gold bangle. Tell the customer.', link: 'designs/#d=' + arrived.id, created_at: new Date(Date.now() - 90 * 60000).toISOString(), read_at: null});
+  // repairs & orders: one at every stage, two of them free, one late, one ready to collect
+  let jn = 1001;
+  const job = (kind, repair_no, c, item, metal, service, ago, status, extra) => {
+    const r = Object.assign({id: uid(), job_no: jn++, kind, repair_no, status, customer_id: c ? c.id : null, customer_name: c ? c.name : 'Walk-in customer', customer_phone: c ? c.phone : '', item, metal, service, work: '', weight_in: null,
+      photos: [], due: null, estimate: null, advance: 0, advance_mode: 'Cash', karigar: '', sent_on: null, weight_out: null, final_amount: null, karigar_cost: null, paid_mode: '', note: '', close_note: '',
+      free_recent_buy: false, free_owner_friend: false, created_by: manager.user_id, created_by_name: manager.name, created_at: at(-ago, '10'), updated_by_name: '', updated_at: null,
+      karigar_at: ['karigar', 'ready', 'delivered'].includes(status) && extra.karigar ? at(-ago + 1, '12') : null, ready_at: ['ready', 'delivered'].includes(status) ? at(-Math.max(ago - 3, 0), '15') : null,
+      ready_by_name: ['ready', 'delivered'].includes(status) ? manager.name : '', delivered_at: status === 'delivered' ? at(-Math.max(ago - 4, 0), '17') : null,
+      delivered_by_name: status === 'delivered' ? owner.name : '', cancelled_at: null}, extra);
+    if(r.karigar && !r.sent_on && r.karigar_at) r.sent_on = r.karigar_at.slice(0, 10);
+    db.jobs.push(r); return r;
+  };
+  job('repair', '4512', C[0], 'Gold chain', 'Gold', 'Soldering', 2, 'karigar', {weight_in: 18.42, work: 'Link broken near the clasp.', due: addDays(today, 2), estimate: 350, advance: 100, karigar: 'Murugan', photos: ['sample/chain-gold-0-j1.svg']});
+  job('repair', '4513', C[2], 'Silver anklet', 'Silver', 'Hook / clasp', 6, 'karigar', {weight_in: 46.1, work: 'New screw hook on both.', due: addDays(today, -1), estimate: 150, karigar: 'Murugan', photos: ['sample/chain-silver-1-j2.svg']});
+  job('repair', '4514', C[4], 'Gold bangle', 'Gold', 'Polish', 1, 'received', {weight_in: 24.06, work: 'Polish and clean, small dent.', due: addDays(today, 3), estimate: 400, photos: ['sample/bangle-gold-0-j3.svg']});
+  job('repair', '4508', C[1], 'Gold ring', 'Gold', 'Size change', 5, 'ready', {weight_in: 6.2, weight_out: 6.45, work: 'Size 14 to 16.', due: addDays(today, 0), estimate: 600, advance: 200, karigar: 'Selvaraj', karigar_cost: 250, final_amount: 650, photos: ['sample/ring-gold-2-j4.svg']});
+  job('repair', '4510', C[6], 'Gold earrings', 'Gold', 'Screw / pin', 3, 'ready', {work: 'Screw back missing on one.', due: addDays(today, 1), free_recent_buy: true, final_amount: 0, karigar: 'Selvaraj', karigar_cost: 60, photos: ['sample/earrings-gold-1-j5.svg']});
+  job('order', 'O-221', C[4], 'Bridal necklace', 'Gold', 'Stone setting', 9, 'karigar', {work: 'Make to the design shown, 40 g, ruby stones.', due: addDays(today, 18), estimate: 290000, advance: 50000, advance_mode: 'Bank transfer', karigar: 'Sri Murugan Works', photos: ['sample/necklace-gold-0-j6.svg']});
+  job('repair', '4501', C[3], 'Gold chain', 'Gold', 'Chain repair', 9, 'delivered', {weight_in: 12.3, work: 'Two links replaced.', estimate: 500, advance: 0, karigar: 'Murugan', karigar_cost: 180, final_amount: 520, paid_mode: 'UPI'});
+  job('repair', '4503', C[5], 'Silver lamp', 'Silver', 'Polish', 8, 'delivered', {work: 'Polish for the festival.', estimate: 300, final_amount: 300, paid_mode: 'Cash'});
+  job('repair', '4505', null, 'Gold pendant', 'Gold', 'Rhodium / plating', 7, 'delivered', {customer_name: 'Mr. Shankar (owner’s friend)', customer_phone: '9842033445', free_owner_friend: true, final_amount: 0, karigar: 'Selvaraj', karigar_cost: 120});
+  const rj = db.jobs.find(j => j.status === 'ready' && !j.free_recent_buy);
+  db.notifications.push({id: uid(), user_id: manager.user_id, kind: 'job_ready', title: 'Repair ' + rj.repair_no + ' is ready', body: rj.customer_name + ' · ' + rj.item, link: 'jobs/#j=' + rj.id, created_at: new Date(Date.now() - 40 * 60000).toISOString(), read_at: null});
   // chit scheme: three plans and members at every stage (behind, up to date, ready to redeem, closed)
   const plan = (name, saves, months, instalment, bonus_kind, bonus_value, benefit) => { const p = {id: uid(), name, saves, months, instalment, bonus_kind, bonus_value, benefit, active: true, created_at: at(-400)}; db.chit_plans.push(p); return p; };
   const P1 = plan('Gold savings ₹1,000 × 11', 'money', 11, 1000, 'instalment', 0, 'No wastage up to 8%');
@@ -520,6 +543,13 @@ function changeRpc(name, a, me, headers){
 }
 function rpc(name, a, me, headers){
   if(['request_change', 'cancel_change_request', 'decide_change_request'].includes(name)) return changeRpc(name, a, me, headers);
+  if(name === 'add_job_service'){
+    if(!canUse(me, 'jobs')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Repairs & orders.'}};
+    const v = String(a.p_name || '').trim().replace(/\s+/g, ' ');
+    if(!v || v.length > 60) return {status: 400, body: {code: '22023', message: 'A service name is 1 to 60 letters.'}};
+    const st = db.settings[0]; st.job_services = st.job_services || []; if(!st.job_services.some(x => x.toLowerCase() === v.toLowerCase())) st.job_services.push(v);
+    return {status: 200, body: st.job_services};
+  }
   if(name === 'add_silver_item'){
     if(!me || !canUse(me, 'silver')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Silver.'}};
     const v = String(a.p_name || '').trim().replace(/\s+/g, ' '); if(!v || v.length > 60) return {status: 400, body: {code: '22023', message: 'An item name is 1 to 60 letters.'}};
@@ -619,6 +649,7 @@ function rest(method, table, params, body, headers, me){
     chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, approved_devices: {read: me.is_owner, write: me.is_owner}, campaigns: {read: canUse(me, 'campaigns'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'campaigns')},
     campaign_contacts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_costs: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
+    jobs: {read: canUse(me, 'jobs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'jobs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
@@ -649,6 +680,7 @@ function rest(method, table, params, body, headers, me){
   if(table === 'notifications') return notesRest(method, params, body, single, wantRows, me);
   if(table === 'tasks') return tasksRest(method, params, body, single, wantRows, me);
   if(table === 'designs') return designsRest(method, params, body, single, wantRows, me);
+  if(table === 'jobs') return jobsRest(method, params, body, single, wantRows, me);
   if(table === 'report_cards'){
     let out = db.report_cards.filter(r => me.is_owner || (r.shared && r.staff_id === me.staff_id)).filter(r => matches(r, params));
     const stamp = (r, old) => { r.updated_by_name = me.name; r.updated_at = now(); if(r.shared && (!old || !old.shared || JSON.stringify(r.metrics) !== JSON.stringify(old.metrics))) r.shared_at = r.updated_at; if(!r.shared) r.shared_at = null; };
@@ -906,6 +938,41 @@ function designsRest(method, params, body, single, wantRows, me){
   if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
   return {status: 200, body: out};
 }
+/* repairs & orders (migration 033): numbers, stage stamps, free repairs collect nothing, whoever took it hears when it is ready */
+function jobsRest(method, params, body, single, wantRows, me){
+  const nowIso = now(), RANK = ['received', 'karigar', 'ready', 'delivered'];
+  const stage = (r, oldStatus) => {
+    r.repair_no = String(r.repair_no || '').trim(); r.service = String(r.service || '').trim();
+    if(r.free_recent_buy || r.free_owner_friend){ r.final_amount = 0; r.advance = 0; }
+    if(r.status !== oldStatus){
+      if(r.status === 'karigar'){ r.karigar_at = nowIso; r.sent_on = r.sent_on || iso(new Date()); }
+      if(r.status === 'ready'){ r.ready_at = nowIso; r.ready_by_name = me.name; }
+      if(r.status === 'delivered'){ r.delivered_at = nowIso; r.delivered_by_name = me.name; }
+      r.cancelled_at = r.status === 'cancelled' ? nowIso : null;
+    }
+    if(r.status !== 'cancelled'){ const k = RANK.indexOf(r.status) + 1;
+      if(k < 2) r.karigar_at = null; if(k < 3){ r.ready_at = null; r.ready_by_name = ''; } if(k < 4){ r.delivered_at = null; r.delivered_by_name = ''; } }
+    return !!String(r.customer_name || '').trim() && !!String(r.item || '').trim();
+  };
+  const bad = {status: 400, body: {code: '23514', message: 'Type the customer’s name and the item.'}};
+  let out = db.jobs.filter(r => matches(r, params));
+  if(method === 'GET') sortBy(out, params.get('order'));
+  else if(method === 'POST'){
+    const r = Object.assign({id: uid(), kind: 'repair', status: 'received', customer_id: null, customer_name: '', customer_phone: '', item: '', metal: 'Gold', work: '', weight_in: null, photos: [], due: null, estimate: null, advance: 0, advance_mode: 'Cash', karigar: '', sent_on: null, weight_out: null, final_amount: null, paid_mode: '', note: '', close_note: '', repair_no: '', service: '', karigar_cost: null, free_recent_buy: false, free_owner_friend: false},
+      Array.isArray(body) ? body[0] : body, {job_no: db.jobs.reduce((m, j) => Math.max(m, j.job_no), 1000) + 1, created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null, karigar_at: null, ready_at: null, ready_by_name: '', delivered_at: null, delivered_by_name: '', cancelled_at: null});
+    if(!stage(r, '')) return bad;
+    db.jobs.push(r); out = [r];
+  } else if(method === 'PATCH'){
+    for(const r of out){ const old = Object.assign({}, r);
+      Object.assign(r, body, {id: old.id, job_no: old.job_no, created_by: old.created_by, created_by_name: old.created_by_name, created_at: old.created_at, updated_by_name: me.name, updated_at: nowIso});
+      if(!stage(r, old.status)){ Object.assign(r, old); return bad; }
+      if(r.status === 'ready' && old.status !== 'ready' && r.created_by && r.created_by !== me.user_id)
+        db.notifications.push({id: uid(), user_id: r.created_by, kind: 'job_ready', title: (r.repair_no ? (r.kind === 'order' ? 'Order ' : 'Repair ') + r.repair_no : 'Job J-' + r.job_no) + ' is ready', body: r.customer_name + ' · ' + r.item, link: 'jobs/#j=' + r.id, created_at: nowIso, read_at: null}); }
+  } else if(method === 'DELETE') db.jobs = db.jobs.filter(r => !out.includes(r));
+  if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+  if(single){ if(!out.length) return {status: 406, body: {code: 'PGRST116', message: 'No rows'}}; return {status: 200, body: out[0]}; }
+  return {status: 200, body: out};
+}
 /* campaigns (migration 025): sent times and who sent are stamped here; costs fixed on the day or by the owner */
 function campaignsRest(table, method, params, body, single, wantRows, me){
   const nowIso = now(), ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
@@ -1010,10 +1077,13 @@ function chitsRest(table, method, params, body, single, wantRows, me){
 }
 /* the photo bucket: the demo keeps the pictures in NJ_DEMO.photo, so this only answers */
 function storage(method, p, body, me){
-  if(!me || !canUse(me, 'designs')) return {status: 403, body: {statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy'}};
-  if(p === '/storage/v1/object/sign/designs') return {status: 200, body: (body.paths || []).map(x => ({path: x, signedURL: '/object/sign/designs/' + x + '?token=demo', error: null}))};
-  if(p.startsWith('/storage/v1/object/designs/') && method === 'POST'){ const k = decodeURIComponent(p.slice(27)); return {status: 200, body: {Key: 'designs/' + k, Id: uid()}}; }
-  if(p === '/storage/v1/object/designs' && method === 'DELETE'){ (body.prefixes || []).forEach(k => delete db.photos[k]); return {status: 200, body: (body.prefixes || []).map(name => ({name}))}; }
+  const m = /^\/storage\/v1\/object\/(sign\/)?(designs|jobs)(\/(.*))?$/.exec(p);
+  if(!m) return {status: 404, body: {message: 'Not found'}};
+  const bucket = m[2];
+  if(!me || !canUse(me, bucket)) return {status: 403, body: {statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy'}};
+  if(m[1] && !m[4]) return {status: 200, body: (body.paths || []).map(x => ({path: x, signedURL: '/object/sign/' + bucket + '/' + x + '?token=demo', error: null}))};
+  if(!m[1] && m[4] && method === 'POST') return {status: 200, body: {Key: bucket + '/' + decodeURIComponent(m[4]), Id: uid()}};
+  if(!m[1] && !m[4] && method === 'DELETE'){ (body.prefixes || []).forEach(k => delete db.photos[k]); return {status: 200, body: (body.prefixes || []).map(name => ({name}))}; }
   return {status: 404, body: {message: 'Not found'}};
 }
 
