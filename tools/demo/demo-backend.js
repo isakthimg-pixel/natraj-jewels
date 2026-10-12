@@ -504,13 +504,15 @@ const CT = {expenses: ['expenses', ['day','amount','category','mode','account_id
   chits: ['chit_payments', ['member_id','paid_on','amount','mode','gold_rate','note']]};
 function applyChange(app, action, target, data, who, tryOnly){
   if(action === 'import'){
-    // a Tally file: every new row is added; a row already there (same day, in/out, amount and reference) is skipped
-    const snap = JSON.stringify(db.bank_entries); let first = null;
+    // a Tally file: every new row is added; a row already there is skipped
+    const snap = JSON.stringify(db.bank_entries); let first = null; const made = [];
+    // equal rows (same day, in/out, amount, ledger): skipped only when the account already has more of them than came before in the file
+    const same = (x, r) => x.account_id === r.account_id && x.day === r.day && x.direction === r.direction && Number(x.amount) === Number(r.amount) && x.reference === r.reference && (x.party || '') === (r.party || '');
     try{
-      for(const r of (data.rows || [])){
-        if(r.reference && db.bank_entries.some(e => e.account_id === r.account_id && e.day === r.day && e.direction === r.direction && Number(e.amount) === Number(r.amount) && e.reference === r.reference)) continue;
-        const id = applyChange(app, 'add', null, r, who, false); first = first || id;
-      }
+      (data.rows || []).forEach((r, i) => {
+        if(r.reference && db.bank_entries.filter(e => !made.includes(e.id) && same(e, r)).length > data.rows.slice(0, i).filter(o => same(o, r)).length) return;
+        const id = applyChange(app, 'add', null, r, who, false); made.push(id); first = first || id;
+      });
     }catch(e){ db.bank_entries = JSON.parse(snap); throw e; }
     if(tryOnly) db.bank_entries = JSON.parse(snap);
     return first;

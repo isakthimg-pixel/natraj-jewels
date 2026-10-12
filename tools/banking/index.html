@@ -444,7 +444,7 @@ $('recent').addEventListener('click', e => {
 
 /* ---------- upload from Tally ----------
    A Tally bank book exported to Excel: a few title lines (company, "<Bank> Book", the period), then
-   Date | Particulars (By/To + ledger) | Vch Type | Vch No. | Debit | Credit. Debit is money into the bank,
+   Date | Particulars (By/To + ledger) | Vch Type | Vch No. | Debit | Credit (the voucher number is not saved). Debit is money into the bank,
    Credit is money out. Opening and closing balance rows are not entries. Nothing is saved until Add. */
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 function tallyDay(v){
@@ -485,7 +485,7 @@ function parseTally(rows){
     if(!name) continue;                                       // a totals row
     if(!day && !lastDay) continue;
     lastDay = day || lastDay;
-    last = {day: lastDay, name, vtype: C.vt >= 0 ? cell(r[C.vt]) : '', vno: C.vn >= 0 ? cell(r[C.vn]) : '', direction: dr > 0 ? 'in' : 'out', amount: Math.round((dr > 0 ? dr : cr) * 100) / 100, narration: ''};
+    last = {day: lastDay, name, vtype: C.vt >= 0 ? cell(r[C.vt]) : '', direction: dr > 0 ? 'in' : 'out', amount: Math.round((dr > 0 ? dr : cr) * 100) / 100, narration: ''};
     if(dr > 0 && cr > 0) last.both = true;
     out.rows.push(last);
   }
@@ -499,7 +499,7 @@ function tallyEntry(t, account){
   const cash = /contra/i.test(t.vtype) && /^cash$/i.test(t.name);
   return {account_id: account, day: t.day, direction: t.direction, amount: t.amount,
     method: (cash ? (t.direction === 'in' ? 'Cash deposit' : 'Cash withdrawal') : t.vtype || 'Other').slice(0, 30),
-    party: t.name.slice(0, 80), reference: ('Tally ' + [t.vtype, t.vno].filter(Boolean).join(' ')).slice(0, 40),
+    party: t.name.slice(0, 80), reference: ('Tally ' + t.vtype).trim().slice(0, 40),   // the voucher number is not kept
     note: ('From Tally' + (t.narration ? ': ' + t.narration : '')).slice(0, 300)};
 }
 // which account the book belongs to, from its name: "STATE BANK OF INDIA-MAIN BRANCH" → "sbi current"
@@ -569,7 +569,7 @@ async function tallyCheck(){
   const used = new Set(), today = todayIso();
   for(const x of tl.rows){
     const e = tallyEntry(x.t, acc), same = h => !used.has(h.id) && h.day === e.day && h.direction === e.direction && Number(h.amount) === e.amount;
-    const done = have.find(h => same(h) && h.reference === e.reference) || null;
+    const done = have.find(h => same(h) && h.reference === e.reference && h.party === e.party) || null;
     const typed = !done && have.find(h => same(h) && !/^Tally /.test(h.reference)) || null;
     if(done) used.add(done.id); else if(typed) used.add(typed.id);
     x.state = x.t.both ? 'bad' : e.day > today ? 'future' : done ? 'done' : typed ? 'maybe' : 'new';
@@ -602,7 +602,7 @@ function renderTally(){
   $('tlTable').innerHTML = '<thead><tr><th class="ck"><input type="checkbox" id="tlAll" aria-label="Choose all new rows"></th><th>Date</th><th>Particulars</th><th>Money in</th><th>Money out</th><th>In the app</th></tr></thead><tbody>' +
     tl.rows.map((x, i) => {
       const t = x.t, lock = ['done', 'future', 'bad'].includes(x.state) || !tl.acc;
-      const sub = [t.vtype, t.vno && 'No. ' + t.vno, t.narration].filter(Boolean).join(' · ');
+      const sub = [t.vtype, t.narration].filter(Boolean).join(' · ');
       const why = x.state === 'maybe' ? '<small style="display:block;color:var(--muted);font-weight:400;margin-top:3px">' + esc(describe(x.match) + (x.match.party ? ' · ' + x.match.party : '')) + '</small>' : '';
       return '<tr class="' + (x.pick ? '' : 'skip') + '"><td class="ck"><input type="checkbox" data-tl="' + i + '"' + (x.pick ? ' checked' : '') + (lock ? ' disabled' : '') + ' aria-label="Add this row"></td>' +
         '<td>' + esc(parse(t.day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: '2-digit'})) + '</td>' +

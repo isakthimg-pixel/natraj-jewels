@@ -50,4 +50,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `037_http_extension.sql` — the `http` extension (schema `extensions`) so the database can read a web page. Applied.
 - `038_mjdta_rates.sql` — `rate_feed` (one row) and `mjdta_rate()`: reads 22K, 18K, 14K gold and silver from thejewellersassociation.org (kept 3 minutes) for the Rates page's "Fill from MJDTA" button. Applied (silver pattern fixed as `038b_mjdta_silver_fix`).
 - `039_tally_import.sql` — Banking "Upload Tally Excel": change requests get an `import` action (a whole Tally file in one request, `data.rows`); `apply_change` adds every row not already there (same account, day, in/out, amount and Tally reference). Applied.
+- `040_tally_no_voucher_no.sql` — Tally rows are saved without the voucher number (reference "Tally Payment"); a file row is skipped only when the account already has more equal entries (day, in/out, amount, ledger) than the rows before it in the file. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.
