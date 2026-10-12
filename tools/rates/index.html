@@ -40,6 +40,8 @@
 .money .input{padding-left:30px}
 .money::before{content:"₹";position:absolute;left:13px;bottom:15px;color:var(--muted);font-weight:500;letter-spacing:0}
 .msg{white-space:pre-line;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:14px 16px;font-size:.92rem;line-height:1.55;color:var(--ink);margin:0}
+.mjdta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.mjdta span{font-size:.85rem;color:var(--muted);min-width:0}
 .btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
 .btn-wa:hover{background:#0B6358;border-color:#0B6358}
 
@@ -106,6 +108,7 @@ table.hist{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-num
       <form class="form rates-edit" id="rateForm" autocomplete="off" novalidate>
         <h3>Update the rate</h3>
         <p style="margin:0;color:var(--muted);font-size:.9rem">Rupees per gram. The boxes start with the current rate; change what has moved.</p>
+        <div class="mjdta"><button class="btn btn-gold" type="button" id="mjdtaBtn">Fill from MJDTA</button><span id="mjdtaLine">Today’s Chennai rate from thejewellersassociation.org. 24K stays as you type it.</span></div>
         <div class="two">
           <label class="money">Gold 22K (916)<input class="input" id="f22" inputmode="decimal" placeholder="0"></label>
           <label class="money">Gold 24K (999)<input class="input" id="f24" inputmode="decimal" placeholder="optional"></label>
@@ -243,6 +246,22 @@ function renderToday(){
   $('waLink').toggleAttribute('aria-disabled', !cur);
 }
 $('rateForm').addEventListener('input', () => $('rateForm').dataset.touched = '1');
+const MJDTA_HINT = $('mjdtaLine').textContent;
+// MJDTA's published rate fills the boxes; the person checks it and saves as usual
+$('mjdtaBtn').onclick = async () => {
+  const b = $('mjdtaBtn'); b.setAttribute('aria-busy', 'true'); $('fErr').textContent = '';
+  try{
+    const f = must(await sb.rpc('mjdta_rate'));
+    if(!f || !f.ok) throw new Error((f && f.error) || 'Could not read the MJDTA rate.');
+    $('f22').value = Number(f.gold_22k);
+    if(f.gold_18k != null) $('f18').value = Number(f.gold_18k);
+    if(f.silver != null) $('fS').value = Number(f.silver);
+    $('fNote').value = ('MJDTA rate' + (f.update_text ? ' · ' + f.update_text : '')).slice(0, 200);
+    $('rateForm').dataset.touched = '1';
+    $('mjdtaLine').textContent = 'Filled from MJDTA' + (f.update_text ? ', updated ' + f.update_text : '') + (f.silver == null ? '. Silver could not be read; enter it yourself.' : '. Check and press Save new rate.');
+  }catch(x){ toast(x.message + ' Enter the rate yourself.'); $('mjdtaLine').textContent = x.message; }
+  b.removeAttribute('aria-busy');
+};
 $('rateForm').addEventListener('submit', async e => {
   e.preventDefault();
   const num = id => { const v = $(id).value.replace(/[,\s₹]/g, ''); return v === '' ? null : Number(v); };
@@ -259,6 +278,7 @@ $('rateForm').addEventListener('submit', async e => {
     must(await sb.from('rates').insert(row));
     toast('New rate saved');
     delete $('rateForm').dataset.touched; $('fNote').value = '';
+    $('mjdtaLine').textContent = MJDTA_HINT;
     await load(); render();
   }catch(x){ $('fErr').textContent = x.message; }
   b.removeAttribute('aria-busy');

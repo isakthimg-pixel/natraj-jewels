@@ -641,6 +641,14 @@ function rpc(name, a, me, headers){
     case 'bank_account_choices': return {status: 200, body: (canUse(me, 'expenses') || canUse(me, 'banking') || canUse(me, 'silver')) ? db.bank_accounts.filter(x => x.active).map(x => ({id: x.id, name: x.name, last4: x.last4})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
+    case 'mjdta_rate': {
+      // the demo has no internet reading; it answers like MJDTA would, a little off today's sample rate
+      if(!canUse(me, 'rates')) return {status: 403, body: {code: '42501', message: 'Only the people who enter the rate can do this.'}};
+      const cur = db.rates.slice().sort((x, y) => y.set_at.localeCompare(x.set_at))[0], g = (cur ? Number(cur.gold_22k) : 6600) + 15, sv = (cur ? Number(cur.silver) : 90) + 1;
+      const t = new Date(), hh = t.getHours() % 12 || 12, mm = String(t.getMinutes()).padStart(2, '0');
+      return {status: 200, body: {id: 1, source: 'MJDTA', fetched_at: now(), ok: true, error: '', gold_22k: g, gold_18k: Math.round(g * 0.8216), gold_14k: Math.round(g * 0.6575), silver: sv,
+        update_text: t.toLocaleDateString('en-GB') + ' ' + (t.getHours() < 12 ? 'Morning' : 'Evening') + ' ' + String(hh).padStart(2, '0') + ':' + mm + (t.getHours() < 12 ? ' AM' : ' PM')}};
+    }
     case 'rate_updaters': return {status: 200, body: db.profiles.filter(p => !p.is_owner && p.apps.includes('rates')).map(p => ({name: p.name})).sort((x, y) => x.name.localeCompare(y.name))};
     case 'add_expense_category': {
       if(!canUse(me, 'expenses')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Expenses.'}};

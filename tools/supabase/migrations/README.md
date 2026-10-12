@@ -47,4 +47,6 @@ That is intended: they power the sign-in screen and the public leave form.
 - `034_entry_queries.sql` — queries on entries: the owner asks about an expense (and later bank, silver or chit entries); the staff member who made it is notified and explains; the owner replies or closes it. Table `entry_queries` (read only through row rules), functions `ask_query`, `reply_query`, `close_query`. Applied.
 - `035_live_desks.sql` — Live shop desks: `approved_devices.live_desk` (0 top left by the gate, 1 top right, 2 bottom left behind the back counter, one device each), `presence.device_id` recorded by `heartbeat`, and `set_live_desk(device, desk)` for the owner. Applied.
 - `036_shop_hours.sql` — shop hours `settings.shop_opens` (10:00) and `shop_closes` (20:30), set in People & settings; the Live shop shows open or closed. Applied.
+- `037_http_extension.sql` — the `http` extension (schema `extensions`) so the database can read a web page. Applied.
+- `038_mjdta_rates.sql` — `rate_feed` (one row) and `mjdta_rate()`: reads 22K, 18K, 14K gold and silver from thejewellersassociation.org (kept 3 minutes) for the Rates page's "Fill from MJDTA" button. Applied (silver pattern fixed as `038b_mjdta_silver_fix`).
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.
