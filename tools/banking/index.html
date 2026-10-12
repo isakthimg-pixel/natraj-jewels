@@ -74,6 +74,9 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
 .acc .bal.neg{color:var(--a)}
 .acc .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 .acc.off{opacity:.6}
+#sTable th:nth-child(3),#sTable td:nth-child(3){text-align:left}
+.selbar{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 8px);z-index:3;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:10px 14px;margin-bottom:10px;box-shadow:0 6px 18px rgba(28,18,22,.08)}
+#sTable tr.picked td{background:color-mix(in srgb,var(--a) 7%,var(--card))}
 
 /* upload from Tally: every row is shown before anything is saved */
 .tlbar{margin-top:18px}
@@ -200,8 +203,9 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
       </div>
     </div></div>
     <div class="wrap content">
+      <div class="bar selbar" id="sSelBar" hidden><b id="sSelText"></b><span class="grow"></span><button class="btn" type="button" id="sSelNone">Clear selection</button><button class="btn btn-danger" type="button" id="sDel">Delete selected</button></div>
       <div class="stwrap"><table class="st" id="sTable"></table></div>
-      <p class="axisnote" style="margin-top:10px">Tap an entry to change it. Entries are in date order; the balance is after each one.</p>
+      <p class="axisnote" style="margin-top:10px">Tap an entry to change or delete it, or tick several and press Delete selected. Entries are in date order; the balance is after each one.</p>
     </div>
   </section>
 
@@ -401,6 +405,7 @@ async function editEntry(r){
               {id: 'note', label: 'Note', type: 'text', value: r.note, maxlength: 300});
   const v = await dialog({
     title: isTr ? 'Edit transfer' : canAsk(r) ? 'Ask to change this entry' : 'Edit entry', msg: isTr ? describe(r) + '. Both accounts change together.' : '', ok: canAsk(r) ? 'Next' : 'Save', fields,
+    extra: canChange(r) ? {label: 'Delete', btn: 'btn-danger', value: 'del'} : undefined,
     validate: async v => {
       const a = amount(v.amount);
       if(!(a > 0) || a >= 1e10) return 'Type the amount in rupees.';
@@ -416,6 +421,7 @@ async function editEntry(r){
       return '';
     }
   });
+  if(v === 'del') return deleteEntry(r);
   if(v && ask4){ NJ.requestChange({app: 'banking', action: 'edit', target: r.id, data: ask4, summary: bankSummary(r)}).catch(x => toast(x.message)); return; }
   if(v){ toast('Saved'); await refresh(); }
 }
@@ -664,17 +670,51 @@ async function loadStatement(){
   $('sTitle').textContent = parse(first).toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
   $('sOpen').textContent = inr(open); $('sIn').textContent = inr(inn); $('sOut').textContent = inr(out); $('sClose').textContent = inr(open + inn - out);
   let run = open;
-  $('sTable').innerHTML = '<thead><tr><th>Date</th><th>Details</th><th>In</th><th>Out</th><th>Balance</th></tr></thead><tbody>' +
-    '<tr class="edge"><td>' + esc(parse(first).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td><td>Opening balance</td><td></td><td></td><td>' + esc(inr(open)) + '</td></tr>' +
+  sel.clear(); paintSel();
+  $('sTable').innerHTML = '<thead><tr><th class="ck"><input type="checkbox" id="sAll" aria-label="Choose every entry this month"' + (stRows.length ? '' : ' disabled') + '></th><th>Date</th><th>Details</th><th>In</th><th>Out</th><th>Balance</th></tr></thead><tbody>' +
+    '<tr class="edge"><td></td><td>' + esc(parse(first).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td><td>Opening balance</td><td></td><td></td><td>' + esc(inr(open)) + '</td></tr>' +
     stRows.map(r => { run += signed(r);
       const det = [r.method !== 'Transfer' && r.party, r.reference && 'Ref ' + r.reference, r.note].filter(Boolean).join(' · ');
-      return '<tr data-id="' + esc(r.id) + '"><td>' + esc(parse(r.day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td>' +
+      return '<tr data-id="' + esc(r.id) + '"><td class="ck"><input type="checkbox" data-sel="' + esc(r.id) + '" aria-label="Choose this entry"></td><td>' + esc(parse(r.day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td>' +
         '<td class="d">' + esc(describe(r)) + (det ? '<small>' + esc(det) + '</small>' : '') + '</td>' +
         '<td class="in">' + (r.direction === 'in' ? esc(inr(r.amount)) : '') + '</td><td class="out">' + (r.direction === 'out' ? esc(inr(r.amount)) : '') + '</td><td>' + esc(inr(run)) + '</td></tr>'; }).join('') +
-    '<tr class="edge"><td>' + esc(parse(last).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td><td>Closing balance</td><td class="in">' + esc(inr(inn)) + '</td><td class="out">' + esc(inr(out)) + '</td><td>' + esc(inr(run)) + '</td></tr></tbody>';
+    '<tr class="edge"><td></td><td>' + esc(parse(last).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '</td><td>Closing balance</td><td class="in">' + esc(inr(inn)) + '</td><td class="out">' + esc(inr(out)) + '</td><td>' + esc(inr(run)) + '</td></tr></tbody>';
 }
 $('sAccs').addEventListener('click', e => { const b = e.target.closest('[data-acc]'); if(!b) return; curAcc = b.dataset.acc; loadStatement().catch(x => toast(x.message)); });
-$('sTable').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if(!tr) return; const r = stRows.find(x => x.id === tr.dataset.id); if(r) editEntry(r); });
+/* tick several entries and delete them together (both halves of a transfer go together) */
+const sel = new Set();
+function paintSel(){
+  const picked = stRows.filter(r => sel.has(r.id));
+  $('sSelBar').hidden = !picked.length;
+  const sum = d => picked.filter(r => r.direction === d).reduce((t, r) => t + Number(r.amount), 0);
+  $('sSelText').textContent = picked.length + (picked.length === 1 ? ' entry' : ' entries') + ' chosen' + (sum('in') ? ' · in ' + inr(sum('in')) : '') + (sum('out') ? ' · out ' + inr(sum('out')) : '');
+  document.querySelectorAll('#sTable [data-sel]').forEach(c => { c.checked = sel.has(c.dataset.sel); c.closest('tr').classList.toggle('picked', c.checked); });
+  const all = $('sAll'); if(all){ all.checked = stRows.length > 0 && picked.length === stRows.length; all.indeterminate = picked.length > 0 && !all.checked; }
+}
+$('sTable').addEventListener('change', e => {
+  if(e.target.id === 'sAll'){ if(e.target.checked) stRows.forEach(r => sel.add(r.id)); else sel.clear(); }
+  else if(e.target.dataset.sel){ if(e.target.checked) sel.add(e.target.dataset.sel); else sel.delete(e.target.dataset.sel); }
+  paintSel();
+});
+$('sSelNone').onclick = () => { sel.clear(); paintSel(); };
+$('sDel').onclick = async () => {
+  const picked = stRows.filter(r => sel.has(r.id)); if(!picked.length) return;
+  const tr = [...new Set(picked.filter(r => r.transfer_id).map(r => r.transfer_id))];
+  const sum = d => picked.filter(r => r.direction === d).reduce((t, r) => t + Number(r.amount), 0);
+  if(!await ask('Delete ' + picked.length + (picked.length === 1 ? ' entry?' : ' entries?'),
+    accName(curAcc) + ' · ' + $('sTitle').textContent + (sum('in') ? '\nMoney in ' + inr(sum('in')) : '') + (sum('out') ? '\nMoney out ' + inr(sum('out')) : '') +
+    (tr.length ? '\n\n' + tr.length + (tr.length === 1 ? ' is a transfer' : ' are transfers') + ': the other account loses its half too.' : '') + '\n\nThis cannot be undone.', 'Delete', true)) return;
+  const b = $('sDel'); b.setAttribute('aria-busy', 'true');
+  try{
+    const ids = picked.filter(r => !r.transfer_id).map(r => r.id);
+    for(let i = 0; i < ids.length; i += 100) must(await sb.from('bank_entries').delete().in('id', ids.slice(i, i + 100)));
+    for(let i = 0; i < tr.length; i += 100) must(await sb.from('bank_entries').delete().in('transfer_id', tr.slice(i, i + 100)));
+    toast('Deleted ' + picked.length + (picked.length === 1 ? ' entry' : ' entries'));
+    await refresh();
+  }catch(x){ toast(x.message); await refresh().catch(() => {}); }
+  b.removeAttribute('aria-busy');
+};
+$('sTable').addEventListener('click', e => { if(e.target.closest('.ck')) return; const tr = e.target.closest('tr[data-id]'); if(!tr) return; const r = stRows.find(x => x.id === tr.dataset.id); if(r) editEntry(r); });
 const shiftMonth = n => { const d = parse(curMonth + '-01'); d.setMonth(d.getMonth() + n); curMonth = iso(d).slice(0, 7); loadStatement().catch(e => toast(e.message)); };
 $('mPrev').onclick = () => shiftMonth(-1);
 $('mNext').onclick = () => shiftMonth(1);
