@@ -503,6 +503,18 @@ const CT = {expenses: ['expenses', ['day','amount','category','mode','account_id
   silver: ['silver_entries', ['kind','day','item','party','phone','customer_id','from_supplier','pieces','weight_g','touch','rate','making','gst_percent','mode','account_id','bill_no','note']],
   chits: ['chit_payments', ['member_id','paid_on','amount','mode','gold_rate','note']]};
 function applyChange(app, action, target, data, who, tryOnly){
+  if(action === 'import'){
+    // a Tally file: every new row is added; a row already there (same day, in/out, amount and reference) is skipped
+    const snap = JSON.stringify(db.bank_entries); let first = null;
+    try{
+      for(const r of (data.rows || [])){
+        if(r.reference && db.bank_entries.some(e => e.account_id === r.account_id && e.day === r.day && e.direction === r.direction && Number(e.amount) === Number(r.amount) && e.reference === r.reference)) continue;
+        const id = applyChange(app, 'add', null, r, who, false); first = first || id;
+      }
+    }catch(e){ db.bank_entries = JSON.parse(snap); throw e; }
+    if(tryOnly) db.bank_entries = JSON.parse(snap);
+    return first;
+  }
   const tbl = CT[app][0], snap = JSON.stringify(db[tbl]);
   const meX = Object.assign({}, who, {is_owner: true});     // made as them, without the day limit
   const res = rest(action === 'add' ? 'POST' : action === 'edit' ? 'PATCH' : 'DELETE', tbl, new URLSearchParams(action === 'add' ? '' : 'id=eq.' + target), data, new Headers({prefer: 'return=representation'}), meX);
@@ -517,12 +529,18 @@ function changeRpc(name, a, me, headers){
   if(!me) return {status: 401, body: {message: 'no'}};
   if(!deviceOk(me, headers)) return {status: 403, body: {code: '42501', message: 'permission denied'}};
   if(name === 'request_change'){
-    const ct = CT[a.p_app]; if(!ct || !['add', 'edit', 'delete'].includes(a.p_action)) return pg('Unknown change.');
+    const ct = CT[a.p_app]; if(!ct || !['add', 'edit', 'delete', 'import'].includes(a.p_action) || (a.p_action === 'import' && a.p_app !== 'banking')) return pg('Unknown change.');
     if(!canUse(me, a.p_app)) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to this app.'}};
     if(!String(a.p_reason || '').trim()) return pg('Write a short reason for the owner.');
     const data = {}; Object.keys(a.p_data || {}).filter(k => ct[1].includes(k)).forEach(k => data[k] = a.p_data[k]);
+    if(a.p_action === 'import'){
+      const rows = Array.isArray((a.p_data || {}).rows) ? a.p_data.rows : [];
+      if(!rows.length) return pg('Nothing to add.');
+      if(rows.length > 1000) return pg('Upload at most 1000 rows at a time.');
+      data.rows = rows.map(r => { const o = {}; Object.keys(r).filter(k => ct[1].includes(k)).forEach(k => o[k] = r[k]); return o; });
+    }
     let before = null;
-    if(a.p_action !== 'add'){
+    if(a.p_action === 'edit' || a.p_action === 'delete'){
       before = db[ct[0]].find(r => r.id === a.p_target);
       if(!before) return pg('That entry no longer exists.', 'P0002');
       if(['expenses', 'banking'].includes(a.p_app) && !me.is_owner && before.created_by !== me.user_id) return {status: 403, body: {code: '42501', message: 'You can ask to change only entries you made.'}};
@@ -530,10 +548,10 @@ function changeRpc(name, a, me, headers){
       before = JSON.parse(JSON.stringify(before));
     }
     if(!(a.p_app === 'chits' && a.p_action === 'add')){ try{ applyChange(a.p_app, a.p_action, a.p_target, data, me, true); }catch(e){ return e.status ? e : pg(String(e)); } }
-    const q = {id: uid(), app: a.p_app, action: a.p_action, target_id: a.p_action === 'add' ? null : a.p_target, data, before, summary: String(a.p_summary || '').slice(0, 300),
+    const q = {id: uid(), app: a.p_app, action: a.p_action, target_id: ['add', 'import'].includes(a.p_action) ? null : a.p_target, data, before, summary: String(a.p_summary || '').slice(0, 300),
       reason: String(a.p_reason).trim(), status: 'pending', requested_by: me.user_id, requested_by_name: me.name, requested_at: now(), decided_by_name: '', decided_at: null, decision_note: '', result_id: null};
     db.change_requests.push(q);
-    db.profiles.filter(p => p.is_owner).forEach(p => db.notifications.push({id: uid(), user_id: p.user_id, kind: 'change_request', title: me.name + ' asks to ' + {add: 'add', edit: 'change', delete: 'remove'}[q.action] + ' an older entry', body: q.summary + ' · ' + q.reason, link: q.app + '/', created_at: q.requested_at, read_at: null}));
+    db.profiles.filter(p => p.is_owner).forEach(p => db.notifications.push({id: uid(), user_id: p.user_id, kind: 'change_request', title: me.name + (q.action === 'import' ? ' asks to add ' + q.data.rows.length + ' bank entries from Tally' : ' asks to ' + {add: 'add', edit: 'change', delete: 'remove'}[q.action] + ' an older entry'), body: q.summary + ' · ' + q.reason, link: q.app + '/', created_at: q.requested_at, read_at: null}));
     return {status: 200, body: q.id};
   }
   if(name === 'cancel_change_request'){

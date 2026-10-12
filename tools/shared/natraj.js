@@ -660,7 +660,7 @@ function reqDiff(q){
 async function requestChange(o){
   const word = {add: 'add', edit: 'change', delete: 'remove'}[o.action];
   const v = await dialog({
-    title: 'Ask the owner to ' + word + ' this', ok: 'Send for approval',
+    title: o.action === 'import' ? 'Ask the owner to add these entries' : 'Ask the owner to ' + word + ' this', ok: 'Send for approval',
     msg: 'Staff can add, change and remove entries for today and yesterday only. For an older day, the owner approves the change; until then nothing changes.',
     html: '<p class="reqsum">' + esc(o.summary) + '</p>',
     fields: [{id: 'reason', label: 'Why? (the owner will see this)', type: 'textarea', maxlength: 300, placeholder: 'e.g. forgot to enter the bill on Monday'}],
@@ -676,7 +676,7 @@ async function requestChange(o){
 // the list of requests: the owner approves or rejects; the person who asked can take theirs back
 function reqItem(q, withApp){
   const when = new Date(q.requested_at).toLocaleString('en-IN', {weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
-  const word = {add: 'Add', edit: 'Change', delete: 'Remove'}[q.action];
+  const word = {add: 'Add', edit: 'Change', delete: 'Remove', import: 'Add from Tally'}[q.action];
   const diff = reqDiff(q);
   const state = q.status === 'pending' ? '' : '<span class="reqstate ' + q.status + '">' + {approved: 'Approved', rejected: 'Not approved', cancelled: 'Taken back'}[q.status] +
     (q.decided_by_name ? ' by ' + esc(q.decided_by_name) : '') + (q.decision_note ? ': ' + esc(q.decision_note) : '') + '</span>';
@@ -846,8 +846,64 @@ document.addEventListener('click', async e => {
   b.disabled = false;
 }, true);
 
+/* ---------- reading an Excel (.xlsx) file in the browser ----------
+   An .xlsx is a zip of XML files; this reads the first sheet into rows of cell values (numbers stay
+   numbers, so Excel dates arrive as day serials). No library is needed. Old .xls files are not read. */
+async function readXlsx(file){
+  const buf = new Uint8Array(await file.arrayBuffer()), dv = new DataView(buf.buffer);
+  if(buf[0] === 0xD0 && buf[1] === 0xCF) throw new Error('This is an old .xls file. Open it in Excel, choose Save As → Excel Workbook (.xlsx), and upload that.');
+  if(buf[0] !== 0x50 || buf[1] !== 0x4B) throw new Error('This is not an Excel (.xlsx) file.');
+  let eocd = -1;
+  for(let i = buf.length - 22; i >= Math.max(0, buf.length - 66000); i--) if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  if(eocd < 0) throw new Error('This Excel file looks damaged.');
+  const files = {}, dec = new TextDecoder();
+  let p = dv.getUint32(eocd + 16, true);
+  for(let n = dv.getUint16(eocd + 10, true); n > 0; n--){
+    if(dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), size = dv.getUint32(p + 20, true), nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    files[dec.decode(buf.subarray(p + 46, p + 46 + nl))] = {method, size, off};
+    p += 46 + nl + xl + cl;
+  }
+  const text = async name => {
+    const f = files[name]; if(!f) return null;
+    const start = f.off + 30 + dv.getUint16(f.off + 26, true) + dv.getUint16(f.off + 28, true), raw = buf.subarray(start, start + f.size);
+    if(f.method === 0) return dec.decode(raw);
+    if(f.method !== 8 || typeof DecompressionStream === 'undefined') throw new Error('This browser cannot open the Excel file. Please update it.');
+    return new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  };
+  const xml = s => new DOMParser().parseFromString(s, 'application/xml');
+  const kids = (el, tag) => Array.from(el.getElementsByTagNameNS('*', tag));
+  // the first sheet, as the workbook lists it
+  let sheet = Object.keys(files).filter(n => /^xl\/worksheets\/[^/]+\.xml$/.test(n)).sort()[0];
+  try{
+    const wb = xml(await text('xl/workbook.xml')), rels = xml(await text('xl/_rels/workbook.xml.rels'));
+    const rid = kids(wb, 'sheet')[0].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+    const target = kids(rels, 'Relationship').find(r => r.getAttribute('Id') === rid).getAttribute('Target');
+    const path = target.startsWith('/') ? target.slice(1) : 'xl/' + target.replace(/^\.\//, '');
+    if(files[path]) sheet = path;
+  }catch(e){}
+  if(!sheet) throw new Error('This Excel file has no sheet.');
+  const ssText = await text('xl/sharedStrings.xml');
+  const shared = ssText ? kids(xml(ssText), 'si').map(si => kids(si, 't').filter(t => t.parentNode.localName !== 'rPh').map(t => t.textContent).join('')) : [];
+  const rows = [];
+  for(const r of kids(xml(await text(sheet)), 'row')){
+    const out = [];
+    let col = 0;
+    for(const c of kids(r, 'c')){
+      const ref = /^([A-Z]+)/.exec(c.getAttribute('r') || '');
+      if(ref) col = ref[1].split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+      const t = c.getAttribute('t'), v = kids(c, 'v')[0], vt = v ? v.textContent : '';
+      out[col] = t === 's' ? (shared[Number(vt)] ?? '') : t === 'inlineStr' ? kids(c, 't').map(x => x.textContent).join('') : t === 'str' || t === 'e' ? vt
+        : t === 'b' ? vt === '1' : vt === '' ? '' : Number(vt);
+      col++;
+    }
+    rows[Number(r.getAttribute('r') || rows.length + 1) - 1] = out;
+  }
+  return Array.from(rows, r => r || []);
+}
+
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
   pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
   liveCheck, deviceCode, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick,
-  loadQueries, queryMap, queryChip, askQuery, openQuery, queriesBar, queryListen, get me(){ return me; }};
+  loadQueries, queryMap, queryChip, askQuery, openQuery, queriesBar, queryListen, readXlsx, get me(){ return me; }};
 })();

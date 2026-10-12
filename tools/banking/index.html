@@ -74,6 +74,27 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
 .acc .bal.neg{color:var(--a)}
 .acc .acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 .acc.off{opacity:.6}
+
+/* upload from Tally: every row is shown before anything is saved */
+.tlbar{margin-top:18px}
+.tlbar .axisnote{max-width:52ch}
+.tlhead{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end;justify-content:space-between}
+.tlhead h3{margin:0}
+.tlhead label{min-width:min(240px,100%)}
+.tlsum{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.9rem;color:var(--muted);margin:0}
+.tlsum b{color:var(--ink);font-variant-numeric:lining-nums tabular-nums}
+.tlsum .in b{color:var(--p)} .tlsum .out b{color:var(--a)}
+.tlbal{font-size:.9rem;margin:0;padding:10px 14px;border-radius:4px;background:var(--paper);border:1px solid var(--line)}
+.tlbal.off{border-color:var(--a)}
+.st td.ck,.st th.ck{width:1%;text-align:center;padding-right:4px}
+.st td.ck input,.st th.ck input{width:18px;height:18px;accent-color:var(--maroon)}
+#tlTable th:nth-child(3),#tlTable td:nth-child(3){text-align:left}
+#tlTitle{font-size:1.35rem;overflow-wrap:anywhere}
+.st tr.skip td{color:var(--muted)}
+.st tr.skip td.d,.st tr.skip td.in,.st tr.skip td.out{opacity:.7}
+.tlstate{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--paper);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tlstate.new{color:var(--p);border-color:color-mix(in srgb,var(--p) 40%,var(--line))}
+.tlstate.maybe{color:var(--gold)}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -106,7 +127,26 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
         <div class="out"><b id="tOut">–</b><span>Money out today</span></div>
         <div><b id="tCount">–</b><span>Entries, last 7 days</span></div>
       </div>
+      <div class="bar tlbar">
+        <button class="btn" type="button" id="tlPick">Upload Tally Excel</button>
+        <input type="file" id="tlFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+        <span class="axisnote">In Tally, open the bank’s book (e.g. State Bank of India Book), export it to Excel and choose the file here. You see every row before anything is saved.</span>
+      </div>
     </div></div>
+    <div class="wrap content" id="tlBox" hidden>
+      <div class="form panel">
+        <div class="tlhead">
+          <div><span class="eyebrow" id="tlEyebrow">From Tally</span><h3 id="tlTitle">Tally file</h3></div>
+          <label>Add to account<select class="input" id="tlAcc"></select></label>
+        </div>
+        <p class="tlsum" id="tlSum"></p>
+        <p class="tlbal" id="tlBal" hidden></p>
+        <div class="stwrap"><table class="st" id="tlTable"></table></div>
+        <p class="axisnote" id="tlNote"></p>
+        <p class="err" id="tlErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="button" id="tlSave">Add entries</button><button class="btn" type="button" id="tlCancel">Close</button></div>
+      </div>
+    </div>
     <div class="wrap content grid2">
       <form class="form" id="bForm" autocomplete="off" novalidate>
         <h3>New entry</h3>
@@ -398,6 +438,195 @@ $('recent').addEventListener('click', e => {
   const r = recent.find(x => x.id === el.dataset.id); if(!r) return;
   act.dataset.act === 'del' ? deleteEntry(r) : editEntry(r);
 });
+
+/* ---------- upload from Tally ----------
+   A Tally bank book exported to Excel: a few title lines (company, "<Bank> Book", the period), then
+   Date | Particulars (By/To + ledger) | Vch Type | Vch No. | Debit | Credit. Debit is money into the bank,
+   Credit is money out. Opening and closing balance rows are not entries. Nothing is saved until Add. */
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+function tallyDay(v){
+  if(typeof v === 'number' && v > 20000 && v < 80000) return new Date(Math.round((v - 25569) * 864e5)).toISOString().slice(0, 10);
+  const t = String(v || '').trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  if(m) return m[1] + '-' + m[2] + '-' + m[3];
+  m = /^(\d{1,2})[-/. ]([A-Za-z]{3,9}|\d{1,2})[-/. ](\d{2}|\d{4})$/.exec(t);
+  if(!m) return '';
+  const mon = /\d/.test(m[2]) ? Number(m[2]) : MONTHS.indexOf(m[2].slice(0, 3).toLowerCase()) + 1;
+  const y = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+  if(!(mon >= 1 && mon <= 12)) return '';
+  const d = iso(new Date(y, mon - 1, Number(m[1])));
+  return d.slice(8) === String(m[1]).padStart(2, '0') ? d : '';
+}
+const tallyNum = v => typeof v === 'number' ? v : Number(String(v || '').replace(/[,\s₹]|Dr|Cr/gi, '')) || 0;
+function parseTally(rows){
+  const cell = v => String(v ?? '').trim();
+  const h = rows.findIndex(r => r.some(c => /^date$/i.test(cell(c))) && r.some(c => /^debit/i.test(cell(c))) && r.some(c => /^credit/i.test(cell(c))));
+  if(h < 0) throw new Error('This does not look like a Tally bank book. It needs the Date, Particulars, Debit and Credit columns.');
+  const hd = rows[h].map(cell), at = re => hd.findIndex(c => re.test(c));
+  const C = {date: at(/^date$/i), part: at(/^particulars/i), vt: at(/^(vch|voucher)\.?\s*type/i), vn: at(/^(vch|voucher)\.?\s*no/i), dr: at(/^debit/i), cr: at(/^credit/i)};
+  if(C.part < 0) C.part = C.date + 1;
+  const partEnd = Math.min(...[C.vt, C.vn, C.dr, C.cr].filter(i => i > C.part));
+  const titles = rows.slice(0, h).map(r => r.map(cell).filter(Boolean).join(' ')).filter(Boolean);
+  const bookLine = titles.find(t => /\bbook$/i.test(t)) || titles.find(t => /ledger/i.test(t)) || '';
+  const out = {ledger: bookLine.replace(/\s*\bbook$/i, '').replace(/^ledger\s*:\s*/i, '').replace(/\s+/g, ' ').trim(), period: titles.find(t => /\bto\b/i.test(t) && /\d/.test(t)) || '',
+    opening: null, closing: null, rows: []};
+  let last = null, lastDay = '';
+  for(const r of rows.slice(h + 1)){
+    // the ledger name: text only (Tally puts column totals under Particulars too)
+    const name = r.slice(C.part, partEnd).filter(c => typeof c === 'string').map(cell).filter(c => c && !/^(by|to|dr|cr)$/i.test(c)).join(' ').replace(/\s+/g, ' ');
+    const dr = C.dr >= 0 ? tallyNum(r[C.dr]) : 0, cr = C.cr >= 0 ? tallyNum(r[C.cr]) : 0;
+    if(/^opening balance$/i.test(name)){ out.opening = dr - cr; continue; }
+    if(/^closing balance$/i.test(name)){ out.closing = cr - dr; continue; }
+    const day = tallyDay(r[C.date]);
+    if(!dr && !cr){ if(name && last && !day) last.narration = (last.narration ? last.narration + ' ' : '') + name; continue; }
+    if(!name) continue;                                       // a totals row
+    if(!day && !lastDay) continue;
+    lastDay = day || lastDay;
+    last = {day: lastDay, name, vtype: C.vt >= 0 ? cell(r[C.vt]) : '', vno: C.vn >= 0 ? cell(r[C.vn]) : '', direction: dr > 0 ? 'in' : 'out', amount: Math.round((dr > 0 ? dr : cr) * 100) / 100, narration: ''};
+    if(dr > 0 && cr > 0) last.both = true;
+    out.rows.push(last);
+  }
+  if(!out.rows.length) throw new Error('No entries found in this Tally file.');
+  const m = /\bto\s+(\S+)\s*$/i.exec(out.period);
+  out.until = (m && tallyDay(m[1])) || out.rows.reduce((d, r) => r.day > d ? r.day : d, '');
+  return out;
+}
+// the Tally row as a bank entry
+function tallyEntry(t, account){
+  const cash = /contra/i.test(t.vtype) && /^cash$/i.test(t.name);
+  return {account_id: account, day: t.day, direction: t.direction, amount: t.amount,
+    method: (cash ? (t.direction === 'in' ? 'Cash deposit' : 'Cash withdrawal') : t.vtype || 'Other').slice(0, 30),
+    party: t.name.slice(0, 80), reference: ('Tally ' + [t.vtype, t.vno].filter(Boolean).join(' ')).slice(0, 40),
+    note: ('From Tally' + (t.narration ? ': ' + t.narration : '')).slice(0, 300)};
+}
+// which account the book belongs to, from its name: "STATE BANK OF INDIA-MAIN BRANCH" → "sbi current"
+const BANKS = [['sbi', 'state bank of india'], ['iob', 'indian overseas bank'], ['kvb', 'karur vysya bank'], ['cub', 'city union bank'], ['tmb', 'tamilnad mercantile bank'],
+  ['boi', 'bank of india'], ['bob', 'bank of baroda'], ['pnb', 'punjab national bank'], ['ib', 'indian bank'], ['hdfc', 'hdfc'], ['icici', 'icici'], ['axis', 'axis'], ['canara', 'canara'],
+  ['kotak', 'kotak'], ['federal', 'federal bank'], ['ubi', 'union bank'], ['uco', 'uco bank'], ['idbi', 'idbi'], ['yes', 'yes bank'], ['lvb', 'lakshmi vilas']];
+function bankOf(text){
+  let t = ' ' + text.toLowerCase().replace(/[^a-z0-9]+/g, ' ') + ' ';
+  const words = t.trim().split(' ');
+  for(const [ab, full] of BANKS){
+    if(t.includes(' ' + full + ' ')) return ab;
+    if(ab.length > 2 && words.includes(ab)) return ab;
+  }
+  return '';
+}
+function guessAccount(ledger){
+  const act = accounts.filter(a => a.active), bank = bankOf(ledger);
+  const lw = new Set(ledger.toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => w.length > 1 && !['bank', 'of', 'ac', 'account', 'branch'].includes(w)));
+  const score = a => (bank && bankOf(a.name + ' ' + a.bank) === bank ? 3 : 0) + (a.name + ' ' + a.bank).toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => lw.has(w)).length;
+  const ranked = act.map(a => [a, score(a)]).sort((x, y) => y[1] - x[1]);
+  return ranked[0] && ranked[0][1] > 0 && !(ranked[1] && ranked[1][1] === ranked[0][1]) ? ranked[0][0].id : '';
+}
+
+let tl = null;   // {file, book, rows: [{t, state, pick, match}], acc}
+$('tlPick').onclick = () => $('tlFile').click();
+$('tlFile').addEventListener('change', async () => {
+  const f = $('tlFile').files[0]; $('tlFile').value = '';
+  if(!f) return;
+  $('tlPick').setAttribute('aria-busy', 'true');
+  try{
+    const book = parseTally(await NJ.readXlsx(f));
+    tl = {file: f.name, book, acc: guessAccount(book.ledger), rows: book.rows.map(t => ({t}))};
+    await tallyCheck();
+    $('tlBox').hidden = false;
+    $('tlBox').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }catch(x){ toast(x.message); }
+  $('tlPick').removeAttribute('aria-busy');
+});
+$('tlCancel').onclick = () => { tl = null; $('tlBox').hidden = true; };
+$('tlAcc').addEventListener('change', () => { tl.acc = $('tlAcc').value; tallyCheck().catch(e => toast(e.message)); });
+// compare with what is already in the chosen account
+async function tallyCheck(){
+  $('tlErr').textContent = '';
+  const days = tl.rows.map(x => x.t.day).sort(), acc = tl.acc;
+  let have = [], bal = null;
+  if(acc){
+    const q = [sb.from('bank_entries').select('id,day,direction,amount,reference,method,party').eq('account_id', acc).gte('day', days[0]).lte('day', days[days.length - 1])];
+    if(NJ.me.is_owner && tl.book.closing !== null && tl.book.until) q.push(sb.rpc('bank_balances', {p_until: tl.book.until}));
+    const [a, b] = await Promise.all(q);
+    have = must(a) || [];
+    if(b) bal = Number(((must(b) || []).find(x => x.account_id === acc) || {}).balance || 0);
+  }
+  const used = new Set(), today = todayIso();
+  for(const x of tl.rows){
+    const e = tallyEntry(x.t, acc), same = h => !used.has(h.id) && h.day === e.day && h.direction === e.direction && Number(h.amount) === e.amount;
+    const done = have.find(h => same(h) && h.reference === e.reference) || null;
+    const typed = !done && have.find(h => same(h) && !/^Tally /.test(h.reference)) || null;
+    if(done) used.add(done.id); else if(typed) used.add(typed.id);
+    x.state = x.t.both ? 'bad' : e.day > today ? 'future' : done ? 'done' : typed ? 'maybe' : 'new';
+    x.match = typed;
+    x.pick = x.state === 'new';
+  }
+  tl.bal = bal;
+  renderTally();
+}
+function renderTally(){
+  const b = tl.book, act = accounts.filter(a => a.active);
+  $('tlTitle').textContent = b.ledger || 'Tally bank book';
+  $('tlEyebrow').textContent = 'From Tally' + (b.period ? ' · ' + b.period : '');
+  $('tlAcc').innerHTML = '<option value="">Choose the account…</option>' + act.map(a => '<option value="' + esc(a.id) + '">' + esc(accLabel(a)) + '</option>').join('');
+  $('tlAcc').value = tl.acc || '';
+  const inn = tl.rows.filter(x => x.t.direction === 'in').reduce((s, x) => s + x.t.amount, 0), out = tl.rows.filter(x => x.t.direction === 'out').reduce((s, x) => s + x.t.amount, 0);
+  const count = st => tl.rows.filter(x => x.state === st).length;
+  $('tlSum').innerHTML = '<span>' + esc(tl.file) + '</span><span><b>' + tl.rows.length + '</b> rows</span><span class="in">Money in <b>' + esc(inr(inn)) + '</b></span><span class="out">Money out <b>' + esc(inr(out)) + '</b></span>' +
+    (b.opening !== null ? '<span>Tally opening <b>' + esc(inr(b.opening)) + '</b></span>' : '') + (b.closing !== null ? '<span>Tally closing <b>' + esc(inr(b.closing)) + '</b></span>' : '');
+  // the owner sees whether the app's balance agrees with Tally's closing balance
+  const showBal = tl.bal !== null && tl.acc;
+  $('tlBal').hidden = !showBal;
+  if(showBal){
+    const diff = Math.round((b.closing - tl.bal) * 100) / 100, on = parse(b.until).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+    $('tlBal').className = 'tlbal' + (diff ? ' off' : '');
+    $('tlBal').textContent = diff ? 'On ' + on + ' Tally says ' + inr(b.closing) + ' and the app says ' + inr(tl.bal) + ' (' + (diff > 0 ? inr(diff) + ' less' : inr(-diff) + ' more') + ' in the app). ' + (tl.rows.some(x => x.state === 'new') ? 'Adding the new rows below may close the gap.' : 'Look in the Statement for a missing or doubled entry.')
+      : '✓ On ' + on + ' the app’s balance matches Tally: ' + inr(b.closing) + '.';
+  }
+  const LABEL = {new: 'New', done: 'Already added', maybe: 'Maybe typed in already', future: 'Future date', bad: 'Both debit and credit'};
+  $('tlTable').innerHTML = '<thead><tr><th class="ck"><input type="checkbox" id="tlAll" aria-label="Choose all new rows"></th><th>Date</th><th>Particulars</th><th>Money in</th><th>Money out</th><th>In the app</th></tr></thead><tbody>' +
+    tl.rows.map((x, i) => {
+      const t = x.t, lock = ['done', 'future', 'bad'].includes(x.state) || !tl.acc;
+      const sub = [t.vtype, t.vno && 'No. ' + t.vno, t.narration].filter(Boolean).join(' · ');
+      const why = x.state === 'maybe' ? '<small style="display:block;color:var(--muted);font-weight:400;margin-top:3px">' + esc(describe(x.match) + (x.match.party ? ' · ' + x.match.party : '')) + '</small>' : '';
+      return '<tr class="' + (x.pick ? '' : 'skip') + '"><td class="ck"><input type="checkbox" data-tl="' + i + '"' + (x.pick ? ' checked' : '') + (lock ? ' disabled' : '') + ' aria-label="Add this row"></td>' +
+        '<td>' + esc(parse(t.day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: '2-digit'})) + '</td>' +
+        '<td class="d">' + esc(t.name) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</td>' +
+        '<td class="in">' + (t.direction === 'in' ? esc(inr(t.amount)) : '') + '</td><td class="out">' + (t.direction === 'out' ? esc(inr(t.amount)) : '') + '</td>' +
+        '<td style="text-align:left"><span class="tlstate ' + x.state + '">' + LABEL[x.state] + '</span>' + why + '</td></tr>';
+    }).join('') + '</tbody>';
+  const picked = tl.rows.filter(x => x.pick), old = picked.some(x => NJ.needsApproval(x.t.day));
+  $('tlNote').textContent = !tl.acc ? 'Choose the bank account these rows belong to.'
+    : [count('done') && count('done') + ' already added from Tally', count('maybe') && count('maybe') + ' may already be typed in by hand (tick them if they are not)', count('future') && count('future') + ' have a future date'].filter(Boolean).join(' · ')
+      || 'Tick the rows to add. Debit in Tally is money in; credit is money out.';
+  $('tlSave').disabled = !tl.acc || !picked.length;
+  $('tlSave').textContent = !picked.length ? 'Nothing to add' : (old ? 'Send ' + picked.length + ' entries to the owner for approval' : 'Add ' + picked.length + (picked.length === 1 ? ' entry' : ' entries'));
+  const all = $('tlAll'), can = tl.rows.filter(x => ['new', 'maybe'].includes(x.state));
+  all.disabled = !tl.acc || !can.length; all.checked = can.length > 0 && can.every(x => x.pick); all.indeterminate = !all.checked && can.some(x => x.pick);
+}
+$('tlTable').addEventListener('change', e => {
+  if(e.target.id === 'tlAll'){ const on = e.target.checked; tl.rows.forEach(x => { if(['new', 'maybe'].includes(x.state)) x.pick = on; }); }
+  else if(e.target.dataset.tl) tl.rows[Number(e.target.dataset.tl)].pick = e.target.checked;
+  renderTally();
+});
+$('tlSave').onclick = async () => {
+  const picked = tl.rows.filter(x => x.pick), rows = picked.map(x => tallyEntry(x.t, tl.acc));
+  if(!rows.length || !tl.acc) return;
+  const days = rows.map(r => r.day).sort(), fmt = d => parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+  const sum = d => rows.filter(r => r.direction === d).reduce((s, r) => s + r.amount, 0);
+  const summary = accName(tl.acc) + ' · ' + rows.length + ' entries from Tally · ' + (days[0] === days[days.length - 1] ? fmt(days[0]) : fmt(days[0]) + ' to ' + fmt(days[days.length - 1])) +
+    ' · in ' + inr(sum('in')) + ' · out ' + inr(sum('out'));
+  const b = $('tlSave'); b.setAttribute('aria-busy', 'true'); $('tlErr').textContent = '';
+  try{
+    if(rows.some(r => NJ.needsApproval(r.day))){
+      // staff, with older days: the whole file goes to the owner as one request
+      if(await NJ.requestChange({app: 'banking', action: 'import', data: {rows}, summary})){ tl = null; $('tlBox').hidden = true; }
+    } else {
+      for(let i = 0; i < rows.length; i += 200) must(await sb.from('bank_entries').insert(rows.slice(i, i + 200)));
+      toast('Added ' + rows.length + ' entries from Tally to ' + accName(tl.acc));
+      await refresh(); await tallyCheck();
+    }
+  }catch(x){ $('tlErr').textContent = x.message; }
+  b.removeAttribute('aria-busy');
+};
 
 /* ---------- statement (owner) ---------- */
 async function loadStatement(){
