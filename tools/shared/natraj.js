@@ -607,10 +607,11 @@ function matchExpenses(expenses, bank, from, to){
     if(!e.account_id){ noAccount.push(e); return; }
     let best = null, bestGap = 99;
     outs.forEach(b => {
-      if(used.has(b.id) || b.account_id !== e.account_id || Math.abs(Number(b.amount) - Number(e.amount)) > 0.009) return;
+      if(used.has(b.id) || (b.expense_id && b.expense_id !== e.id)) return;     // a bank entry made by another expense is that expense's
+      if(b.account_id !== e.account_id || Math.abs(Number(b.amount) - Number(e.amount)) > 0.009) return;
       const gap = dayN(b.day) - dayN(e.day);
       if(gap < -1 || gap > 3) return;
-      const score = gap < 0 ? 0.5 : gap;     // same day best, then the next days, then the day before
+      const score = b.expense_id === e.id ? -1 : gap < 0 ? 0.5 : gap;     // its own entry first, then the same day, the next days, the day before
       if(score < bestGap){ best = b; bestGap = score; }
     });
     if(best){ used.add(best.id); matched.push({e, b: best, gap: dayN(best.day) - dayN(e.day)}); }

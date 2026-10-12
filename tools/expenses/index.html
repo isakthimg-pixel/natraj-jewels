@@ -524,7 +524,7 @@ $('eForm').addEventListener('submit', async e => {
       const r = must(await sb.from('expenses').insert(data).select().single());
       recent.unshift(r); recent.sort((x, y) => y.day.localeCompare(x.day) || y.created_at.localeCompare(x.created_at));
       renderRecent();
-      toast('Saved ' + inr(a) + ' for ' + cat);
+      toast('Saved ' + inr(a) + ' for ' + cat + (data.mode !== 'Cash' && data.account_id ? ', and added to Banking as money out' : ''));
     }
     $('fGst').checked = false; $('fGstin').value = ''; $('fBill').value = ''; syncGst();
     $('fAmt').value = ''; $('fTo').value = ''; $('fNote').value = ''; $('fCat').value = ''; $('fNewCat').value = ''; $('fNewWrap').hidden = true;
@@ -850,14 +850,14 @@ $('gCsv').onclick = () => {
 };
 
 /* ---------- bank check (owner) ---------- */
-let bankMonth = todayIso().slice(0, 7), bankExp = [];
+let bankMonth = todayIso().slice(0, 7), bankExp = [], bankExtra = [];
 async function loadBank(){
   $('bMonth').value = bankMonth; $('bMonth').max = todayIso().slice(0, 7); $('bNext').disabled = bankMonth >= todayIso().slice(0, 7);
   $('bTitle').textContent = parse(bankMonth + '-01').toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
   const first = bankMonth + '-01', last = monthEnd(bankMonth);
   const [a, b, c] = await Promise.all([
     sb.from('expenses').select('*').gte('day', first).lte('day', last).neq('mode', 'Cash').order('day'),
-    sb.from('bank_entries').select('id,account_id,day,amount,method,party,reference,note').eq('direction', 'out').gte('day', addDays(first, -1)).lte('day', addDays(last, 3)),
+    sb.from('bank_entries').select('id,account_id,day,amount,method,party,reference,note,expense_id').eq('direction', 'out').gte('day', addDays(first, -1)).lte('day', addDays(last, 3)),
     sb.from('bank_accounts').select('id,name,last4')
   ]);
   bankExp = must(a) || []; const bank = must(b) || [], accs = must(c) || [];
@@ -883,13 +883,37 @@ async function loadBank(){
   $('bFound').innerHTML = m.matched.map(({e, b, gap}) => '<div class="erow"><div><div class="cat">' + esc(e.category) + '</div><div class="sub">' + esc([fmtDay(e.day), e.mode + ' from ' + (e.account_name || accName(e.account_id)), e.paid_to && 'to ' + e.paid_to].filter(Boolean).join(' · ')) + '</div>' +
     '<div class="sub" style="color:var(--p)">✓ In the bank ' + esc(gap === 0 ? 'the same day' : gap > 0 ? gap + ' day' + (gap > 1 ? 's' : '') + ' later (' + fmtDay(b.day) + ')' : 'the day before') + (b.reference ? ' · ref ' + esc(b.reference) : '') + '</div></div><div class="amt">' + esc(inr(e.amount)) + '</div><div class="acts"></div></div>').join('') || '<div class="empty" style="padding:24px 20px">None yet.</div>';
   $('bExtraSum').textContent = m.extra.length ? inr(sum(m.extra)) : '';
-  $('bExtra').innerHTML = m.extra.length ? m.extra.sort((x, y) => x.day.localeCompare(y.day)).map(b => '<div class="erow"><div><div class="cat">' + esc(b.method || 'Money out') + (b.party ? ' to ' + esc(b.party) : '') + '</div><div class="sub">' + esc([fmtDay(b.day), accName(b.account_id), b.reference && 'ref ' + b.reference, b.note].filter(Boolean).join(' · ')) + '</div></div><div class="amt">' + esc(inr(b.amount)) + '</div><div class="acts"></div></div>').join('')
+  // a bank payment with no expense: make it an expense, or, if it is the same payment as an expense already
+  // in Banking (e.g. a Tally row for a typed-in expense), remove the doubled bank entry
+  const dayN = d => Math.round(parse(d).getTime() / 864e5);
+  bankExtra = m.extra.sort((x, y) => x.day.localeCompare(y.day)).map(b => {
+    const twin = m.matched.find(({e, b: o}) => o.expense_id === e.id && o.account_id === b.account_id && Math.abs(Number(o.amount) - Number(b.amount)) < 0.01 && Math.abs(dayN(o.day) - dayN(b.day)) <= 3);
+    return {b, twin: twin ? twin.e : null};
+  });
+  $('bExtra').innerHTML = bankExtra.length ? bankExtra.map(({b, twin}, i) => '<div class="erow"><div><div class="cat">' + esc(b.method || 'Money out') + (b.party ? ' to ' + esc(b.party) : '') + '</div><div class="sub">' + esc([fmtDay(b.day), accName(b.account_id), b.reference && 'ref ' + b.reference, b.note].filter(Boolean).join(' · ')) + '</div>' +
+    (twin ? '<div class="sub" style="color:var(--a)">Looks like the same payment as the expense “' + esc(twin.category) + '” of ' + esc(fmtDay(twin.day)) + ', which is already in Banking. Remove one.</div>' : '') + '</div>' +
+    '<div class="amt">' + esc(inr(b.amount)) + '</div><div class="acts">' + (twin ? '<button class="btn mini btn-danger" data-xdel="' + i + '">Remove this bank entry</button>' : '<button class="btn mini" data-xexp="' + i + '">Make expense</button>') + '</div></div>').join('')
     : '<div class="empty" style="padding:24px 20px">None.</div>';
 }
 const shiftBank = n => { const d = parse(bankMonth + '-01'); d.setMonth(d.getMonth() + n); bankMonth = iso(d).slice(0, 7); loadBank().catch(e => toast(e.message)); };
 $('bPrev').onclick = () => shiftBank(-1);
 $('bNext').onclick = () => { if(bankMonth < todayIso().slice(0, 7)) shiftBank(1); };
 $('bMonth').onchange = () => { if($('bMonth').value){ bankMonth = $('bMonth').value > todayIso().slice(0, 7) ? todayIso().slice(0, 7) : $('bMonth').value; loadBank().catch(e => toast(e.message)); } };
+$('bExtra').addEventListener('click', async e => {
+  const mk = e.target.closest('[data-xexp]'), rm = e.target.closest('[data-xdel]'); if(!mk && !rm) return;
+  const {b, twin} = bankExtra[Number((mk || rm).dataset[mk ? 'xexp' : 'xdel'])] || {}; if(!b) return;
+  if(rm){
+    if(!await ask('Remove this bank entry?', inr(b.amount) + ' · ' + fmtDay(b.day) + (b.party ? ' · ' + b.party : '') + '\n\nThe expense “' + twin.category + '” already put this payment in Banking, so this one is a second copy.', 'Remove', true)) return;
+    try{ must(await sb.from('bank_entries').delete().eq('id', b.id)); toast('Removed'); }catch(x){ return toast(x.message); }
+    return loadBank().catch(x => toast(x.message));
+  }
+  const v = await dialog({title: 'Make this an expense', msg: inr(b.amount) + ' paid on ' + fmtDay(b.day) + (b.party ? ' to ' + b.party : '') + '. The expense uses this bank entry; nothing is added to Banking twice.',
+    fields: [{id: 'cat', label: 'Category', type: 'select', value: cats[0] || '', options: cats.map(c => [c, c])},
+             {id: 'to', label: 'Paid to', type: 'text', value: b.party || '', maxlength: 80},
+             {id: 'note', label: 'Note', type: 'text', value: b.note || '', maxlength: 300}],
+    validate: async v => { if(!v.cat) return 'Choose a category.'; must(await sb.rpc('expense_from_bank', {p_bank: b.id, p_category: v.cat, p_paid_to: v.to, p_note: v.note})); return ''; }});
+  if(v){ toast('Added as an expense'); loadBank().catch(x => toast(x.message)); loadRecent().catch(() => {}); }
+});
 $('bMissing').addEventListener('click', onListClick);
 $('bNoAcc').addEventListener('click', onListClick);
 $('bWait').addEventListener('click', onListClick);

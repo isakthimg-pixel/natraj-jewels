@@ -661,6 +661,19 @@ function rpc(name, a, me, headers){
     case 'bank_account_choices': return {status: 200, body: (canUse(me, 'expenses') || canUse(me, 'banking') || canUse(me, 'silver')) ? db.bank_accounts.filter(x => x.active).map(x => ({id: x.id, name: x.name, last4: x.last4})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
+    case 'expense_from_bank': {
+      if(!me || !me.is_owner) return {status: 403, body: {code: '42501', message: 'Only the owner can do this.'}};
+      const b = db.bank_entries.find(x => x.id === a.p_bank);
+      if(!b) return {status: 400, body: {code: 'P0002', message: 'That bank entry no longer exists.'}};
+      if(b.direction !== 'out' || ['Transfer', 'Opening balance'].includes(b.method)) return {status: 400, body: {code: '22023', message: 'Only money paid out can become an expense.'}};
+      if(b.expense_id) return {status: 400, body: {code: '22023', message: 'This bank payment already has its expense.'}};
+      linkBank = b.id;
+      try{
+        const r = expensesRest('POST', new URLSearchParams(''), {day: b.day, amount: Number(b.amount), category: String(a.p_category || '').trim(), mode: {UPI: 'UPI', Cheque: 'Cheque', 'Card payment': 'Card'}[b.method] || 'Bank transfer',
+          account_id: b.account_id, paid_to: (String(a.p_paid_to || '').trim() || b.party || '').slice(0, 80), note: String(a.p_note || '').slice(0, 300)}, true, true, me);
+        return {status: 200, body: r.body.id};
+      } finally { linkBank = null; }
+    }
     case 'add_wanted_design': {
       // a customer's "wanted but we didn't have" goes to the Design library as their request (migration 041)
       if(!canUse(me, 'crm')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Customers.'}};
@@ -860,6 +873,18 @@ function expenseAccount(r, old){
   if(!r.account_id){ if(!old || old.account_id || r.mode === 'Cash') r.account_name = ''; }
   else if(!old || r.account_id !== old.account_id){ const a = db.bank_accounts.find(x => x.id === r.account_id); r.account_name = a ? a.name + (a.last4 ? ' ··' + a.last4 : '') : ''; }
 }
+/* same as sync_expense_bank() in migration 042: a bank-paid expense keeps its own money-out entry in Banking */
+let linkBank = null;
+function syncExpenseBank(e, me, isNew, old){
+  if(isNew && linkBank){ const b = db.bank_entries.find(x => x.id === linkBank && !x.expense_id); if(b) b.expense_id = e.id; return; }
+  const b = db.bank_entries.find(x => x.expense_id === e.id);
+  const method = {UPI: 'UPI', Cheque: 'Cheque', 'Bank transfer': 'NEFT / RTGS / IMPS'}[e.mode] || 'Card payment';
+  const note = ('Expense: ' + e.category + (e.note ? ' · ' + e.note : '')).slice(0, 300);
+  if(e.mode === 'Cash' || !e.account_id){ if(b) db.bank_entries = db.bank_entries.filter(x => x !== b); }
+  else if(b) Object.assign(b, {account_id: e.account_id, day: e.day, amount: Number(e.amount), method, party: (e.paid_to || '').slice(0, 80), note});
+  else if(isNew || (old && (old.mode === 'Cash' || !old.account_id))) db.bank_entries.push({id: uid(), account_id: e.account_id, day: e.day, direction: 'out', amount: Number(e.amount), method, party: (e.paid_to || '').slice(0, 80), reference: '', note, transfer_id: null, for_chit: false, expense_id: e.id,
+    created_by: me.user_id, created_by_name: me.name, created_at: now(), updated_by_name: '', updated_at: null});
+}
 function expensesRest(method, params, body, single, wantRows, me){
   const owner = me.is_owner, may = canUse(me, 'expenses');
   const ownToday = r => r.created_by === me.user_id && recentDay(r.day);
@@ -871,14 +896,15 @@ function expensesRest(method, params, body, single, wantRows, me){
     const r = Object.assign({id: uid(), mode: 'Cash', paid_to: '', note: ''}, body, {created_by: me.user_id, created_by_name: me.name, created_at: now(), updated_by_name: '', updated_at: null});
     if(!r.period_from || !r.period_to){ r.period_from = r.day; r.period_to = r.day; }
     expenseAccount(r, null); expenseGst(r, null, me);
-    db.expenses.push(r); out = [r];
+    db.expenses.push(r); out = [r]; syncExpenseBank(r, me, true);
   } else if(method === 'PATCH'){
     out = out.filter(r => owner || (may && ownToday(r)));
     if(!owner && body.day && !recentDay(body.day)) return denied;
-    out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}); expenseAccount(r, old); expenseGst(r, old, me); });
+    out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body, {updated_by_name: me.name, updated_at: now()}); expenseAccount(r, old); expenseGst(r, old, me); syncExpenseBank(r, me, false, old); });
   } else if(method === 'DELETE'){
     out = out.filter(r => owner || (may && ownToday(r)));
     db.expenses = db.expenses.filter(r => !out.includes(r));
+    db.bank_entries = db.bank_entries.filter(b => !b.expense_id || !out.some(r => r.id === b.expense_id));
   }
   if(method !== 'GET' && !wantRows) return {status: 204, body: null};
   if(single){

@@ -465,7 +465,7 @@ async function loadExpenses(){
   // expenses paid from a bank account this month that are not in the bank log
   const mFirst = month + '-01', [ex, bk] = await Promise.all([
     sb.from('expenses').select('id,day,amount,mode,account_id').gte('day', mFirst).lte('day', today).neq('mode', 'Cash'),
-    sb.from('bank_entries').select('id,account_id,day,amount,method').eq('direction', 'out').gte('day', addDaysIso(mFirst, -1))]);
+    sb.from('bank_entries').select('id,account_id,day,amount,method,expense_id').eq('direction', 'out').gte('day', addDaysIso(mFirst, -1))]);
   const bm = NJ.matchExpenses(must(ex) || [], must(bk) || []), miss = bm.missing.length + bm.noAccount.length;
   if((must(ex) || []).length) $('expBox').insertAdjacentHTML('beforeend', '<p style="margin:12px 0 0;font-size:.88rem;font-weight:600;color:' + (miss ? 'var(--a)' : 'var(--p)') + '">' +
     (miss ? 'Bank check: ' + (bm.missing.length ? bm.missing.length + ' expense' + (bm.missing.length > 1 ? 's' : '') + ' (' + inr(sum(bm.missing)) + ') not in the bank log' : '') + (bm.missing.length && bm.noAccount.length ? ', ' : '') + (bm.noAccount.length ? bm.noAccount.length + ' without an account' : '') + '.'
