@@ -848,8 +848,9 @@ document.addEventListener('click', async e => {
 
 /* ---------- reading an Excel (.xlsx) file in the browser ----------
    An .xlsx is a zip of XML files; this reads the first sheet into rows of cell values (numbers stay
-   numbers, so Excel dates arrive as day serials). No library is needed. Old .xls files are not read. */
-async function readXlsx(file){
+   numbers, so Excel dates arrive as day serials); with all = true, every sheet. No library is needed.
+   Old .xls files are not read. */
+async function readXlsx(file, all){
   const buf = new Uint8Array(await file.arrayBuffer()), dv = new DataView(buf.buffer);
   if(buf[0] === 0xD0 && buf[1] === 0xCF) throw new Error('This is an old .xls file. Open it in Excel, choose Save As → Excel Workbook (.xlsx), and upload that.');
   if(buf[0] !== 0x50 || buf[1] !== 0x4B) throw new Error('This is not an Excel (.xlsx) file.');
@@ -873,33 +874,40 @@ async function readXlsx(file){
   };
   const xml = s => new DOMParser().parseFromString(s, 'application/xml');
   const kids = (el, tag) => Array.from(el.getElementsByTagNameNS('*', tag));
-  // the first sheet, as the workbook lists it
-  let sheet = Object.keys(files).filter(n => /^xl\/worksheets\/[^/]+\.xml$/.test(n)).sort()[0];
+  // the sheets, in the workbook's order, with their names
+  let sheets = Object.keys(files).filter(n => /^xl\/worksheets\/[^/]+\.xml$/.test(n)).sort().map(path => ({name: path.replace(/^.*\/|\.xml$/g, ''), path}));
   try{
-    const wb = xml(await text('xl/workbook.xml')), rels = xml(await text('xl/_rels/workbook.xml.rels'));
-    const rid = kids(wb, 'sheet')[0].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
-    const target = kids(rels, 'Relationship').find(r => r.getAttribute('Id') === rid).getAttribute('Target');
-    const path = target.startsWith('/') ? target.slice(1) : 'xl/' + target.replace(/^\.\//, '');
-    if(files[path]) sheet = path;
+    const wb = xml(await text('xl/workbook.xml')), rels = kids(xml(await text('xl/_rels/workbook.xml.rels')), 'Relationship');
+    const listed = kids(wb, 'sheet').map(sh => {
+      const rid = sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id'), rel = rels.find(r => r.getAttribute('Id') === rid);
+      const target = rel ? rel.getAttribute('Target') : '', path = target.startsWith('/') ? target.slice(1) : 'xl/' + target.replace(/^\.\//, '');
+      return {name: sh.getAttribute('name') || '', path};
+    }).filter(x => files[x.path]);
+    if(listed.length) sheets = listed;
   }catch(e){}
-  if(!sheet) throw new Error('This Excel file has no sheet.');
+  if(!sheets.length) throw new Error('This Excel file has no sheet.');
   const ssText = await text('xl/sharedStrings.xml');
   const shared = ssText ? kids(xml(ssText), 'si').map(si => kids(si, 't').filter(t => t.parentNode.localName !== 'rPh').map(t => t.textContent).join('')) : [];
-  const rows = [];
-  for(const r of kids(xml(await text(sheet)), 'row')){
-    const out = [];
-    let col = 0;
-    for(const c of kids(r, 'c')){
-      const ref = /^([A-Z]+)/.exec(c.getAttribute('r') || '');
-      if(ref) col = ref[1].split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
-      const t = c.getAttribute('t'), v = kids(c, 'v')[0], vt = v ? v.textContent : '';
-      out[col] = t === 's' ? (shared[Number(vt)] ?? '') : t === 'inlineStr' ? kids(c, 't').map(x => x.textContent).join('') : t === 'str' || t === 'e' ? vt
-        : t === 'b' ? vt === '1' : vt === '' ? '' : Number(vt);
-      col++;
+  const read = async path => {
+    const rows = [];
+    for(const r of kids(xml(await text(path)), 'row')){
+      const out = [];
+      let col = 0;
+      for(const c of kids(r, 'c')){
+        const ref = /^([A-Z]+)/.exec(c.getAttribute('r') || '');
+        if(ref) col = ref[1].split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+        const t = c.getAttribute('t'), v = kids(c, 'v')[0], vt = v ? v.textContent : '';
+        out[col] = t === 's' ? (shared[Number(vt)] ?? '') : t === 'inlineStr' ? kids(c, 't').map(x => x.textContent).join('') : t === 'str' || t === 'e' ? vt
+          : t === 'b' ? vt === '1' : vt === '' ? '' : Number(vt);
+        col++;
+      }
+      rows[Number(r.getAttribute('r') || rows.length + 1) - 1] = out;
     }
-    rows[Number(r.getAttribute('r') || rows.length + 1) - 1] = out;
-  }
-  return Array.from(rows, r => r || []);
+    return Array.from(rows, r => r || []);
+  };
+  // all: every sheet as {name, rows}; otherwise the first sheet's rows
+  if(all) return Promise.all(sheets.map(async sh => ({name: sh.name, rows: await read(sh.path)})));
+  return read(sheets[0].path);
 }
 
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,

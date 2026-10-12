@@ -137,7 +137,10 @@ table.st{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeri
       <div class="form panel">
         <div class="tlhead">
           <div><span class="eyebrow" id="tlEyebrow">From Tally</span><h3 id="tlTitle">Tally file</h3></div>
-          <label>Add to account<select class="input" id="tlAcc"></select></label>
+          <div class="bar" style="gap:10px 14px;align-items:end">
+            <label id="tlSheetL" hidden>Sheet<select class="input" id="tlSheet"></select></label>
+            <label>Add to account<select class="input" id="tlAcc"></select></label>
+          </div>
         </div>
         <p class="tlsum" id="tlSum"></p>
         <p class="tlbal" id="tlBal" hidden></p>
@@ -527,14 +530,28 @@ $('tlFile').addEventListener('change', async () => {
   if(!f) return;
   $('tlPick').setAttribute('aria-busy', 'true');
   try{
-    const book = parseTally(await NJ.readXlsx(f));
-    tl = {file: f.name, book, acc: guessAccount(book.ledger), rows: book.rows.map(t => ({t}))};
+    // every sheet that is a Tally book; start with the one with the most narration (Tally's "with narration" export)
+    const books = []; let why = null;
+    for(const sh of await NJ.readXlsx(f, true)){ try{ books.push(Object.assign(parseTally(sh.rows), {sheet: sh.name})); }catch(e){ why = why || e; } }
+    if(!books.length) throw why;
+    const notes = bk => bk.rows.filter(r => r.narration).length;
+    const best = books.reduce((x, y) => notes(y) > notes(x) ? y : x);
+    $('tlSheet').innerHTML = books.map((bk, i) => '<option value="' + i + '">' + esc(bk.sheet + ' · ' + bk.rows.length + ' rows' + (notes(bk) ? ', with narration' : '')) + '</option>').join('');
+    $('tlSheet').value = String(books.indexOf(best));
+    $('tlSheetL').hidden = books.length < 2;
+    tl = {file: f.name, books, acc: ''};
+    useBook(best);
     await tallyCheck();
     $('tlBox').hidden = false;
     $('tlBox').scrollIntoView({behavior: 'smooth', block: 'start'});
   }catch(x){ toast(x.message); }
   $('tlPick').removeAttribute('aria-busy');
 });
+function useBook(book){
+  tl.book = book; tl.rows = book.rows.map(t => ({t}));
+  tl.acc = guessAccount(book.ledger) || tl.acc;
+}
+$('tlSheet').addEventListener('change', () => { useBook(tl.books[Number($('tlSheet').value)]); tallyCheck().catch(e => toast(e.message)); });
 $('tlCancel').onclick = () => { tl = null; $('tlBox').hidden = true; };
 $('tlAcc').addEventListener('change', () => { tl.acc = $('tlAcc').value; tallyCheck().catch(e => toast(e.message)); });
 // compare with what is already in the chosen account
@@ -570,7 +587,7 @@ function renderTally(){
   $('tlAcc').value = tl.acc || '';
   const inn = tl.rows.filter(x => x.t.direction === 'in').reduce((s, x) => s + x.t.amount, 0), out = tl.rows.filter(x => x.t.direction === 'out').reduce((s, x) => s + x.t.amount, 0);
   const count = st => tl.rows.filter(x => x.state === st).length;
-  $('tlSum').innerHTML = '<span>' + esc(tl.file) + '</span><span><b>' + tl.rows.length + '</b> rows</span><span class="in">Money in <b>' + esc(inr(inn)) + '</b></span><span class="out">Money out <b>' + esc(inr(out)) + '</b></span>' +
+  $('tlSum').innerHTML = '<span>' + esc(tl.file + (tl.books.length > 1 ? ' · ' + b.sheet : '')) + '</span><span><b>' + tl.rows.length + '</b> rows</span><span class="in">Money in <b>' + esc(inr(inn)) + '</b></span><span class="out">Money out <b>' + esc(inr(out)) + '</b></span>' +
     (b.opening !== null ? '<span>Tally opening <b>' + esc(inr(b.opening)) + '</b></span>' : '') + (b.closing !== null ? '<span>Tally closing <b>' + esc(inr(b.closing)) + '</b></span>' : '');
   // the owner sees whether the app's balance agrees with Tally's closing balance
   const showBal = tl.bal !== null && tl.acc;
