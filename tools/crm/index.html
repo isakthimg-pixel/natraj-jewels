@@ -78,11 +78,6 @@
 .stars button.on{color:#C8890E;border-color:#E7C77A}
 .staffbox{display:grid;gap:8px;padding:12px 14px;border:1px dashed var(--line);border-radius:4px;background:var(--paper)}
 .staffbox > span{font:600 .72rem/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
-/* the edit window uses the form's boxes */
-.ce{display:grid;gap:14px;max-width:none;margin-bottom:6px}
-.ce .field{margin:0}
-.ce textarea{min-height:64px}
-dialog:has(.ce){width:min(640px,calc(100vw - 24px));max-width:min(640px,calc(100vw - 24px))}
 .vis{margin-top:4px;font-size:.88rem;color:var(--ink);display:grid;gap:2px}
 .vis b{font-weight:600}
 /* insights */
@@ -164,8 +159,8 @@ dialog:has(.ce){width:min(640px,calc(100vw - 24px));max-width:min(640px,calc(100
   <!-- ENTER A FORM -->
   <section id="tab-form" hidden>
     <div class="band"><div class="wrap">
-      <div class="heading"><span class="eyebrow">Customer information form</span><h2>Enter a form</h2></div>
-      <p class="axisnote" style="font-size:.88rem">Same order as the paper form. Type the mobile number first: if the customer is already saved, this form is added to their history and fills in what we know.</p>
+      <div class="heading"><span class="eyebrow" id="cfEyebrow">Customer information form</span><h2 id="cfTitle">Enter a form</h2></div>
+      <p class="axisnote" style="font-size:.88rem" id="cfIntro">Same order as the paper form. Type the mobile number first: if the customer is already saved, this form is added to their history and fills in what we know.</p>
     </div></div>
     <div class="wrap content">
       <form class="form cform" id="cf" autocomplete="off" novalidate>
@@ -343,6 +338,8 @@ function show(name){
 }
 async function route(){
   const h = location.hash.slice(1);
+  if(h.startsWith('edit=')){ await openEdit(decodeURIComponent(h.slice(5))); return; }
+  if(cfEdit) leaveEdit();
   if(h.startsWith('c=')){ await openCustomer(decodeURIComponent(h.slice(2))); return; }
   show(['form', 'follow', 'occ'].includes(h) || (h === 'ins' && NJ.me.is_owner) ? h : 'list');
   if(curTab === 'form') formReady();
@@ -391,61 +388,6 @@ $('custList').addEventListener('click', e => {
   const r = e.target.closest('.crow'); if(r) location.hash = 'c=' + encodeURIComponent(r.dataset.id);
 });
 
-/* ---------- edit a customer ----------
-   Same order and the same boxes as "Enter a form" (only what belongs to the customer, not to one visit),
-   then the details the paper form does not have. */
-async function customerDialog(c){
-  let dupWarned = '';
-  const tick = (id, label, on) => '<label class="field check"><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '> ' + esc(label) + '</label>';
-  const box = (id, label, value, extra) => '<label class="field">' + esc(label) + '<input class="input" id="' + id + '" value="' + esc(value || '') + '" ' + (extra || '') + '></label>';
-  const html = '<div class="cform ce">' +
-    box('ceMob', 'Mobile number', c.phone, 'type="tel" inputmode="numeric" maxlength="20" placeholder="10 digits"') +
-    tick('ceWaOn', 'WhatsApp on this number', c.whatsapp_on_phone !== false) +
-    box('ceName', 'Name', c.name, 'maxlength="80"') +
-    '<div class="two">' + box('ceArea', 'Area', c.area, 'maxlength="60" placeholder="e.g. Avinashi Road"') + box('cePin', 'Pincode', c.pincode, 'inputmode="numeric" maxlength="6" placeholder="6 digits"') + '</div>' +
-    '<div class="field"><span>Birthday (year if given)</span><div class="dmy">' + dmyHtml('ceB') + '</div></div>' +
-    '<div class="field"><span>Wedding anniversary (year if given)</span><div class="dmy">' + dmyHtml('ceA') + '</div></div>' +
-    '<div class="two">' + box('ceFnMonth', 'Family function in the next 12 months', c.function_month, 'type="month"') + box('ceFnNote', 'What function', c.function_note, 'maxlength="80" placeholder="e.g. Daughter’s wedding"') + '</div>' +
-    '<div class="field"><span>How did they hear about us? (one)</span><div class="bubbles" id="ceHeard" role="group" aria-label="How they heard about us">' +
-      [...SOURCES, ...(c.source && !SOURCES.includes(c.source) ? [c.source] : [])].map(t => '<button type="button" class="bubble" data-h="' + esc(t) + '" aria-pressed="' + (t === c.source) + '">' + esc(t) + '</button>').join('') + '</div></div>' +
-    tick('ceWaOk', 'Customer ticked: send offers and wishes on WhatsApp', c.whatsapp_ok) +
-    '<div class="staffbox"><span>Not on the paper form</span>' +
-      box('ceAlt', 'Other number', c.alt_phone, 'type="tel" maxlength="20"') +
-      '<label class="field">Address<textarea class="input" id="ceAddr" maxlength="300">' + esc(c.address || '') + '</textarea></label>' +
-      '<div class="field"><span>Tags</span><div class="bubbles" id="ceTags" role="group" aria-label="Tags">' +
-        [...TAGS, ...(c.tags || []).filter(t => !TAGS.includes(t))].map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="' + (c.tags || []).includes(t) + '">' + esc(t) + '</button>').join('') + '</div></div>' +
-      '<label class="field">Notes<textarea class="input" id="ceNotes" maxlength="1000" placeholder="e.g. Ring size 14, prefers antique finish">' + esc(c.notes || '') + '</textarea></label>' +
-    '</div></div>';
-  let saved = null;
-  const done = dialog({
-    title: 'Edit ' + c.name, ok: 'Save', html,
-    validate: async () => {
-      const val = id => $(id).value.trim();
-      const name = val('ceName').replace(/\s+/g, ' '), ph = cleanPhone(val('ceMob')), alt = cleanPhone(val('ceAlt'));
-      if(!name) return 'Type the customer’s name.';
-      for(const p of [ph, alt]) if(p && (digits(p).length < 10 || digits(p).length > 13)) return 'Check the phone number: ' + p + '.';
-      if(ph){
-        const same = customers.find(x => x.id !== c.id && digits(x.phone) === digits(ph));
-        if(same && dupWarned !== ph){ dupWarned = ph; return 'This number is already saved for ' + same.name + '. Press Save again to save it anyway.'; }
-      }
-      const bd = getDMY('ceB'), an = getDMY('ceA');
-      if(bd === null) return 'Check the birthday: choose both the day and the month.';
-      if(an === null) return 'Check the anniversary: choose both the day and the month.';
-      if(!/^(\d{6})?$/.test(val('cePin'))) return 'The pincode is 6 digits.';
-      const heard = $('ceHeard').querySelector('[aria-pressed="true"]');
-      const data = {name, phone: ph, alt_phone: alt, area: val('ceArea'), pincode: val('cePin'), address: val('ceAddr'), birthday: bd || null, anniversary: an || null,
-        whatsapp_on_phone: $('ceWaOn').checked, whatsapp_ok: $('ceWaOk').checked, function_month: $('ceFnMonth').value || '', function_note: val('ceFnNote'),
-        source: heard ? heard.dataset.h : '', tags: [...$('ceTags').querySelectorAll('[aria-pressed="true"]')].map(b => b.dataset.v), notes: val('ceNotes')};
-      saved = must(await sb.from('customers').update(data).eq('id', c.id).select().single());
-      Object.assign(c, saved);
-      return '';
-    }
-  });
-  // the dialog is on the page now: fill the day/month/year boxes; "heard about us" takes one answer
-  setDMY('ceB', c.birthday || ''); setDMY('ceA', c.anniversary || '');
-  $('ceHeard').addEventListener('click', e => { const b = e.target.closest('[data-h]'); if(!b) return; const on = b.getAttribute('aria-pressed') !== 'true'; $('ceHeard').querySelectorAll('[data-h]').forEach(x => x.setAttribute('aria-pressed', on && x === b)); });
-  return (await done) && saved;
-}
 $('addCust').onclick = () => { location.hash = 'form'; };
 
 /* ---------- one customer ---------- */
@@ -506,7 +448,7 @@ function visitLines(a){
   if(a.missing) out.push('<b>Wanted, we didn’t have</b> ' + esc(a.missing));
   return out;
 }
-$('editCust').onclick = async () => { if(cur && await customerDialog(cur)){ toast('Saved'); renderCustomer(); } };
+$('editCust').onclick = () => { if(cur) location.hash = 'edit=' + encodeURIComponent(cur.id); };
 $('delCust').onclick = async () => {
   if(!cur || !await ask('Delete ' + cur.name + '?', 'Their details, notes and follow-ups are removed for good.', 'Delete', true)) return;
   try{ must(await sb.from('customers').delete().eq('id', cur.id)); customers = customers.filter(c => c !== cur); follows = follows.filter(f => f.customer_id !== cur.id); toast('Customer deleted'); location.hash = ''; }
@@ -672,6 +614,13 @@ async function formReady(){
 // a known mobile number: say whose it is and fill in what we already have
 $('cfPhone').addEventListener('input', () => {
   const d = digits($('cfPhone').value);
+  if(cfEdit){
+    // editing: only say so when the number belongs to someone else
+    const other = d.length >= 10 ? customers.find(x => x.id !== cfEdit.id && digits(x.phone).slice(-10) === d.slice(-10)) : null;
+    $('cfMatch').hidden = !other; $('cfMatch').className = 'match';
+    if(other) $('cfMatch').textContent = 'This number is already saved for ' + other.name + '.';
+    return;
+  }
   const c = d.length >= 10 ? customers.find(x => digits(x.phone).slice(-10) === d.slice(-10)) : null;
   if(c === cfMatch) return;
   cfMatch = c;
@@ -697,7 +646,57 @@ function clearForm(){
   $('cfWaOn').checked = true; $('cfWaOk').checked = false; $('cfFu').checked = true;
   cfMatch = null; cfBought = null; cfRating = 0; paintStars(); $('cfMatch').hidden = true; $('cfErr').textContent = '';
 }
-$('cfClear').onclick = clearForm;
+$('cfClear').onclick = () => { if(cfEdit) location.hash = 'c=' + encodeURIComponent(cfEdit.id); else clearForm(); };
+/* ---------- edit a customer: the same page as "Enter a form" (#edit=<id>) ----------
+   Filled in with the customer's details and their latest form; saving changes that customer and that form
+   (nothing new is added to their history). */
+let cfEdit = null, cfVisit = null;
+const press = (id, vals) => $(id).querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', vals.includes(x.dataset.v)));
+async function openEdit(id){
+  let c = custById(id);
+  if(!c){ c = must(await sb.from('customers').select('*').eq('id', id).maybeSingle()); if(c) customers.push(c); }
+  if(!c){ location.hash = ''; return; }
+  show('form');
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === 'list'));
+  await formReady();
+  clearForm();
+  cfEdit = c;
+  cfVisit = (must(await sb.from('customer_activity').select('*').eq('customer_id', c.id).eq('kind', 'visit').order('visit_day', {ascending: false}).order('created_at', {ascending: false}).limit(1)) || [])[0] || null;
+  const v = cfVisit || {};
+  $('cfEyebrow').textContent = 'Edit customer';
+  $('cfTitle').textContent = 'Edit ' + c.name;
+  $('cfIntro').textContent = 'The same form as Enter a form. Saving changes ' + c.name + (cfVisit ? ' and their form of ' + fmtD(cfVisit.visit_day) : '') + '; nothing new is added to their history.';
+  $('cfSave').textContent = 'Save changes'; $('cfClear').textContent = 'Cancel';
+  $('cfDay').value = v.visit_day || todayIso();
+  if(v.served_by && ![...$('cfServed').options].some(o => o.value === v.served_by)) $('cfServed').insertAdjacentHTML('beforeend', '<option>' + esc(v.served_by) + '</option>');
+  $('cfServed').value = v.served_by || '';
+  $('cfPhone').value = c.phone || ''; $('cfWaOn').checked = c.whatsapp_on_phone !== false;
+  $('cfName').value = c.name || ''; $('cfArea').value = c.area || ''; $('cfPin').value = c.pincode || '';
+  setDMY('cfB', c.birthday || ''); setDMY('cfA', c.anniversary || '');
+  press('cfFor', v.came_for || []);
+  cfBought = v.bought === true ? 'yes' : v.bought === false ? 'no' : null;
+  $('cfBought').querySelectorAll('[data-b]').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === cfBought));
+  $('cfLook').value = v.looking_for || '';
+  $('cfFnMonth').value = c.function_month || ''; $('cfFnNote').value = c.function_note || '';
+  if(c.source && !SOURCES.includes(c.source)) $('cfHeard').insertAdjacentHTML('beforeend', '<button type="button" class="bubble" data-v="' + esc(c.source) + '" aria-pressed="false">' + esc(c.source) + '</button>');
+  press('cfHeard', c.source ? [c.source] : []);
+  cfRating = v.rating || 0; paintStars();
+  $('cfMissing').value = v.missing || '';
+  $('cfWaOk').checked = !!c.whatsapp_ok;
+  $('cfAlt').value = c.alt_phone || ''; $('cfAddr').value = c.address || ''; $('cfNotes').value = c.notes || '';
+  press('cfTags', c.tags || []);
+  $('cfFu').checked = false;
+  scrollTo(0, 0);
+}
+function leaveEdit(){
+  cfEdit = null; cfVisit = null;
+  $('cfEyebrow').textContent = 'Customer information form'; $('cfTitle').textContent = 'Enter a form';
+  $('cfIntro').textContent = 'Same order as the paper form. Type the mobile number first: if the customer is already saved, this form is added to their history and fills in what we know.';
+  $('cfSave').textContent = 'Save form'; $('cfClear').textContent = 'Clear';
+  $('cfHeard').querySelectorAll('[data-v]').forEach(x => { if(!SOURCES.includes(x.dataset.v)) x.remove(); });
+  clearForm();
+  $('cfDay').value = todayIso(); $('cfServed').value = staffNames.includes(NJ.me.name) ? NJ.me.name : '';
+}
 $('cf').addEventListener('submit', async e => {
   e.preventDefault(); const err = m => { $('cfErr').textContent = m; };
   err('');
@@ -715,6 +714,7 @@ $('cf').addEventListener('submit', async e => {
   const heard = pressed('cfHeard')[0] || '', came = pressed('cfFor');
   $('cfSave').setAttribute('aria-busy', 'true');
   try{
+    if(cfEdit){ await saveEdit({name, phone, alt, day, bd, an, pin, heard, came}); return; }
     const c = cfMatch;
     // the tags ticked here, plus any of theirs that are not in the list
     const tags = new Set([...pressed('cfTags'), ...(c ? (c.tags || []).filter(t => !TAGS.includes(t)) : [])]);
@@ -739,6 +739,27 @@ $('cf').addEventListener('submit', async e => {
   }catch(x){ err(x.message); }
   $('cfSave').removeAttribute('aria-busy');
 });
+async function saveEdit(f){
+  const c = cfEdit;
+  const tags = [...new Set([...pressed('cfTags'), ...(c.tags || []).filter(t => !TAGS.includes(t))])];
+  const data = {name: f.name, phone: f.phone, alt_phone: f.alt, area: $('cfArea').value.trim(), pincode: f.pin, address: $('cfAddr').value.trim(),
+    birthday: f.bd || null, anniversary: f.an || null, function_month: $('cfFnMonth').value || '', function_note: $('cfFnNote').value.trim(),
+    source: f.heard, whatsapp_on_phone: $('cfWaOn').checked, whatsapp_ok: $('cfWaOk').checked, tags, notes: $('cfNotes').value.trim()};
+  const row = must(await sb.from('customers').update(data).eq('id', c.id).select().single());
+  Object.assign(c, row); customers.sort((a, b) => a.name.localeCompare(b.name));
+  const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
+  const visit = {visit_day: f.day, came_for: f.came, bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, rating: cfRating || null, missing, served_by: $('cfServed').value,
+    body: ['Form' + (f.came.length ? ': came for ' + f.came.join(', ') : ''), cfBought === 'yes' ? 'bought' : cfBought === 'no' ? 'just looking' : '', look].filter(Boolean).join(' · ').slice(0, 500)};
+  if(cfVisit) must(await sb.from('customer_activity').update(visit).eq('id', cfVisit.id).select());
+  else if(f.came.length || cfBought || look || cfRating || missing) must(await sb.from('customer_activity').insert(Object.assign({customer_id: c.id, kind: 'visit'}, visit)).select());
+  if(cfBought === 'no' && $('cfFu').checked){
+    const fu = must(await sb.from('customer_activity').insert({customer_id: c.id, kind: 'followup', body: 'Call back' + (look ? ' about ' + look : ' after their visit'), due: addDays(todayIso(), 7), assigned_to: NJ.me.user_id}).select().single());
+    follows.push(fu); follows.sort((a, b) => a.due.localeCompare(b.due)); badge();
+  }
+  $('cfSave').removeAttribute('aria-busy');
+  toast('Saved changes to ' + row.name);
+  location.hash = 'c=' + encodeURIComponent(c.id);
+}
 
 /* ---------- insights (owner) ---------- */
 let insDays = 30;
