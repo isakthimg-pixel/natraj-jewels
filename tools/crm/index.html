@@ -196,8 +196,13 @@ dialog:has(.ce){width:min(640px,calc(100vw - 24px));max-width:min(640px,calc(100
         <div class="field"><span>Service today</span><div class="stars" id="cfStars" role="group" aria-label="Service rating"></div></div>
         <label>Anything they wanted that we didn’t have?<input class="input" id="cfMissing" maxlength="200" placeholder="e.g. 22K kids’ chain under 4 g"></label>
         <label class="check"><input type="checkbox" id="cfWaOk"> Customer ticked: send offers and wishes on WhatsApp</label>
+        <div class="staffbox"><span>Not on the paper form</span>
+          <label>Other number<input class="input" id="cfAlt" type="tel" maxlength="20"></label>
+          <label>Address<textarea class="input" id="cfAddr" maxlength="300"></textarea></label>
+          <div class="field"><span>Tags</span><div class="bubbles" id="cfTags" role="group" aria-label="Tags"></div></div>
+          <label>Notes<textarea class="input" id="cfNotes" maxlength="1000" placeholder="e.g. Ring size 14, prefers antique finish"></textarea></label>
+        </div>
         <div class="staffbox"><span>For staff</span>
-          <label class="check"><input type="checkbox" id="cfChit"> Chit member</label>
           <label class="check"><input type="checkbox" id="cfFu" checked> Just looking: add a follow-up call in 7 days</label>
         </div>
         <p class="err" id="cfErr" role="alert"></p>
@@ -643,6 +648,8 @@ $('cfBday').innerHTML = dmyHtml('cfB'); $('cfAnn').innerHTML = dmyHtml('cfA');
 const getDMY = id => { const d = $(id + 'D').value, m = $(id + 'M').value, y = $(id + 'Y').value.trim(); if(!d && !m && !y) return ''; if(!d || !m) return null; return parseDMY(d + '/' + m + (y ? '/' + y : '')); };
 const setDMY = (id, v) => { $(id + 'D').value = v ? String(Number(v.slice(8))) : ''; $(id + 'M').value = v ? String(Number(v.slice(5, 7))) : ''; $(id + 'Y').value = v && v.slice(0, 4) !== NOYEAR ? v.slice(0, 4) : ''; };
 $('cfFor').innerHTML = CAME.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
+$('cfTags').innerHTML = TAGS.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
+$('cfTags').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
 $('cfHeard').innerHTML = SOURCES.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
 $('cfStars').innerHTML = [1, 2, 3, 4, 5].map(n => '<button type="button" data-r="' + n + '" aria-label="' + n + ' star' + (n > 1 ? 's' : '') + '">★</button>').join('');
 const pressed = id => [...$(id).querySelectorAll('[aria-pressed="true"]')].map(b => b.dataset.v);
@@ -678,15 +685,16 @@ $('cfPhone').addEventListener('input', () => {
     if(!getDMY('cfA') && c.anniversary) setDMY('cfA', c.anniversary);
     $('cfWaOn').checked = c.whatsapp_on_phone !== false;
     if(c.whatsapp_ok) $('cfWaOk').checked = true;
-    $('cfChit').checked = (c.tags || []).includes('Chit member');
+    fill('cfAlt', c.alt_phone); fill('cfAddr', c.address); fill('cfNotes', c.notes);
+    $('cfTags').querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', (c.tags || []).includes(x.dataset.v)));
     if(c.source && !pressed('cfHeard').length) $('cfHeard').querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === c.source));
   }
 });
 function clearForm(){
-  ['cfPhone', 'cfName', 'cfArea', 'cfPin', 'cfLook', 'cfFnMonth', 'cfFnNote', 'cfMissing'].forEach(id => $(id).value = '');
+  ['cfPhone', 'cfName', 'cfArea', 'cfPin', 'cfLook', 'cfFnMonth', 'cfFnNote', 'cfMissing', 'cfAlt', 'cfAddr', 'cfNotes'].forEach(id => $(id).value = '');
   setDMY('cfB', ''); setDMY('cfA', '');
-  ['cfFor', 'cfHeard', 'cfBought'].forEach(id => $(id).querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')));
-  $('cfWaOn').checked = true; $('cfWaOk').checked = false; $('cfChit').checked = false; $('cfFu').checked = true;
+  ['cfFor', 'cfHeard', 'cfBought', 'cfTags'].forEach(id => $(id).querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')));
+  $('cfWaOn').checked = true; $('cfWaOk').checked = false; $('cfFu').checked = true;
   cfMatch = null; cfBought = null; cfRating = 0; paintStars(); $('cfMatch').hidden = true; $('cfErr').textContent = '';
 }
 $('cfClear').onclick = clearForm;
@@ -696,6 +704,8 @@ $('cf').addEventListener('submit', async e => {
   const name = $('cfName').value.trim().replace(/\s+/g, ' '), phone = cleanPhone($('cfPhone').value), day = $('cfDay').value;
   if(!name) return err('Type the customer’s name.');
   if(phone && (digits(phone).length < 10 || digits(phone).length > 13)) return err('Check the mobile number: it should be 10 digits.');
+  const alt = cleanPhone($('cfAlt').value);
+  if(alt && (digits(alt).length < 10 || digits(alt).length > 13)) return err('Check the other number: it should be 10 digits.');
   if(!day || day > todayIso()) return err('Choose the date on the form (not in the future).');
   const bd = getDMY('cfB'), an = getDMY('cfA');
   if(bd === null) return err('Check the birthday: choose both the day and the month.');
@@ -706,13 +716,14 @@ $('cf').addEventListener('submit', async e => {
   $('cfSave').setAttribute('aria-busy', 'true');
   try{
     const c = cfMatch;
-    const tags = new Set(c ? c.tags || [] : []);
-    if($('cfChit').checked) tags.add('Chit member'); else tags.delete('Chit member');
+    // the tags ticked here, plus any of theirs that are not in the list
+    const tags = new Set([...pressed('cfTags'), ...(c ? (c.tags || []).filter(t => !TAGS.includes(t)) : [])]);
     // a returning customer keeps what we know unless the form gives something new
     const data = {name, phone: phone || (c ? c.phone : ''), area: $('cfArea').value.trim() || (c ? c.area : ''), pincode: pin || (c ? c.pincode : ''),
       birthday: bd || (c ? c.birthday : null), anniversary: an || (c ? c.anniversary : null),
       function_month: $('cfFnMonth').value || (c ? c.function_month : ''), function_note: $('cfFnNote').value.trim() || (c ? c.function_note : ''),
-      source: heard || (c ? c.source : ''), whatsapp_on_phone: $('cfWaOn').checked, whatsapp_ok: $('cfWaOk').checked || !!(c && c.whatsapp_ok), tags: [...tags]};
+      source: heard || (c ? c.source : ''), whatsapp_on_phone: $('cfWaOn').checked, whatsapp_ok: $('cfWaOk').checked || !!(c && c.whatsapp_ok), tags: [...tags],
+      alt_phone: alt || (c ? c.alt_phone : ''), address: $('cfAddr').value.trim() || (c ? c.address : ''), notes: $('cfNotes').value.trim() || (c ? c.notes : '')};
     const row = must(c ? await sb.from('customers').update(data).eq('id', c.id).select().single() : await sb.from('customers').insert(data).select().single());
     if(c) Object.assign(c, row); else { customers.push(row); customers.sort((a, b) => a.name.localeCompare(b.name)); }
     const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
