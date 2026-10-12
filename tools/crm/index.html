@@ -77,6 +77,11 @@
 .stars button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:1.3rem;line-height:1;cursor:pointer;color:var(--line);transition:color .15s,border-color .15s}
 .stars button.on{color:#C8890E;border-color:#E7C77A}
 .staffbox{display:grid;gap:8px;padding:12px 14px;border:1px dashed var(--line);border-radius:4px;background:var(--paper)}
+.cdes .drow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.cdes .drow:hover b{text-decoration:underline;text-underline-offset:3px}
+.cdes .drow small{grid-column:1/-1;color:var(--muted);font-size:.82rem}
+.cdes .st{font-size:.75rem;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--paper);white-space:nowrap;align-self:start}
+.cdes .st.open{color:var(--a)} .cdes .st.received{color:var(--p)}
 .staffbox > span{font:600 .72rem/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .vis{margin-top:4px;font-size:.88rem;color:var(--ink);display:grid;gap:2px}
 .vis b{font-weight:600}
@@ -145,6 +150,11 @@
       <div class="form panel"><h3>Details</h3><dl class="info" id="cInfo"></dl>
         <div class="bar"><button class="btn" id="editCust">Edit details</button><button class="btn btn-danger owner-only" id="delCust">Delete customer</button></div></div>
       <div>
+        <div class="form panel cdes" id="cDesigns" hidden style="margin-bottom:16px">
+          <h3 style="font-size:1.3rem">Design library</h3>
+          <div id="cDesignList"></div>
+          <div class="bar"><button class="btn" id="cDesignAdd">Add a request</button><a class="btn" href="../designs/">Open the Design library</a></div>
+        </div>
         <div class="form quick" style="margin-bottom:16px">
           <h3 style="font-size:1.3rem">Add to the history</h3>
           <label>Note<textarea class="input" id="noteText" maxlength="500" placeholder="e.g. Liked the antique temple necklace, budget about ₹2 lakh"></textarea></label>
@@ -190,6 +200,7 @@
         <div class="field"><span>How did they hear about us? (one)</span><div class="bubbles" id="cfHeard" role="group" aria-label="How they heard about us"></div></div>
         <div class="field"><span>Service today</span><div class="stars" id="cfStars" role="group" aria-label="Service rating"></div></div>
         <label>Anything they wanted that we didn’t have?<input class="input" id="cfMissing" maxlength="200" placeholder="e.g. 22K kids’ chain under 4 g"></label>
+        <label class="check" id="cfWantL" hidden><input type="checkbox" id="cfWant" checked> Add this to the Design library so it can be ordered for them</label>
         <label class="check"><input type="checkbox" id="cfWaOk"> Customer ticked: send offers and wishes on WhatsApp</label>
         <div class="staffbox"><span>Not on the paper form</span>
           <label>Other number<input class="input" id="cfAlt" type="tel" maxlength="20"></label>
@@ -401,7 +412,47 @@ async function openCustomer(id){
   renderCustomer();
   activity = must(await sb.from('customer_activity').select('*').eq('customer_id', id).order('created_at', {ascending: false})) || [];
   renderActivity();
+  loadCustDesigns().catch(() => {});
 }
+/* ---------- this customer's requests in the Design library ---------- */
+const DSTAGE = {open: 'Needed', ordered: 'Ordered', received: 'Arrived', done: 'Done', dropped: 'Dropped'};
+const DCATS = ['Necklace', 'Haram', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Earrings', 'Pendant', 'Thali / Mangalsutra', 'Anklet', 'Nose pin', 'Kids', 'Pooja items', 'Coins & bars', 'Other'];
+// a first guess at the metal and the kind of jewel from what was written; it can be changed in the Design library
+function guessDesign(text, came){
+  const t = ' ' + String(text).toLowerCase() + ' ';
+  const metal = /silver|velli|வெள்ளி/.test(t) ? 'Silver' : /diamond|vairam|வைர/.test(t) ? 'Diamond' : /gold|thangam|தங்க/.test(t) ? 'Gold'
+    : (came || []).includes('Silver') ? 'Silver' : (came || []).includes('Diamond') ? 'Diamond' : 'Gold';
+  const cats = [[/thali|mangal|தாலி/, 'Thali / Mangalsutra'], [/ear ?ring|stud|jhumk|kammal|தோடு|கம்மல்/, 'Earrings'], [/nose|mookuthi|மூக்குத்தி/, 'Nose pin'], [/anklet|kolus|payal|கொலுசு/, 'Anklet'],
+    [/bangle|valayal|kada|வளையல்/, 'Bangle'], [/bracelet/, 'Bracelet'], [/necklace|choker|neckl/, 'Necklace'], [/haram|ஆரம்/, 'Haram'], [/chain|செயின்/, 'Chain'], [/pendant|dollar|locket/, 'Pendant'],
+    [/\bring|mothiram|மோதிரம்/, 'Ring'], [/pooja|vilakku|lamp|kumkum|plate|விளக்கு/, 'Pooja items'], [/coin|\bbar\b|காசு/, 'Coins & bars'], [/kid|baby|child|குழந்தை/, 'Kids']];
+  const hit = cats.find(([re]) => re.test(t));
+  return {metal, category: hit ? hit[1] : ''};
+}
+async function loadCustDesigns(){
+  const box = $('cDesigns');
+  if(!NJ.canUse('designs')){ box.hidden = true; return; }
+  const id = cur && cur.id;
+  const list = must(await sb.from('designs').select('id,kind,metal,category,purity,status,notes,created_at,created_by_name').eq('customer_id', id).order('created_at', {ascending: false})) || [];
+  if(!cur || cur.id !== id) return;
+  box.hidden = false;
+  $('cDesignList').innerHTML = list.length ? list.map(d => '<a class="drow" href="../designs/#d=' + encodeURIComponent(d.id) + '"><b>' + esc([d.purity, d.category || 'Jewel'].filter(Boolean).join(' ') + ' · ' + d.metal) + '</b>' +
+    '<span class="st ' + esc(d.status) + '">' + esc(DSTAGE[d.status] || d.status) + '</span>' +
+    '<small>' + esc([d.notes.replace(/^Wanted \(customer form\): /, ''), 'asked ' + fmtD(d.created_at.slice(0, 10)) + (d.created_by_name ? ' · ' + d.created_by_name : '')].filter(Boolean).join(' · ')) + '</small></a>').join('')
+    : '<p class="axisnote" style="font-size:.88rem">Nothing asked for yet. When a customer wants something we don’t have, add it here and it goes to the Design library to be ordered.</p>';
+}
+$('cDesignAdd').onclick = async () => {
+  if(!cur) return;
+  const v = await dialog({title: 'Add to the Design library', msg: 'For ' + cur.name + '. It is added as a customer request to be ordered; you are told when it arrives.',
+    fields: [{id: 'want', label: 'What do they want?', type: 'text', maxlength: 200, placeholder: 'e.g. 22K kids’ chain under 4 g'},
+             {id: 'metal', label: 'Metal', type: 'select', value: 'Gold', options: [['Gold', 'Gold'], ['Silver', 'Silver'], ['Diamond', 'Diamond']]},
+             {id: 'cat', label: 'Kind of jewel', type: 'select', value: '', options: [['', 'Not sure'], ...DCATS.map(c => [c, c])]}],
+    validate: async v => {
+      if(!v.want) return 'Write what the customer wants.';
+      must(await sb.rpc('add_wanted_design', {p_customer: cur.id, p_want: v.want, p_metal: v.metal, p_category: v.cat}));
+      return '';
+    }});
+  if(v){ toast('Added to the Design library'); loadCustDesigns().catch(e => toast(e.message)); }
+};
 function renderCustomer(){
   const c = cur;
   $('cName').textContent = c.name;
@@ -644,8 +695,10 @@ function clearForm(){
   setDMY('cfB', ''); setDMY('cfA', '');
   ['cfFor', 'cfHeard', 'cfBought', 'cfTags'].forEach(id => $(id).querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')));
   $('cfWaOn').checked = true; $('cfWaOk').checked = false; $('cfFu').checked = true;
+  $('cfWant').checked = true; $('cfWantL').hidden = true;
   cfMatch = null; cfBought = null; cfRating = 0; paintStars(); $('cfMatch').hidden = true; $('cfErr').textContent = '';
 }
+$('cfMissing').addEventListener('input', () => { const t = $('cfMissing').value.trim(); $('cfWantL').hidden = !t; if(cfEdit) $('cfWant').checked = t !== ((cfVisit && cfVisit.missing) || '').trim(); });
 $('cfClear').onclick = () => { if(cfEdit) location.hash = 'c=' + encodeURIComponent(cfEdit.id); else clearForm(); };
 /* ---------- edit a customer: the same page as "Enter a form" (#edit=<id>) ----------
    Filled in with the customer's details and their latest form; saving changes that customer and that form
@@ -681,7 +734,7 @@ async function openEdit(id){
   if(c.source && !SOURCES.includes(c.source)) $('cfHeard').insertAdjacentHTML('beforeend', '<button type="button" class="bubble" data-v="' + esc(c.source) + '" aria-pressed="false">' + esc(c.source) + '</button>');
   press('cfHeard', c.source ? [c.source] : []);
   cfRating = v.rating || 0; paintStars();
-  $('cfMissing').value = v.missing || '';
+  $('cfMissing').value = v.missing || ''; $('cfWant').checked = false; $('cfWantL').hidden = !v.missing;
   $('cfWaOk').checked = !!c.whatsapp_ok;
   $('cfAlt').value = c.alt_phone || ''; $('cfAddr').value = c.address || ''; $('cfNotes').value = c.notes || '';
   press('cfTags', c.tags || []);
@@ -734,11 +787,19 @@ $('cf').addEventListener('submit', async e => {
       const f = must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'followup', body: 'Call back' + (look ? ' about ' + look : ' after their visit'), due: addDays(todayIso(), 7), assigned_to: NJ.me.user_id}).select().single());
       follows.push(f); follows.sort((a, b) => a.due.localeCompare(b.due)); badge();
     }
-    toast('Saved: ' + row.name + (c ? ' (returning)' : ' (new customer)'));
+    const toLib = await wantToLibrary(row, missing, came);
+    toast('Saved: ' + row.name + (c ? ' (returning)' : ' (new customer)') + toLib);
     clearForm(); $('cfPhone').focus();
   }catch(x){ err(x.message); }
   $('cfSave').removeAttribute('aria-busy');
 });
+// "Anything they wanted that we didn't have?" goes to the Design library as this customer's request
+async function wantToLibrary(row, missing, came){
+  if(!missing || !$('cfWant').checked) return '';
+  const g = guessDesign(missing, came);
+  try{ must(await sb.rpc('add_wanted_design', {p_customer: row.id, p_want: missing, p_metal: g.metal, p_category: g.category})); return ', and what they wanted is in the Design library'; }
+  catch(x){ toast('Saved, but not added to the Design library: ' + x.message); return ''; }
+}
 async function saveEdit(f){
   const c = cfEdit;
   const tags = [...new Set([...pressed('cfTags'), ...(c.tags || []).filter(t => !TAGS.includes(t))])];
@@ -756,8 +817,9 @@ async function saveEdit(f){
     const fu = must(await sb.from('customer_activity').insert({customer_id: c.id, kind: 'followup', body: 'Call back' + (look ? ' about ' + look : ' after their visit'), due: addDays(todayIso(), 7), assigned_to: NJ.me.user_id}).select().single());
     follows.push(fu); follows.sort((a, b) => a.due.localeCompare(b.due)); badge();
   }
+  const toLib = await wantToLibrary(row, missing, f.came);
   $('cfSave').removeAttribute('aria-busy');
-  toast('Saved changes to ' + row.name);
+  toast('Saved changes to ' + row.name + toLib);
   location.hash = 'c=' + encodeURIComponent(c.id);
 }
 

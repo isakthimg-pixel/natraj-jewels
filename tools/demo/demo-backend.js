@@ -661,6 +661,18 @@ function rpc(name, a, me, headers){
     case 'bank_account_choices': return {status: 200, body: (canUse(me, 'expenses') || canUse(me, 'banking') || canUse(me, 'silver')) ? db.bank_accounts.filter(x => x.active).map(x => ({id: x.id, name: x.name, last4: x.last4})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'setup_needed': return {status: 200, body: !db.profiles.some(p => p.is_owner)};
     case 'login_names': return {status: 200, body: db.profiles.map(p => ({name: p.name, username: p.username})).sort((x, y) => x.name.localeCompare(y.name))};
+    case 'add_wanted_design': {
+      // a customer's "wanted but we didn't have" goes to the Design library as their request (migration 041)
+      if(!canUse(me, 'crm')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Customers.'}};
+      const want = String(a.p_want || '').trim(), c = db.customers.find(x => x.id === a.p_customer);
+      if(!want) return {status: 400, body: {code: '22023', message: 'Write what the customer wanted.'}};
+      if(!c) return {status: 400, body: {code: 'P0002', message: 'That customer no longer exists.'}};
+      const d = {id: uid(), kind: 'enquiry', metal: ['Gold', 'Silver', 'Diamond'].includes(a.p_metal) ? a.p_metal : 'Gold', category: String(a.p_category || '').slice(0, 40), purity: '', weight_g: null, size: '', qty: 1, budget: null,
+        customer_id: c.id, customer_name: c.name.slice(0, 80), customer_phone: String(c.phone || '').replace(/[^0-9+ ]/g, '').slice(0, 20), needed_by: null, supplier: '', notes: ('Wanted (customer form): ' + want).slice(0, 500), photos: [],
+        status: 'open', expected: null, ordered_at: null, received_at: null, closed_at: null, close_note: '', created_by: me.user_id, created_by_name: me.name, created_at: now(), updated_by_name: '', updated_at: null};
+      db.designs.push(d);
+      return {status: 200, body: d.id};
+    }
     case 'mjdta_rate': {
       // the demo has no internet reading; it answers like MJDTA would, a little off today's sample rate
       if(!canUse(me, 'rates')) return {status: 403, body: {code: '42501', message: 'Only the people who enter the rate can do this.'}};
