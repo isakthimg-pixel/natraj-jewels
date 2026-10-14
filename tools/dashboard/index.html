@@ -112,10 +112,8 @@
       <section class="card mod" data-mod="attendance">
         <div class="head"><h3>Attendance today</h3><a href="../attendance/">Open attendance ›</a></div>
         <div class="body" style="display:grid;gap:16px">
-          <div class="tally" aria-label="Attendance today">
-            <div class="p"><b id="sP">–</b><span>Present</span></div>
-            <div class="hm"><b id="sHM">–</b><span>Home</span></div>
-            <div class="t"><b id="sT">–</b><span>Thottam</span></div>
+          <div class="tally t4" aria-label="Attendance today">
+            <div class="p"><b id="sP">–</b><span>Present</span><span class="pb" id="sPB"></span></div>
             <div class="h"><b id="sH">–</b><span>Half day</span></div>
             <div class="lv"><b id="sLV">–</b><span>Leave</span></div>
             <div class="u"><b id="sU">–</b><span>Not marked</span></div>
@@ -201,7 +199,7 @@
 'use strict';
 const {sb, esc, must, toast, iso, parse, pad, todayIso} = NJ;
 const $ = id => document.getElementById(id);
-const WORKED = {P:1, HM:1, T:1, H:0.5};
+const WORKED = {P:1, SW:1, T:1, HM:1, H:0.5};
 const LEAVE = ['A','LA','WO'];
 const fmtD = d => parse(d).toLocaleDateString('en-IN',{weekday:'short', day:'numeric', month:'short'});
 const fmtDays = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
@@ -395,9 +393,10 @@ async function loadAttendance(){
 
   // today
   const todays = {}; att.filter(r => r.day === today && r.status).forEach(r => todays[r.staff_id] = r.status);
-  const c = {P:0,HM:0,T:0,H:0,LV:0,U:0};
-  active.forEach(x => { const k = todays[x.id]; c[!k ? 'U' : LEAVE.includes(k) ? 'LV' : k]++; });
+  const c = {P:0,H:0,LV:0,U:0}, pres = {P:0,SW:0,T:0,HM:0};
+  active.forEach(x => { const k = todays[x.id]; if(k in pres){ pres[k]++; c.P++; } else c[!k ? 'U' : LEAVE.includes(k) ? 'LV' : k]++; });
   Object.keys(c).forEach(k => $('s'+k).textContent = c[k]);
+  $('sPB').textContent = 'In shop ' + pres.P + ' · Shop work ' + pres.SW + ' · Thottam ' + pres.T + ' · Home ' + pres.HM;
   const missing = active.filter(x => !todays[x.id]);
   $('notMarked').innerHTML = missing.length ? missing.map(x => '<span>'+esc(x.name)+'</span>').join('') : '<small>Everyone is marked for today.</small>';
 
@@ -417,7 +416,7 @@ async function loadAttendance(){
     '<div class="bar-row" title="'+esc(r.name+': '+fmtDays(r.v)+' days worked, '+r.off+' days leave or absent')+'"><span class="nm">'+esc(r.name)+'</span>'+
     '<span class="track"><i style="width:'+(r.v/max*100).toFixed(1)+'%"></i></span><b>'+fmtDays(r.v)+'</b></div>').join('')
     : '<small>No staff yet.</small>';
-  $('barNote').textContent = 'Bars are out of the ' + daysSoFar + ' days so far this month. Present, Home and Thottam count as 1, Half day as ½.';
+  $('barNote').textContent = 'Bars are out of the ' + daysSoFar + ' days so far this month. Present, Shop work, Thottam and Home count as 1, Half day as ½.';
   $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN',{hour:'numeric', minute:'2-digit'});
 }
 

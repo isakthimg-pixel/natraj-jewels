@@ -76,7 +76,7 @@
       </div>
       <div class="card" id="card" hidden></div>
     </div>
-    <p class="keynote">Each staff member is a chess piece, from their designation in People &amp; settings: gate keeper a pawn, accountant and manager a rook, sales a bishop, all-rounders a knight. Drag to turn, pinch or scroll to zoom, tap a piece to follow it. Signed in on one of the three store computers (chosen in People &amp; settings, under devices): it stands at that computer and its gem glows gold. On a phone or any other device: a small screen floats in front of it. Not marked yet: it waits at the gate. At thottam: it tends the crops on the farm island. At home: it sits outside the house on the home island. Absent, on leave or week off: it rests on the bench on the small island.</p>
+    <p class="keynote">Each staff member is a chess piece, from their designation in People &amp; settings: gate keeper a pawn, accountant and manager a rook, sales a bishop, all-rounders a knight. Drag to turn, pinch or scroll to zoom, tap a piece to follow it. Signed in on one of the three store computers (chosen in People &amp; settings, under devices): it stands at that computer and its gem glows gold. On a phone or any other device: a small screen floats in front of it. Not marked yet: it waits at the gate. At thottam: it tends the crops on the farm island. At home: it sits outside the house on the home island. On shop work (bank, hallmarking, suppliers): it walks the streets of the city island. Absent, on leave or week off: it rests on the bench on the small island.</p>
     <div class="people" id="people"></div>
   </div>
 </main>
@@ -151,8 +151,8 @@ try{
 }
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(36, 1, .5, 500);
-const HOME = {pos: new THREE.Vector3(-24, 27, 27), target: new THREE.Vector3(5, -1, -3)};
-const HOME_NARROW = {pos: new THREE.Vector3(-22, 34, 30), target: new THREE.Vector3(2, -1, 1)};
+const HOME = {pos: new THREE.Vector3(-25, 33, 37), target: new THREE.Vector3(10, -1, 0)};
+const HOME_NARROW = {pos: new THREE.Vector3(-26, 50, 44), target: new THREE.Vector3(10, -1, 2)};
 camera.position.copy(HOME.pos);
 let controls = null;
 if(renderer){
@@ -503,6 +503,95 @@ for(const z of [1.75, 2.5, 3.15]) for(const x of [-3.1, -2.3, -1.5, 1.5, 2.3, 3.
 for(const z of [3.95, 4.6]) for(const x of [-1.2, -.4, .4, 1.2]) HOME_SPOTS.push([x, z]);
 for(const x of [-2.6, -3.4, 2.6, 3.4]) HOME_SPOTS.push([x, -.3]);
 
+/* ---------- the city island: shop work (the bank, hallmarking, suppliers, deliveries) ---------- */
+const city = island(7.2, 53);
+city.position.set(24, .8, 17);
+const cityFace = new THREE.Group(); city.add(cityFace);
+cityFace.rotation.y = Math.atan2(HOME.pos.x - city.position.x, HOME.pos.z - city.position.z);
+// windows look like glass by day and glow warm at night (lightFor turns them up)
+const cityGlow = new THREE.MeshStandardMaterial({color: 0x9CC7E0, emissive: 0xFFC65A, emissiveIntensity: 0, roughness: .3});
+const cars = [];
+{
+  const f = cityFace, r = rng(57);
+  add(f, new THREE.BoxGeometry(9.4, .06, 9.4), mat(0xD3CCBF), 0, .03, 0, false);                       // pavements
+  for(const rot of [0, Math.PI / 2]){
+    const road = new THREE.Group(); road.rotation.y = rot; f.add(road);
+    add(road, new THREE.BoxGeometry(9.4, .05, 1.3), mat(0x4B4A50), 0, .075, 0, false);
+    for(let x = -4.2; x <= 4.21; x += .7) if(Math.abs(x) > .9) add(road, new THREE.BoxGeometry(.32, .01, .06), mat(0xF4EFE4), x, .105, 0, false);
+    for(const sx of [-1, 1]) for(let i = 0; i < 5; i++) add(road, new THREE.BoxGeometry(.32, .01, .1), mat(0xF4EFE4), sx * 1.05, .105, -.45 + i * .225, false);   // zebra crossing
+  }
+  // a building with rows of windows on the sides that show
+  const building = (x, z, w, d, h, color, roof) => {
+    const b = new THREE.Group(); b.position.set(x, 0, z); f.add(b);
+    block(b, w, h, d, color, 0, .06, 0, {r: .04});
+    const floors = Math.max(1, Math.floor((h - .4) / .62)), cols = Math.max(1, Math.floor((w - .2) / .42)), rows = Math.max(1, Math.floor((d - .2) / .42));
+    for(let fl = 0; fl < floors; fl++){
+      const y = .5 + fl * .62;
+      for(let i = 0; i < cols; i++){ const wx = -w / 2 + (w / cols) * (i + .5); add(b, new THREE.BoxGeometry(.24, .32, .03), cityGlow, wx, y, d / 2 + .01, false); add(b, new THREE.BoxGeometry(.24, .32, .03), cityGlow, wx, y, -d / 2 - .01, false); }
+      for(let i = 0; i < rows; i++){ const wz = -d / 2 + (d / rows) * (i + .5); for(const sx of [-1, 1]) add(b, new THREE.BoxGeometry(.03, .32, .24), cityGlow, sx * (w / 2 + .01), y, wz, false); }
+    }
+    block(b, w + .1, .12, d + .1, roof || 0x6F6A66, 0, h + .02, 0, {r: .03});
+    return b;
+  };
+  // back left: two towers, a water tank and an aerial on top
+  const t1 = building(-3.1, -3.0, 1.5, 1.5, 5.2, 0x5E8C9A, 0x3F5F68);
+  add(t1, new THREE.CylinderGeometry(.28, .28, .5, 12), mat(0x9A8F86), .2, 5.6, .1); add(t1, new THREE.CylinderGeometry(.02, .02, .9, 4), mat(0x555555), -.4, 5.8, -.3);
+  building(-1.6, -3.4, 1.1, 1.2, 3.3, 0xF1E3C8, 0xB5523B);
+  building(-3.4, -1.55, 1.0, 1.0, 2.6, 0xE9B872, 0x8C5A2B);
+  // back right: the bank, with columns and steps
+  {
+    const bank = new THREE.Group(); bank.position.set(2.75, 0, -2.85); f.add(bank);
+    block(bank, 2.9, .16, 2.3, 0xE8E1D3, 0, .06, 0, {r: .02}); block(bank, 2.6, .12, 2.0, 0xEFE9DD, 0, .22, 0, {r: .02});
+    block(bank, 2.4, 1.9, 1.5, 0xF6F0E2, 0, .34, -.2, {r: .03});
+    for(let i = 0; i < 5; i++) add(bank, new THREE.CylinderGeometry(.09, .1, 1.6, 10), mat(0xFFFFFF), -1 + i * .5, 1.14, .75);
+    block(bank, 2.6, .22, 1.95, 0xEDE5D4, 0, 1.94, 0, {r: .02});
+    const ped = new THREE.Shape(); ped.moveTo(-1.35, 0); ped.lineTo(0, .55); ped.lineTo(1.35, 0); ped.lineTo(-1.35, 0);
+    add(bank, new THREE.ExtrudeGeometry(ped, {depth: .25, bevelEnabled: false}), mat(0xEDE5D4), 0, 2.16, .72);
+    const t = textTexture([{text: 'BANK', font: '800 60px ' + FONT, color: '#2E5AAC', x: 256, y: 66}], 512, 128, '#F6F0E2', {radius: 10});
+    const plate = add(bank, new THREE.PlaneGeometry(1.3, .32), new THREE.MeshBasicMaterial({map: t}), 0, 1.98, .99, false);
+    block(bank, .7, 1.0, .04, 0x3B2420, 0, .34, .56, {r: .02});
+  }
+  // front left: a row of shops with awnings; one is the hallmarking centre
+  {
+    const cols = [0xC98276, 0xE0A030, 0x2A9D8F];
+    for(let i = 0; i < 3; i++){
+      const x = -3.6 + i * 1.05, b = building(x, 2.85, 1.0, 1.5, 1.9 + (i % 2) * .6, [0xF5E6CC, 0xF8EFE2, 0xEADBC3][i], 0x8C5A2B);
+      const aw = add(b, new THREE.BoxGeometry(.98, .06, .45), mat(cols[i]), 0, 1.0, .95); aw.rotation.x = .3;
+    }
+    signBoard(f, 'Hallmark', -2.55, 4.05, '#845E22', '#FFF6DF');
+  }
+  // front right: an office tower and a small square with a tree
+  building(3.2, 2.2, 1.6, 1.4, 3.9, 0x8FB3D9, 0x4F6E91);
+  building(1.9, 3.5, 1.0, .9, 2.2, 0xF2C9A0, 0xB5523B);
+  tree(f, 3.6, 3.75, .8, 61); tree(f, -3.9, -4.05, .7, 62);
+  // street lamps at the corners of the crossing
+  const pole = mat(0x3B3B40), lampMat = new THREE.MeshStandardMaterial({color: 0xFFF2C8, emissive: 0xFFD27A, emissiveIntensity: .2});
+  for(const [x, z] of [[-.95, -.95], [.95, -.95], [-.95, .95], [.95, .95], [-4.1, .95], [4.1, -.95], [.95, -4.1], [-.95, 4.1]]){
+    add(f, new THREE.CylinderGeometry(.035, .045, 1.5, 6), pole, x, .8, z); add(f, new THREE.SphereGeometry(.1, 10, 8), lampMat, x, 1.58, z, false);
+  }
+  cityGlow.userData.lamp = lampMat;
+  // little cars driving round the crossing
+  const car = (color, axis, lane, speed, at) => {
+    const c = new THREE.Group(); f.add(c);
+    block(c, .62, .2, .32, color, 0, .12, 0, {r: .06}); block(c, .34, .16, .28, color, -.04, .32, 0, {r: .05});
+    add(c, new THREE.BoxGeometry(.3, .12, .3), mat(0xBFDDF0), -.04, .4, 0, false);
+    for(const [wx, wz] of [[-.2, -.17], [.2, -.17], [-.2, .17], [.2, .17]]) add(c, new THREE.CylinderGeometry(.07, .07, .05, 10), mat(0x222222), wx, .1, wz, false).rotation.x = Math.PI / 2;
+    cars.push({c, axis, lane, speed, at});
+  };
+  car(0xB3243A, 'x', .33, 1.3, -3); car(0x2E5AAC, 'x', -.33, -1.0, 2); car(0xE0A030, 'z', -.33, 1.1, 0); car(0xF4E8D0, 'z', .33, -.9, -2.5);
+  signBoard(f, 'Shop work', 4.25, 4.1, '#7A3B6A', '#FFF6DF');
+}
+// where staff on shop work stand: on the pavements along the two streets
+const CITY_SPOTS = [];
+for(const v of [-4.0, -3.1, -2.2, 2.2, 3.1, 4.0]) for(const side of [-.95, .95]){ CITY_SPOTS.push([v, side]); CITY_SPOTS.push([side, v]); }
+// walking in the city keeps to the streets: along one, round the corner, along the other
+function cityPath(from, to){
+  const onX = q => Math.abs(q[1]) < 1.3, onZ = q => Math.abs(q[0]) < 1.3;
+  if((onX(from) && onX(to)) || (onZ(from) && onZ(to))) return [facePoint('city', to)];
+  const corner = onX(from) ? [to[0], from[1]] : [from[0], to[1]];
+  return [facePoint('city', corner), facePoint('city', to)];
+}
+
 // clouds drifting by
 const clouds = [];
 {
@@ -665,9 +754,9 @@ function setLabel(p, line2, color){
 }
 
 /* ---------- moving people around ---------- */
-const ISLANDS = {shop, park, farm, home: homeIsl};
+const ISLANDS = {shop, park, farm, home: homeIsl, city};
 const islandOf = k => ISLANDS[k] || shop;
-const FACE = {park: parkFace, farm: farmFace, home: homeFace};
+const FACE = {park: parkFace, farm: farmFace, home: homeFace, city: cityFace};
 const UP = new THREE.Vector3(0, 1, 0);
 // positions on the small islands are in each island's turned frame
 const facePoint = (isl, xy) => { const v = new THREE.Vector3(xy[0], 0, xy[1]).applyAxisAngle(UP, FACE[isl].rotation.y); return [v.x, v.z]; };
@@ -675,7 +764,8 @@ const facePoint = (isl, xy) => { const v = new THREE.Vector3(xy[0], 0, xy[1]).ap
 const AWAYS = {
   bench: {isl: 'park', spots: BENCH, seats: 21},
   farm: {isl: 'farm', spots: FARM_SPOTS, seats: 0},
-  home: {isl: 'home', spots: HOME_SPOTS, seats: 3}
+  home: {isl: 'home', spots: HOME_SPOTS, seats: 3},
+  city: {isl: 'city', spots: CITY_SPOTS, seats: 0}
 };
 const islandFor = w => AWAYS[w.where] ? AWAYS[w.where].isl : 'shop';
 const awayPoint = p => facePoint(AWAYS[p.want.where].isl, AWAYS[p.want.where].spots[p.slot]);
@@ -700,7 +790,7 @@ function settle(p, first){
   const w = p.want, toIsl = islandFor(w);
   releaseAll(p);
   if(w.where === 'desk') p.deskIdx = w.desk;
-  if(AWAYS[w.where]) p.slot = freeSlot(p, w.where === 'farm');
+  if(AWAYS[w.where]) p.slot = freeSlot(p, w.where === 'farm' || w.where === 'city');
   if(w.where === 'wait') p.waitIdx = Math.max(0, free(WAIT, 'waitIdx', p));
   if(p.island && p.island !== toIsl && !first){ startHop(p, toIsl); return; }
   if(first || !p.island){
@@ -734,6 +824,7 @@ function arrive(p){
     const a = AWAYS[w.where]; p.angle = FACE[a.isl].rotation.y; p.seated = p.slot < a.seats;
     if(w.where === 'bench') p.pose = p.seated ? 'bench' : 'stand';
     else if(w.where === 'home') p.pose = p.seated ? 'porch' : 'stand';
+    else if(w.where === 'city'){ p.pose = 'stand'; p.mode = 'field'; p.wait = 4 + Math.random() * 8; }   // in the city: going from place to place
     else { p.pose = 'tend'; p.mode = 'field'; p.wait = 6 + Math.random() * 9; }   // on the farm: tending a row, then the next
   }
   else if(w.where === 'desk'){ const d = DESKS[p.deskIdx]; p.pos = d.seat.slice(); p.angle = d.face; p.pose = 'type'; }
@@ -802,7 +893,7 @@ function step(p, dt, t){
     if(p.wait <= 0){ const k = pickSpot(p); p.path = route(p.pos, k); p.mode = 'walk'; }
   } else if(p.mode === 'field'){
     p.wait -= dt;
-    if(p.wait <= 0){ p.slot = freeSlot(p, true); p.path = [awayPoint(p)]; p.mode = 'walk'; p.seated = false; }
+    if(p.wait <= 0){ const was = p.slot; p.slot = freeSlot(p, true); p.path = p.want.where === 'city' && was != null ? cityPath(CITY_SPOTS[was], CITY_SPOTS[p.slot]) : [awayPoint(p)]; p.mode = 'walk'; p.seated = false; }
   }
   if(p.mode !== 'walk') p.g.rotation.y = lerpA(p.g.rotation.y, p.angle, 1 - Math.exp(-dt * 6));
   else p.g.rotation.y = p.angle;
@@ -812,7 +903,7 @@ function step(p, dt, t){
 }
 
 /* ---------- live data: who is marked present, and who is signed in now ---------- */
-const WORK = {P: 'Present', H: 'Half day'}, AWAY = {HM: 'At home', T: 'At thottam'}, OFF = {A: 'Absent', LA: 'On leave', WO: 'Week off'};
+const WORK = {P: 'Present', H: 'Half day'}, CITY = {SW: 'On shop work'}, AWAY = {HM: 'At home', T: 'At thottam'}, OFF = {A: 'Absent', LA: 'On leave', WO: 'Week off'};
 let lastData = [], HOURS = {opens: '10:00', closes: '20:30'};
 // before opening, open, or after closing (shop time, India)
 function phase(){
@@ -867,6 +958,7 @@ function want(r, p){
     }
     return {where: 'shop', phone: true};
   }
+  if(CITY[r.code]) return {where: 'city'};
   if(WORK[r.code]) return {where: 'shop'};
   if(AWAY[r.code]) return {where: r.code === 'T' ? 'farm' : 'home'};
   if(OFF[r.code]) return {where: 'bench'};
@@ -883,6 +975,7 @@ function describe(r, w){
   if(w.where === 'desk') return ['Working · ' + app, '#2E7D4F'];
   if(w.phone) return ['On phone · ' + app, '#2E7D4F'];
   if(w.where === 'shop') return [WORK[r.code] || 'Present', '#8E2A2A'];
+  if(w.where === 'city') return ['On shop work', '#7A3B6A'];
   if(w.where === 'farm') return ['At thottam', '#3E7D3A'];
   if(w.where === 'home') return ['At home', '#3D5A99'];
   if(w.where === 'bench') return [OFF[r.code], '#B3261E'];
@@ -915,7 +1008,7 @@ function renderLists(rows){
   const n = k => rows.filter(r => { const p = people.get(r.id); return p && p.want && p.want.where === k; }).length;
   const online = rows.filter(r => r.online).length;
   $('counts').innerHTML = '<span><b>' + (n('shop') + n('desk')) + '</b> in the shop</span><span><b>' + online + '</b> signed in now</span>' +
-    '<span><b>' + n('wait') + '</b> not marked yet</span><span><b>' + (n('bench') + n('farm') + n('home')) + '</b> away today</span>';
+    '<span><b>' + n('city') + '</b> on shop work</span><span><b>' + n('wait') + '</b> not marked yet</span><span><b>' + (n('bench') + n('farm') + n('home')) + '</b> away today</span>';
   $('people').innerHTML = rows.map(r => { const p = people.get(r.id), w = p && p.want || {}, [l2] = describe(r, w);
     return '<button class="person" type="button" data-id="' + esc(r.id) + '" aria-pressed="' + (selected === r.id) + '"><i style="background:' + (p ? p.color : '#999') + '"></i><b>' + esc(r.name) + '</b><span>' + esc(PIECE_NAME[r.kind]) + ' · ' + esc(l2) + (r.online ? '' : ' · ' + r.presText) + '</span></button>'; }).join('');
 }
@@ -926,7 +1019,7 @@ function showCard(id){
   const p = people.get(id), card = $('card');
   if(!p){ card.hidden = true; return; }
   const r = p.info, [l2] = describe(r, p.want);
-  card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button><b>' + esc(r.name) + '</b><span>' + esc(PIECE_NAME[r.kind] + (r.designation ? ' · ' + r.designation : '')) + '</span><span>' + esc(l2) + '</span><span>Attendance today: ' + esc(WORK[r.code] || AWAY[r.code] || OFF[r.code] || 'not marked yet') + '</span><span>' + esc(r.presText) + (r.online && r.deviceName ? ' · on ' + r.deviceName : '') + '</span>';
+  card.innerHTML = '<button class="x" type="button" aria-label="Close">×</button><b>' + esc(r.name) + '</b><span>' + esc(PIECE_NAME[r.kind] + (r.designation ? ' · ' + r.designation : '')) + '</span><span>' + esc(l2) + '</span><span>Attendance today: ' + esc(WORK[r.code] || CITY[r.code] || AWAY[r.code] || OFF[r.code] || 'not marked yet') + '</span><span>' + esc(r.presText) + (r.online && r.deviceName ? ' · on ' + r.deviceName : '') + '</span>';
   card.hidden = false;
 }
 function select(id){
@@ -964,6 +1057,7 @@ function lightFor(k){
   sun.color.copy(DAY.sun[0]).lerp(NIGHT.sun[0], k); sun.intensity = DAY.sun[1] + (NIGHT.sun[1] - DAY.sun[1]) * k;   // the sun becomes moonlight
   fill.intensity = DAY.fill + (NIGHT.fill - DAY.fill) * k;
   stars.material.opacity = k * .9;
+  cityGlow.emissiveIntensity = k * 1.1; cityGlow.userData.lamp.emissiveIntensity = .2 + k * 1.6;
   if(clouds[0]) clouds[0].children[0].material.color.copy(DAY.cloud).lerp(NIGHT.cloud, k);
 }
 const clock = new THREE.Clock();
@@ -986,6 +1080,9 @@ function tick(){
   park.position.y = -1.2 + Math.sin(t * .55 + 1) * (reduce ? 0 : .16);
   farm.position.y = .6 + Math.sin(t * .5 + 2) * (reduce ? 0 : .15);
   homeIsl.position.y = -.6 + Math.sin(t * .6 + 3) * (reduce ? 0 : .15);
+  city.position.y = .8 + Math.sin(t * .52 + 4) * (reduce ? 0 : .15);
+  if(!reduce) cars.forEach(k => { k.at += k.speed * dt; if(k.at > 4.5) k.at = -4.5; if(k.at < -4.5) k.at = 4.5;
+    if(k.axis === 'x'){ k.c.position.set(k.at, 0, k.lane); k.c.rotation.y = k.speed > 0 ? 0 : Math.PI; } else { k.c.position.set(k.lane, 0, k.at); k.c.rotation.y = k.speed > 0 ? -Math.PI / 2 : Math.PI / 2; } });
   if(!reduce) clouds.forEach(c => { const a = c.userData.v * dt * .012; const x = c.position.x, z = c.position.z; c.position.x = x * Math.cos(a) - z * Math.sin(a); c.position.z = x * Math.sin(a) + z * Math.cos(a); });
   people.forEach(p => { step(p, dt, t); pose(p, dt, t); });
   const nk = night ? 1 : 0; if(Math.abs(nk - nightK) > .001){ nightK += (nk - nightK) * (1 - Math.exp(-dt * 1.2)); lightFor(nightK); }

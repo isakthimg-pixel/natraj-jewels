@@ -129,7 +129,7 @@
 'use strict';
 const {sb, esc, must, toast, ask, iso, parse, todayIso} = NJ;
 const $ = id => document.getElementById(id);
-const WORKED = {P: 1, HM: 1, T: 1, H: 0.5};
+const WORKED = {P: 1, SW: 1, T: 1, HM: 1, H: 0.5};
 const RATINGS = [['punctual', 'Punctuality'], ['service', 'Customer service'], ['team', 'Teamwork'], ['knowledge', 'Product knowledge'], ['discipline', 'Neatness & discipline']];
 let month = todayIso().slice(0, 7), staff = [], profiles = [], cards = [], data = null, metricsBy = {}, cur = null, ratings = {};
 

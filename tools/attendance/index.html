@@ -49,10 +49,8 @@
         <span class="grow"></span>
         <button class="btn btn-maroon" id="dAllPresent">Mark unmarked as present</button>
       </div>
-      <div class="tally">
-        <div class="p"><b id="sP">0</b><span>Present</span></div>
-        <div class="hm"><b id="sHM">0</b><span>Home</span></div>
-        <div class="t"><b id="sT">0</b><span>Thottam</span></div>
+      <div class="tally t4">
+        <div class="p"><b id="sP">0</b><span>Present</span><span class="pb" id="sPB"></span></div>
         <div class="h"><b id="sH">0</b><span>Half day</span></div>
         <div class="lv"><b id="sLV">0</b><span>Leave</span></div>
         <div class="u"><b id="sU">0</b><span>Not marked</span></div>
@@ -127,16 +125,18 @@ const $ = id => document.getElementById(id);
 /* attendance categories: code = what the register shows, worked = days counted for salary,
    leave = shown together under the Leave button */
 const STATUS = {
-  P:  {label:'Present',       code:'P',  worked:1},
-  HM: {label:'Home',          code:'Hm', worked:1},
-  T:  {label:'Thottam',       code:'T',  worked:1},
+  P:  {label:'Present',       code:'P',  worked:1, present:true, menu:'In shop'},
+  SW: {label:'Shop work',     code:'SW', worked:1, present:true},
+  T:  {label:'Thottam',       code:'T',  worked:1, present:true},
+  HM: {label:'Home',          code:'Hm', worked:1, present:true},
   H:  {label:'Half day',      code:'½',  worked:0.5},
   A:  {label:'Absent',        code:'A',  worked:0, leave:true},
   LA: {label:'Leave applied', code:'LA', worked:0, leave:true},
   WO: {label:'Week off',      code:'WO', worked:0, leave:true}
 };
 const ORDER = Object.keys(STATUS);
-const MAIN = ORDER.filter(k => !STATUS[k].leave);
+const PRESENT = ORDER.filter(k => STATUS[k].present);   // marked under the Present button: in shop, shop work, thottam, home
+const MAIN = ORDER.filter(k => !STATUS[k].leave && !STATUS[k].present);
 const LEAVE = ORDER.filter(k => STATUS[k].leave);
 const LABEL = k => (STATUS[k]||{}).label || '';
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -213,7 +213,7 @@ function pick(anchor, keys, current, withClear){
   closeMenu();
   const m = document.createElement('div');
   m.className = 'menu'; m.setAttribute('role','menu');
-  m.innerHTML = keys.map(k => '<button role="menuitem" data-k="'+k+'" data-s="'+k+'" aria-current="'+(k===current)+'"><i>'+STATUS[k].code+'</i>'+STATUS[k].label+'</button>').join('') +
+  m.innerHTML = keys.map(k => '<button role="menuitem" data-k="'+k+'" data-s="'+k+'" aria-current="'+(k===current)+'"><i>'+STATUS[k].code+'</i>'+(STATUS[k].menu||STATUS[k].label)+'</button>').join('') +
     (withClear && current ? '<hr><button role="menuitem" data-k=""><i>–</i>Clear</button>' : '');
   document.body.appendChild(m);
   const r = anchor.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
@@ -275,9 +275,10 @@ async function renderDay(reload){
   if(reload){ await Promise.all([loadRange(curDate, curDate), loadLeaves()]); updateLeaveCount(); }
   $('dDate').value = curDate;
   const list = sortStaff(staffFor(curDate));
-  const counts = {P:0,HM:0,T:0,H:0,LV:0,U:0};
-  list.forEach(s => { const k = (rec(curDate,s.id)||{}).status; counts[!k ? 'U' : STATUS[k].leave ? 'LV' : k]++; });
+  const counts = {P:0,H:0,LV:0,U:0}, pres = {P:0,SW:0,T:0,HM:0};
+  list.forEach(s => { const k = (rec(curDate,s.id)||{}).status; if(STATUS[k] && STATUS[k].present){ pres[k]++; counts.P++; } else counts[!k ? 'U' : STATUS[k].leave ? 'LV' : k]++; });
   Object.keys(counts).forEach(k => $('s'+k).textContent = counts[k]);
+  $('sPB').textContent = PRESENT.map(k => (STATUS[k].menu || STATUS[k].label) + ' ' + pres[k]).join(' · ');
 
   const d = parse(curDate);
   $('dTitle').textContent = d.toLocaleDateString('en-IN',{weekday:'long', day:'numeric', month:'long', year:'numeric'});
@@ -300,6 +301,9 @@ async function renderDay(reload){
     return '<div class="row" data-id="'+esc(s.id)+'">'+
       '<div class="who"><b>'+esc(s.name)+'</b><span>'+esc(s.designation||'')+(s.active?'':' · inactive')+'</span>'+by+pend+'</div>'+
       '<div class="seg" role="group" aria-label="Status for '+esc(s.name)+'">'+
+        (STATUS[st] && STATUS[st].present
+          ? '<button type="button" data-present data-s="'+st+'" aria-pressed="true" aria-haspopup="menu" title="Present: '+(STATUS[st].menu||STATUS[st].label)+'">'+STATUS[st].label+' ▾</button>'
+          : '<button type="button" data-present data-s="P" aria-pressed="false" aria-haspopup="menu">Present ▾</button>')+
         MAIN.map(k => '<button type="button" data-s="'+k+'" aria-pressed="'+(st===k)+'">'+STATUS[k].label+'</button>').join('')+
         (STATUS[st] && STATUS[st].leave
           ? '<button type="button" class="lv" data-leave data-s="'+st+'" aria-pressed="true" aria-haspopup="menu">'+STATUS[st].label+'</button>'
@@ -316,8 +320,8 @@ $('dayList').addEventListener('click', async e => {
   const sb2 = e.target.closest('.seg button'); if(!sb2) return;
   const cur = (rec(curDate,id)||{}).status;
   let next;
-  if(sb2.hasAttribute('data-leave')){
-    const k = await pick(sb2, LEAVE, cur, true);
+  if(sb2.hasAttribute('data-present') || sb2.hasAttribute('data-leave')){
+    const k = await pick(sb2, sb2.hasAttribute('data-present') ? PRESENT : LEAVE, cur, true);
     if(k === null) return;
     next = k || null;
   } else next = cur === sb2.dataset.s ? null : sb2.dataset.s;
@@ -484,7 +488,7 @@ $('mCsv').onclick = () => {
   NJ.download('natraj-attendance-'+curMonth+'.csv', '﻿'+rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 };
 $('legend').innerHTML = ORDER.map(k => '<span><i data-s="'+k+'">'+STATUS[k].code+'</i>'+STATUS[k].label+'</span>').join('') +
-  '<span><i></i>Weekly holiday (shaded)</span><p>Tap a cell to change it. “Days” counts Present, Home and Thottam as 1 and Half day as ½.</p>';
+  '<span><i></i>Weekly holiday (shaded)</span><p>Tap a cell to change it. “Days” counts Present, Shop work, Thottam and Home as 1 and Half day as ½.</p>';
 
 /* ---------- start ---------- */
 // keep the screen up to date when several devices are marking
