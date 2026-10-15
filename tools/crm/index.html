@@ -192,6 +192,7 @@
         <div class="field"><span>Bought today?</span><div class="bubbles" id="cfBought" role="group" aria-label="Bought today">
           <button type="button" class="bubble" data-b="yes" aria-pressed="false">Yes, bought</button>
           <button type="button" class="bubble" data-b="no" aria-pressed="false">Just looking</button></div></div>
+        <label id="cfWhyL" hidden>Why didn’t they buy?<input class="input" id="cfWhy" maxlength="200" placeholder="e.g. Price too high, wanted lighter weight, coming back with family"></label>
         <label>Looking for<input class="input" id="cfLook" maxlength="200" placeholder="e.g. Light-weight bridal necklace"></label>
         <div class="two">
           <label>Family function in the next 12 months<input class="input" type="month" id="cfFnMonth"></label>
@@ -240,6 +241,7 @@
         <div class="icard"><h3>Came for</h3><div class="hbars" id="iFor"></div></div>
         <div class="icard"><h3>Service rating</h3><div class="hbars" id="iStars"></div></div>
         <div class="icard" style="grid-column:1/-1"><h3>Wanted, but we didn’t have</h3><div class="wants" id="iWants"></div></div>
+        <div class="icard" style="grid-column:1/-1"><h3>Why they didn’t buy</h3><div class="hbars" id="iWhy"></div></div>
         <div class="icard" style="grid-column:1/-1"><h3>Just looking: still to win</h3><div class="wants" id="iLooking"></div></div>
       </div>
     </div>
@@ -493,7 +495,7 @@ function visitLines(a){
   const out = [];
   if((a.came_for || []).length) out.push('<b>Came for</b> ' + esc(a.came_for.join(', ')));
   if(a.bought === true) out.push('<b>Bought</b>' + (a.looking_for ? ' · ' + esc(a.looking_for) : ''));
-  else if(a.bought === false) out.push('<b>Just looking</b>' + (a.looking_for ? ' for ' + esc(a.looking_for) : ''));
+  else if(a.bought === false) out.push('<b>Just looking</b>' + (a.looking_for ? ' for ' + esc(a.looking_for) : '') + (a.why_not ? ' · didn’t buy: ' + esc(a.why_not) : ''));
   else if(a.looking_for) out.push('<b>Looking for</b> ' + esc(a.looking_for));
   if(a.rating) out.push('<b>Service</b> ' + '★'.repeat(a.rating) + '☆'.repeat(5 - a.rating));
   if(a.missing) out.push('<b>Wanted, we didn’t have</b> ' + esc(a.missing));
@@ -648,7 +650,7 @@ $('cfStars').innerHTML = [1, 2, 3, 4, 5].map(n => '<button type="button" data-r=
 const pressed = id => [...$(id).querySelectorAll('[aria-pressed="true"]')].map(b => b.dataset.v);
 $('cfFor').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
 $('cfHeard').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(!b) return; const on = b.getAttribute('aria-pressed') !== 'true'; $('cfHeard').querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', on && x === b)); });
-$('cfBought').addEventListener('click', e => { const b = e.target.closest('[data-b]'); if(!b) return; cfBought = cfBought === b.dataset.b ? null : b.dataset.b; $('cfBought').querySelectorAll('[data-b]').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === cfBought)); });
+$('cfBought').addEventListener('click', e => { const b = e.target.closest('[data-b]'); if(!b) return; cfBought = cfBought === b.dataset.b ? null : b.dataset.b; $('cfBought').querySelectorAll('[data-b]').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === cfBought)); $('cfWhyL').hidden = cfBought !== 'no'; if(cfBought === 'no') $('cfWhy').focus(); });
 $('cfStars').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if(!b) return; cfRating = cfRating === Number(b.dataset.r) ? 0 : Number(b.dataset.r); paintStars(); });
 function paintStars(){ $('cfStars').querySelectorAll('[data-r]').forEach(b => b.classList.toggle('on', Number(b.dataset.r) <= cfRating)); }
 async function formReady(){
@@ -691,7 +693,7 @@ $('cfPhone').addEventListener('input', () => {
   }
 });
 function clearForm(){
-  ['cfPhone', 'cfName', 'cfArea', 'cfPin', 'cfLook', 'cfFnMonth', 'cfFnNote', 'cfMissing', 'cfAlt', 'cfAddr', 'cfNotes'].forEach(id => $(id).value = '');
+  ['cfPhone', 'cfName', 'cfArea', 'cfPin', 'cfLook', 'cfFnMonth', 'cfFnNote', 'cfMissing', 'cfAlt', 'cfAddr', 'cfNotes', 'cfWhy'].forEach(id => $(id).value = ''); $('cfWhyL').hidden = true;
   setDMY('cfB', ''); setDMY('cfA', '');
   ['cfFor', 'cfHeard', 'cfBought', 'cfTags'].forEach(id => $(id).querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')));
   $('cfWaOn').checked = true; $('cfWaOk').checked = false; $('cfFu').checked = true;
@@ -729,6 +731,7 @@ async function openEdit(id){
   press('cfFor', v.came_for || []);
   cfBought = v.bought === true ? 'yes' : v.bought === false ? 'no' : null;
   $('cfBought').querySelectorAll('[data-b]').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === cfBought));
+  $('cfWhy').value = v.why_not || ''; $('cfWhyL').hidden = cfBought !== 'no';
   $('cfLook').value = v.looking_for || '';
   $('cfFnMonth').value = c.function_month || ''; $('cfFnNote').value = c.function_note || '';
   if(c.source && !SOURCES.includes(c.source)) $('cfHeard').insertAdjacentHTML('beforeend', '<button type="button" class="bubble" data-v="' + esc(c.source) + '" aria-pressed="false">' + esc(c.source) + '</button>');
@@ -782,7 +785,7 @@ $('cf').addEventListener('submit', async e => {
     const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
     const summary = ['Form' + (came.length ? ': came for ' + came.join(', ') : ''), cfBought === 'yes' ? 'bought' : cfBought === 'no' ? 'just looking' : '', look].filter(Boolean).join(' · ');
     must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'visit', body: summary.slice(0, 500), visit_day: day, came_for: came,
-      bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, rating: cfRating || null, missing, served_by: $('cfServed').value}).select());
+      bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: $('cfServed').value}).select());
     if(cfBought === 'no' && $('cfFu').checked){
       const f = must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'followup', body: 'Call back' + (look ? ' about ' + look : ' after their visit'), due: addDays(todayIso(), 7), assigned_to: NJ.me.user_id}).select().single());
       follows.push(f); follows.sort((a, b) => a.due.localeCompare(b.due)); badge();
@@ -809,7 +812,7 @@ async function saveEdit(f){
   const row = must(await sb.from('customers').update(data).eq('id', c.id).select().single());
   Object.assign(c, row); customers.sort((a, b) => a.name.localeCompare(b.name));
   const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
-  const visit = {visit_day: f.day, came_for: f.came, bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, rating: cfRating || null, missing, served_by: $('cfServed').value,
+  const visit = {visit_day: f.day, came_for: f.came, bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: $('cfServed').value,
     body: ['Form' + (f.came.length ? ': came for ' + f.came.join(', ') : ''), cfBought === 'yes' ? 'bought' : cfBought === 'no' ? 'just looking' : '', look].filter(Boolean).join(' · ').slice(0, 500)};
   if(cfVisit) must(await sb.from('customer_activity').update(visit).eq('id', cfVisit.id).select());
   else if(f.came.length || cfBought || look || cfRating || missing) must(await sb.from('customer_activity').insert(Object.assign({customer_id: c.id, kind: 'visit'}, visit)).select());
@@ -850,7 +853,11 @@ async function loadInsights(){
   const wants = visits.filter(v => v.missing);
   $('iWants').innerHTML = wants.length ? wants.map(v => line(v, v.missing)).join('') : '<p class="axisnote">Nothing noted. Ask every customer this question: it tells you what to stock.</p>';
   const looking = visits.filter(v => v.bought === false);
-  $('iLooking').innerHTML = looking.length ? looking.map(v => line(v, v.looking_for || 'Just looking')).join('') : '<p class="axisnote">No “just looking” forms in this period.</p>';
+  // the reasons, grouped by their usual words so the same reason adds up
+  const WHY = [[/price|cost|rate|budget|costly|expensive|vilai/i, 'Price / budget'], [/weight|heavy|light|gram/i, 'Weight'], [/design|model|pattern|collection|stock|variety/i, 'Design / choice'],
+    [/family|husband|wife|parents|back|later|come again|think/i, 'Coming back / asking family'], [/compar|other shop|elsewhere|online/i, 'Comparing shops'], [/size|length|fit/i, 'Size']];
+  hbars($('iWhy'), tally(looking.filter(v => v.why_not), v => { const h = WHY.find(([re]) => re.test(v.why_not)); return h ? h[1] : 'Other'; }));
+  $('iLooking').innerHTML = looking.length ? looking.map(v => line(v, (v.looking_for || 'Just looking') + (v.why_not ? ' — didn’t buy: ' + v.why_not : ''))).join('') : '<p class="axisnote">No “just looking” forms in this period.</p>';
 }
 
 document.addEventListener('visibilitychange', () => {

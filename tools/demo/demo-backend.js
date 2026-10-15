@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v37';
+const KEY = 'natraj-demo-db-v38';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -160,15 +160,15 @@ function seed(){
   act(C[0], 'followup', 'Tell her the new antique bangles have arrived', today, 'open', manager);
   act(C[3], 'followup', 'Diamond earrings: confirm the size and send photos', addDays(today, 2), 'open', owner);
   act(C[4], 'followup', 'Bridal trial visit with family', addDays(today, 9), 'open', manager);
-  const visit = (c, ago, came, bought, look, rating, missing, served) => act(c, 'visit', 'Form', null, 'done', manager,
-    {assigned_to: null, assigned_name: '', visit_day: addDays(today, -ago), came_for: came, bought, looking_for: look, rating, missing, served_by: served, outcome: ''});
+  const visit = (c, ago, came, bought, look, rating, missing, served, why) => act(c, 'visit', 'Form', null, 'done', manager,
+    {assigned_to: null, assigned_name: '', visit_day: addDays(today, -ago), came_for: came, bought, looking_for: look, rating, missing, why_not: why || '', served_by: served, outcome: ''});
   visit(C[0], 2, ['Gold', 'Daily wear'], true, 'Antique bangles', 5, '', 'Sample Staff 2');
-  visit(C[1], 5, ['Gold', 'Wedding'], false, 'Temple bridal set', 4, 'Lighter bridal necklace under 40 g', 'Sample Manager');
+  visit(C[1], 5, ['Gold', 'Wedding'], false, 'Temple bridal set', 4, 'Lighter bridal necklace under 40 g', 'Sample Manager', 'Too heavy for her budget');
   visit(C[2], 8, ['Silver', 'Gift'], true, 'Silver pooja set', 5, '', 'Sample Staff 3');
-  visit(C[3], 11, ['Diamond'], false, 'Diamond studs', 3, 'Solitaire above 30 cents', 'Sample Manager');
-  visit(C[4], 14, ['Gold', 'Wedding'], false, 'Bridal set and kasu mala', 4, '', 'Sample Staff 2');
+  visit(C[3], 11, ['Diamond'], false, 'Diamond studs', 3, 'Solitaire above 30 cents', 'Sample Manager', 'Comparing with another shop');
+  visit(C[4], 14, ['Gold', 'Wedding'], false, 'Bridal set and kasu mala', 4, '', 'Sample Staff 2', 'Coming back with family on Sunday');
   visit(C[5], 20, ['Gold', 'Investment'], true, 'Gold coins', 4, '', 'Sample Staff 3');
-  visit(C[6], 26, ['Gold', 'Gift'], false, 'Kids’ chain', 3, '22K kids’ chain under 4 g', 'Sample Staff 2');
+  visit(C[6], 26, ['Gold', 'Gift'], false, 'Kids’ chain', 3, '22K kids’ chain under 4 g', 'Sample Staff 2', 'Price above budget');
   act(C[5], 'followup', 'Old gold exchange rate check', addDays(today, -6), 'done', manager, {outcome: 'Came in, exchanged 18 g.'});
   // design library: customer enquiries and restock at every stage, with drawn sample photos (see samplePhoto)
   const at = (n, h) => addDays(today, n) + 'T' + (h || '11') + ':00:00Z';
@@ -1003,7 +1003,7 @@ function crmRest(table, method, params, body, single, wantRows, me){
   else if(method === 'POST'){
     const base = table === 'customers'
       ? {phone: '', alt_phone: '', area: '', address: '', birthday: null, anniversary: null, tags: [], source: '', notes: '', pincode: '', whatsapp_on_phone: true, whatsapp_ok: false, function_month: '', function_note: '', updated_by_name: '', updated_at: null}
-      : {due: null, status: 'open', outcome: '', assigned_to: null, assigned_name: '', done_at: null, done_by_name: '', came_for: [], bought: null, looking_for: '', rating: null, missing: '', served_by: '', visit_day: null};
+      : {due: null, status: 'open', outcome: '', assigned_to: null, assigned_name: '', done_at: null, done_by_name: '', came_for: [], bought: null, looking_for: '', rating: null, missing: '', why_not: '', served_by: '', visit_day: null};
     out = (Array.isArray(body) ? body : [body]).map(b => fix(Object.assign({id: uid()}, base, b, {created_by: me.user_id, created_by_name: me.name, created_at: nowIso})));
     db[table].push(...out);
   } else if(method === 'PATCH'){
