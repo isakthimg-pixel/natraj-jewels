@@ -496,7 +496,29 @@ function people(body, me, headers){
 /* database functions */
 /* migration 026: devices staff can use (the demo keeps the key itself; the real database keeps only a hash) */
 const devKey = h => { const k = (h && h.get && h.get('x-natraj-device')) || ''; return k.length >= 32 ? k : null; };
-const deviceOk = (me, h) => aalOk(h) && (!db.settings[0].device_lock || (me && me.is_owner) || db.approved_devices.some(d => d.key_hash === devKey(h)));
+/* migration 045: staff limited to shop hours and to days they are marked present (when the owner switches it on) */
+const istNow = () => { const d = new Date(Date.now() + 330 * 60000); return {day: d.toISOString().slice(0, 10), time: d.toISOString().slice(11, 16)}; };
+function workOk(me){
+  if(!me || me.is_owner) return true;
+  const st = db.settings[0], n = istNow();
+  if(!st.signin_limit || me.signin_day === n.day) return true;
+  const o = String(st.shop_opens || '10:00').slice(0, 5), c = String(st.shop_closes || '20:30').slice(0, 5);
+  if(n.time < o || n.time >= c) return false;
+  const a = db.attendance.find(r => r.staff_id === me.staff_id && r.day === n.day);
+  return (me.apps || []).includes('attendance') || !!(a && ['P', 'SW', 'T', 'HM', 'H'].includes(a.status));
+}
+function loginCheck(me){
+  const st = db.settings[0], n = istNow();
+  if(workOk(me)){ if(!me.is_owner) me.signin_day = n.day; return {ok: true}; }
+  const o = String(st.shop_opens || '10:00').slice(0, 5), c = String(st.shop_closes || '20:30').slice(0, 5);
+  const t = v => new Date('2000-01-01T' + v).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
+  if(n.time < o || n.time >= c) return {ok: false, reason: 'The shop is closed now. Staff can sign in from ' + t(o) + ' to ' + t(c) + '.'};
+  const a = db.attendance.find(r => r.staff_id === me.staff_id && r.day === n.day);
+  if(a && ['A', 'LA', 'WO'].includes(a.status)) return {ok: false, reason: 'You are marked ' + {A: 'absent', LA: 'on leave', WO: 'on week off'}[a.status] + ' today, so you cannot sign in.'};
+  const markers = db.profiles.filter(p => !p.is_owner && (p.apps || []).includes('attendance')).map(p => p.name).sort();
+  return {ok: false, reason: 'Your attendance is not marked yet today. Ask ' + (markers.length ? markers.join(', ') + ' or the owner' : 'the owner') + ' to mark you present, then sign in again.'};
+}
+const deviceOk = (me, h) => aalOk(h) && workOk(me) && (!db.settings[0].device_lock || (me && me.is_owner) || db.approved_devices.some(d => d.key_hash === devKey(h)));
 /* migration 029: changes to older days, asked by staff and approved by the owner */
 const CT = {expenses: ['expenses', ['day','amount','category','mode','account_id','paid_to','note','period_from','period_to','gst_claimable','gst_rate','gstin','bill_no']],
   banking: ['bank_entries', ['account_id','day','direction','amount','method','party','reference','note','for_chit']],
@@ -643,7 +665,7 @@ function rpc(name, a, me, headers){
     const d = db.approved_devices.find(x => x.key_hash === k); if(d) d.name = nm; else db.approved_devices.push({id: uid(), name: nm, key_hash: k, approved_by_name: me.name, created_at: now(), last_seen_at: null});
     return rpc('device_status', {}, me, headers);
   }
-  if(me && !deviceOk(me, headers) && !['login_names', 'setup_needed', 'leave_staff', 'request_leave', 'presence_out', 'heartbeat'].includes(name)) return {status: 403, body: {code: '42501', message: 'permission denied'}};
+  if(me && !deviceOk(me, headers) && !['login_names', 'setup_needed', 'leave_staff', 'request_leave', 'presence_out', 'heartbeat', 'login_check'].includes(name)) return {status: 403, body: {code: '42501', message: 'permission denied'}};
   if(name === 'heartbeat' && me && !deviceOk(me, headers)) a = Object.assign({}, a, {p_page: 'Not approved device'});
   if(name === 'heartbeat' && me){ const d = db.approved_devices.find(x => x.key_hash === devKey(headers)); if(d) d.last_seen_at = now(); }
   const pg = message => ({status: 400, body: {code: '22023', message, details: null, hint: null}});
@@ -674,6 +696,7 @@ function rpc(name, a, me, headers){
         return {status: 200, body: r.body.id};
       } finally { linkBank = null; }
     }
+    case 'login_check': return {status: 200, body: me ? loginCheck(me) : {ok: false, reason: 'Sign in first.'}};
     case 'add_wanted_design': {
       // a customer's "wanted but we didn't have" goes to the Design library as their request (migration 041)
       if(!canUse(me, 'crm')) return {status: 403, body: {code: '42501', message: 'Ask the owner for access to Customers.'}};

@@ -208,6 +208,9 @@ async function signInWith(username, pin){
     if(/invalid login|invalid credentials/i.test(error.message)) return 'That PIN is not right. Try again.';
     return friendly(error);
   }
+  // staff may be limited to shop hours and to days they are marked present (People & settings)
+  const L = await sb.rpc('login_check');
+  if(L.data && L.data.ok === false){ await sb.auth.signOut(); return L.data.reason; }
   return '';
 }
 
@@ -387,6 +390,11 @@ async function loadMe(session){
   const r = await sb.from('profiles').select('*').eq('user_id', session.user.id).maybeSingle();
   me = r.data || null;
   if(!me && !r.error){ await sb.auth.signOut(); }   // account was removed
+  // staff outside shop hours or not marked present today (when the owner has switched that on): sign out and say why
+  if(me && !me.is_owner){
+    const L = await sb.rpc('login_check');
+    if(L.data && L.data.ok === false){ me = null; await sb.auth.signOut(); setTimeout(() => ask('You can’t use the apps now', L.data.reason, 'OK', false), 0); return; }
+  }
   // staff on a device the owner has not approved, while the lock is on: the database gives them nothing
   blocked = false;
   if(me && !me.is_owner){ const d = await sb.rpc('device_status'); blocked = !!(d.data && d.data.ok === false); blockedInfo = d.data || {}; }

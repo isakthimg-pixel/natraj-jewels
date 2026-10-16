@@ -127,6 +127,8 @@
           </label>
         </div>
         <div class="bar"><button class="btn btn-maroon" type="button" id="hoursSave">Save</button></div>
+        <label class="field check"><input type="checkbox" id="signinLimit"> Staff sign in only during shop hours, on days they are marked present</label>
+        <p class="axisnote" id="signinNote" style="font-size:.85rem;margin:0">Present means Present, Shop work, Thottam, Home or Half day. Staff with the Attendance app can sign in during shop hours before they are marked, to mark everyone. Anyone who signed in today can finish their work after closing. You are never limited.</p>
       </div>
       <div class="form panel" id="tsPanel">
         <h3>Two-step sign-in</h3>
@@ -194,6 +196,7 @@ async function load(){
   $('rateDue').value = String(set.rate_due || '10:30').slice(0, 5);
   $('shopOpens').value = String(set.shop_opens || '10:00').slice(0, 5);
   $('shopCloses').value = String(set.shop_closes || '20:30').slice(0, 5);
+  $('signinLimit').checked = !!set.signin_limit;
 }
 function render(){
   if(curTab === 'people') renderPeople();
@@ -428,6 +431,17 @@ $('hoursSave').onclick = async () => {
   try{ must(await sb.from('settings').update({shop_opens: o, shop_closes: c}).eq('id', 1)); toast('Shop hours: ' + t(o) + ' to ' + t(c)); }
   catch(x){ toast(x.message); }
 };
+$('signinLimit').addEventListener('change', async e => {
+  const on = e.target.checked;
+  if(on){
+    const markers = profiles.filter(p => !p.is_owner && (p.apps || []).includes('attendance')).map(p => p.name);
+    if(!await ask('Limit staff sign-in?', 'From now on, staff can sign in only between the shop hours above, and only on days they are marked present in Attendance.' +
+      '\n\n' + (markers.length ? markers.join(', ') + (markers.length > 1 ? ' have' : ' has') + ' the Attendance app, so they can sign in each morning to mark everyone.' : 'Nobody but you has the Attendance app, so you will need to mark everyone present each morning before they can sign in.') +
+      '\n\nStaff signed in now who are not marked present today lose access straight away.', 'Switch on')){ e.target.checked = false; return; }
+  }
+  try{ must(await sb.from('settings').update({signin_limit: on}).eq('id', 1)); toast(on ? 'Staff sign-in is now limited' : 'Staff can sign in at any time'); }
+  catch(x){ e.target.checked = !on; toast(x.message); }
+});
 $('rateSave').onclick = async () => {
   try{ must(await sb.from('settings').update({rate_due: $('rateDue').value || '10:30'}).eq('id', 1)); toast('The daily rate is due by ' + $('rateDue').value); }
   catch(x){ toast(x.message); }
