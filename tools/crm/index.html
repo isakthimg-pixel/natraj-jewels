@@ -176,8 +176,8 @@
       <form class="form cform" id="cf" autocomplete="off" novalidate>
         <div class="two">
           <label>Date on the form<input class="input" type="date" id="cfDay"></label>
-          <label>Served by<select class="input" id="cfServed"></select></label>
         </div>
+        <div class="field"><span>Sales staff who handled this customer (tap everyone who helped)</span><div class="bubbles" id="cfServed" role="group" aria-label="Sales staff"></div></div>
         <label>Mobile number<input class="input" id="cfPhone" type="tel" inputmode="numeric" maxlength="20" placeholder="10 digits"></label>
         <p class="match" id="cfMatch" hidden></p>
         <label class="check"><input type="checkbox" id="cfWaOn" checked> WhatsApp on this number</label>
@@ -644,6 +644,15 @@ const getDMY = id => { const d = $(id + 'D').value, m = $(id + 'M').value, y = $
 const setDMY = (id, v) => { $(id + 'D').value = v ? String(Number(v.slice(8))) : ''; $(id + 'M').value = v ? String(Number(v.slice(5, 7))) : ''; $(id + 'Y').value = v && v.slice(0, 4) !== NOYEAR ? v.slice(0, 4) : ''; };
 $('cfFor').innerHTML = CAME.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
 $('cfTags').innerHTML = TAGS.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
+$('cfServed').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
+// everyone who helped is saved as one list: "Anu, Ravi"
+const servedOf = v => (v || '').split(',').map(x => x.trim()).filter(Boolean);
+const staffBubble = n => '<button type="button" class="bubble" data-v="' + esc(n) + '" aria-pressed="false">' + esc(n) + '</button>';
+function setServed(list){
+  list.forEach(n => { if(![...$('cfServed').querySelectorAll('[data-v]')].some(x => x.dataset.v === n)) $('cfServed').insertAdjacentHTML('beforeend', staffBubble(n)); });
+  $('cfServed').querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', list.includes(x.dataset.v)));
+}
+const servedNow = () => pressed('cfServed').join(', ');
 $('cfTags').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
 $('cfHeard').innerHTML = SOURCES.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
 $('cfStars').innerHTML = [1, 2, 3, 4, 5].map(n => '<button type="button" data-r="' + n + '" aria-label="' + n + ' star' + (n > 1 ? 's' : '') + '">★</button>').join('');
@@ -659,9 +668,9 @@ async function formReady(){
   if(!staffNames.length){
     const s = (await sb.rpc('leave_staff')).data || [];
     staffNames = [...new Set([...s.map(x => x.name), ...people.map(p => p.name)])].sort((a, b) => a.localeCompare(b));
-    const keep = $('cfServed').value;
-    $('cfServed').innerHTML = '<option value="">Choose who served</option>' + staffNames.map(n => '<option>' + esc(n) + '</option>').join('');
-    $('cfServed').value = keep || (staffNames.includes(NJ.me.name) ? NJ.me.name : '');
+    const keep = pressed('cfServed');
+    $('cfServed').innerHTML = staffNames.map(staffBubble).join('');
+    setServed(keep.length ? keep : staffNames.includes(NJ.me.name) ? [NJ.me.name] : []);
   }
 }
 // a known mobile number: say whose it is and fill in what we already have
@@ -723,8 +732,8 @@ async function openEdit(id){
   $('cfIntro').textContent = 'The same form as Enter a form. Saving changes ' + c.name + (cfVisit ? ' and their form of ' + fmtD(cfVisit.visit_day) : '') + '; nothing new is added to their history.';
   $('cfSave').textContent = 'Save changes'; $('cfClear').textContent = 'Cancel';
   $('cfDay').value = v.visit_day || todayIso();
-  if(v.served_by && ![...$('cfServed').options].some(o => o.value === v.served_by)) $('cfServed').insertAdjacentHTML('beforeend', '<option>' + esc(v.served_by) + '</option>');
-  $('cfServed').value = v.served_by || '';
+  $('cfServed').querySelectorAll('[data-v]').forEach(x => { if(!staffNames.includes(x.dataset.v)) x.remove(); });
+  setServed(servedOf(v.served_by));
   $('cfPhone').value = c.phone || ''; $('cfWaOn').checked = c.whatsapp_on_phone !== false;
   $('cfName').value = c.name || ''; $('cfArea').value = c.area || ''; $('cfPin').value = c.pincode || '';
   setDMY('cfB', c.birthday || ''); setDMY('cfA', c.anniversary || '');
@@ -751,7 +760,8 @@ function leaveEdit(){
   $('cfSave').textContent = 'Save form'; $('cfClear').textContent = 'Clear';
   $('cfHeard').querySelectorAll('[data-v]').forEach(x => { if(!SOURCES.includes(x.dataset.v)) x.remove(); });
   clearForm();
-  $('cfDay').value = todayIso(); $('cfServed').value = staffNames.includes(NJ.me.name) ? NJ.me.name : '';
+  $('cfDay').value = todayIso(); $('cfServed').querySelectorAll('[data-v]').forEach(x => { if(!staffNames.includes(x.dataset.v)) x.remove(); });
+  setServed(staffNames.includes(NJ.me.name) ? [NJ.me.name] : []);
 }
 $('cf').addEventListener('submit', async e => {
   e.preventDefault(); const err = m => { $('cfErr').textContent = m; };
@@ -785,7 +795,7 @@ $('cf').addEventListener('submit', async e => {
     const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
     const summary = ['Form' + (came.length ? ': came for ' + came.join(', ') : ''), cfBought === 'yes' ? 'bought' : cfBought === 'no' ? 'just looking' : '', look].filter(Boolean).join(' · ');
     must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'visit', body: summary.slice(0, 500), visit_day: day, came_for: came,
-      bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: $('cfServed').value}).select());
+      bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: servedNow()}).select());
     if(cfBought === 'no' && $('cfFu').checked){
       const f = must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'followup', body: 'Call back' + (look ? ' about ' + look : ' after their visit'), due: addDays(todayIso(), 7), assigned_to: NJ.me.user_id}).select().single());
       follows.push(f); follows.sort((a, b) => a.due.localeCompare(b.due)); badge();
@@ -812,7 +822,7 @@ async function saveEdit(f){
   const row = must(await sb.from('customers').update(data).eq('id', c.id).select().single());
   Object.assign(c, row); customers.sort((a, b) => a.name.localeCompare(b.name));
   const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
-  const visit = {visit_day: f.day, came_for: f.came, bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: $('cfServed').value,
+  const visit = {visit_day: f.day, came_for: f.came, bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: servedNow(),
     body: ['Form' + (f.came.length ? ': came for ' + f.came.join(', ') : ''), cfBought === 'yes' ? 'bought' : cfBought === 'no' ? 'just looking' : '', look].filter(Boolean).join(' · ').slice(0, 500)};
   if(cfVisit) must(await sb.from('customer_activity').update(visit).eq('id', cfVisit.id).select());
   else if(f.came.length || cfBought || look || cfRating || missing) must(await sb.from('customer_activity').insert(Object.assign({customer_id: c.id, kind: 'visit'}, visit)).select());
@@ -846,7 +856,7 @@ async function loadInsights(){
   $('iRating').textContent = rated.length ? (rated.reduce((s, v) => s + v.rating, 0) / rated.length).toFixed(1) + ' ★' : '–';
   $('iWa').textContent = custs.length ? Math.round(custs.filter(c => c.whatsapp_ok).length / custs.length * 100) + '%' : '–';
   hbars($('iHeard'), tally(custs, c => c.source || 'Not asked'));
-  hbars($('iStaff'), tally(visits, v => v.served_by || 'Not filled'));
+  hbars($('iStaff'), tally(visits, v => servedOf(v.served_by).length ? servedOf(v.served_by) : 'Not filled'));
   hbars($('iFor'), tally(visits, v => v.came_for));
   hbars($('iStars'), [5, 4, 3, 2, 1].map(n => ['★'.repeat(n), rated.filter(v => v.rating === n).length]));
   const line = (v, text) => { const c = custById(v.customer_id); return '<div>' + esc(text) + '<small>' + esc((c ? c.name + ' · ' : '') + fmtD(v.visit_day) + (v.served_by ? ' · ' + v.served_by : '')) + '</small></div>'; };
