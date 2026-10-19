@@ -53,6 +53,7 @@
 .tag.s-done{border-color:var(--muted);color:#fff;background:var(--muted)}
 .tag.s-dropped{border-color:var(--line);color:var(--muted);background:var(--card)}
 .tag.k-restock{border-color:var(--maroon);color:var(--maroon);background:var(--card)}
+.tag.k-rnd{border-color:#7A3B6A;color:#7A3B6A;background:var(--card)}
 .more{display:flex;justify-content:center;padding-top:8px}
 
 /* one item */
@@ -135,15 +136,15 @@
   <!-- THE LIST -->
   <section id="tab-lib">
     <div class="band"><div class="wrap">
-      <div class="heading"><span class="eyebrow" id="lEyebrow">Customer enquiries and restock</span><h2 id="lTitle">To buy</h2></div>
+      <div class="heading"><span class="eyebrow" id="lEyebrow">Customer enquiries, restock and R&amp;D ideas</span><h2 id="lTitle">To buy</h2></div>
       <div class="filters">
         <div class="frow">
           <input class="input search" id="q" type="search" placeholder="Search customer, phone, type, supplier or notes" aria-label="Search" autocomplete="off">
-          <button class="btn btn-maroon" id="goAdd">Add an enquiry or restock</button>
+          <button class="btn btn-maroon" id="goAdd">Add to the list</button>
         </div>
         <div class="bubbles" id="fStage" role="group" aria-label="Stage"></div>
         <div class="frow">
-          <select class="input" id="fKind" aria-label="Kind"><option value="">Enquiries and restock</option><option value="enquiry">Customer enquiries</option><option value="restock">Restock</option></select>
+          <select class="input" id="fKind" aria-label="Kind"><option value="">Everything</option><option value="enquiry">Customer enquiries</option><option value="restock">Restock</option><option value="rnd">R&amp;D suggestions</option></select>
           <select class="input" id="fMetal" aria-label="Metal"><option value="">Any metal</option><option>Gold</option><option>Silver</option><option>Diamond</option></select>
           <select class="input" id="fSupplier" aria-label="Supplier"></select>
           <select class="input" id="fSort" aria-label="Sort"><option value="due">Needed soonest</option><option value="new">Newest first</option><option value="old">Oldest first</option></select>
@@ -180,13 +181,14 @@
   <!-- ADD / EDIT -->
   <section id="tab-add" hidden>
     <div class="band"><div class="wrap">
-      <div class="heading"><span class="eyebrow" id="fEyebrow">New</span><h2 id="fTitle">Add an enquiry or restock</h2></div>
+      <div class="heading"><span class="eyebrow" id="fEyebrow">New</span><h2 id="fTitle">Add to the list</h2></div>
     </div></div>
     <div class="wrap content">
       <form class="form dform" id="df" autocomplete="off" novalidate>
         <div class="field"><span>What is it for?</span><div class="bubbles" id="dKind" role="group" aria-label="Kind">
           <button type="button" class="bubble" data-k="enquiry" aria-pressed="true">A customer asked for it</button>
-          <button type="button" class="bubble" data-k="restock" aria-pressed="false">Restock for the shop</button></div></div>
+          <button type="button" class="bubble" data-k="restock" aria-pressed="false">Restock for the shop</button>
+          <button type="button" class="bubble" data-k="rnd" aria-pressed="false">R&amp;D suggestion</button></div></div>
         <div class="cust" id="custBox">
           <div class="two">
             <label>Customer name<input class="input" id="dCust" maxlength="80" list="custList" placeholder="type to find a saved customer"><datalist id="custList"></datalist></label>
@@ -217,7 +219,7 @@
           <label>Needed by<input class="input" id="dNeeded" type="date"></label>
         </div>
         <label>Buy from (supplier or karigar)<input class="input" id="dSupplier" maxlength="80" list="supList" placeholder="optional"><datalist id="supList"></datalist></label>
-        <label>Notes<textarea class="input" id="dNotes" maxlength="500" placeholder="e.g. like the photo but lighter; antique finish; red stones"></textarea></label>
+        <label><span id="dNotesL">Notes</span><textarea class="input" id="dNotes" maxlength="500" placeholder="e.g. like the photo but lighter; antique finish; red stones"></textarea></label>
         <p class="err" id="dErr" role="alert"></p>
         <div class="actions"><button class="btn btn-maroon" type="submit" id="dSave">Save</button><button class="btn" type="button" id="dCancel">Cancel</button></div>
       </form>
@@ -344,7 +346,7 @@ async function renderGrid(){
   const list = filtered();
   const act = items.filter(d => ACTIVE.includes(d.status)).length, arrived = items.filter(d => d.status === 'received' && d.kind === 'enquiry').length;
   $('lTitle').textContent = act ? act + ' to buy or deliver' : 'Nothing waiting';
-  $('lEyebrow').textContent = 'Customer enquiries and restock' + (arrived ? ' · ' + arrived + ' arrived, tell the customer' : '');
+  $('lEyebrow').textContent = 'Customer enquiries, restock and R&D ideas' + (arrived ? ' · ' + arrived + ' arrived, tell the customer' : '');
   $('countLine').textContent = list.length ? list.length + ' ' + (list.length === 1 ? 'item' : 'items') + '.' : '';
   // a buying list to send to a supplier before ordering
   $('shareList').hidden = !['open', 'active'].includes(stageF) || !list.some(d => d.status === 'open');
@@ -355,9 +357,9 @@ async function renderGrid(){
   try{ await sign(page.map(d => d.photos[0]).filter(Boolean)); }catch(e){ toast('Photos could not load: ' + e.message); }
   $('grid').innerHTML = page.map(d => '<button type="button" class="dcard' + (ACTIVE.includes(d.status) ? '' : ' closed') + '" data-id="' + esc(d.id) + '">' +
     '<span class="ph">' + (d.photos[0] && src(d.photos[0]) ? '<img loading="lazy" src="' + esc(src(d.photos[0])) + '" alt="">' : '<span class="none">No photo</span>') +
-    '<span class="st">' + stageTag(d.status) + (d.kind === 'restock' ? '<span class="tag k-restock">Restock</span>' : '') + '</span>' + (d.photos.length > 1 ? '<span class="n">' + d.photos.length + ' photos</span>' : '') + '</span>' +
+    '<span class="st">' + stageTag(d.status) + (d.kind === 'restock' ? '<span class="tag k-restock">Restock</span>' : d.kind === 'rnd' ? '<span class="tag k-rnd">R&amp;D</span>' : '') + '</span>' + (d.photos.length > 1 ? '<span class="n">' + d.photos.length + ' photos</span>' : '') + '</span>' +
     '<span class="meta"><span class="what">' + esc(what(d)) + '</span>' +
-    '<span class="who">' + esc(d.kind === 'enquiry' ? d.customer_name : 'For the shop' + (d.qty > 1 ? ' · ' + d.qty + ' pieces' : '')) + '</span>' +
+    '<span class="who">' + esc(d.kind === 'enquiry' ? d.customer_name : d.kind === 'rnd' ? 'R&D suggestion · ' + (d.created_by_name || 'the team') : 'For the shop' + (d.qty > 1 ? ' · ' + d.qty + ' pieces' : '')) + '</span>' +
     '<span class="sub">' + esc([fmtW(d.weight_g), d.size, d.supplier].filter(Boolean).join(' · ')) + '</span>' +
     (d.needed_by && ACTIVE.includes(d.status) ? '<span class="by' + (late(d) ? ' late' : '') + '">' + (late(d) ? 'Late: needed by ' : 'Needed by ') + fmtD(d.needed_by) + '</span>' : '') +
     (d.status === 'ordered' && d.expected ? '<span class="by">Expected ' + fmtD(d.expected) + '</span>' : '') +
@@ -396,7 +398,7 @@ async function openItem(id){
 function renderItem(){
   const d = cur, enq = d.kind === 'enquiry';
   $('oTitle').textContent = what(d);
-  $('oEyebrow').textContent = enq ? 'Customer enquiry · ' + d.customer_name : 'Restock for the shop';
+  $('oEyebrow').textContent = enq ? 'Customer enquiry · ' + d.customer_name : d.kind === 'rnd' ? 'R&D suggestion · ' + (d.created_by_name || 'the team') : 'Restock for the shop';
   const at = {open: d.created_at, ordered: d.ordered_at, received: d.received_at, done: d.status === 'done' ? d.closed_at : null};
   const reached = ['open', 'ordered', 'received', 'done'].indexOf(d.status === 'dropped' ? 'open' : d.status);
   $('oSteps').className = 'steps' + (d.status === 'dropped' ? ' dropped' : '');
@@ -516,6 +518,9 @@ function setKind(k){
   $('dKind').querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k));
   $('custBox').hidden = k !== 'enquiry';
   $('budgetBox').hidden = k !== 'enquiry';
+  // an R&D suggestion: what the team suggests and why it will sell
+  $('dNotesL').textContent = k === 'rnd' ? 'Why it will sell (trend, price point, who will buy it)' : 'Notes';
+  $('dNotes').placeholder = k === 'rnd' ? 'e.g. lightweight temple bangles are selling well in Coimbatore; ₹40–60k; young brides' : 'e.g. like the photo but lighter; antique finish; red stones';
 }
 $('dKind').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if(b) setKind(b.dataset.k); });
 function setMetal(m, keepPurity){
@@ -573,7 +578,7 @@ async function openForm(d){
   editing = d;
   show('add');
   $('fEyebrow').textContent = d ? 'Edit' : 'New';
-  $('fTitle').textContent = d ? what(d) : 'Add an enquiry or restock';
+  $('fTitle').textContent = d ? what(d) : 'Add to the list';
   $('dErr').textContent = '';
   photos.forEach(p => p.url && URL.revokeObjectURL(p.url));
   photos = d ? d.photos.map(path => ({path})) : [];

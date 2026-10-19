@@ -56,4 +56,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `043_shop_work.sql` — attendance status `SW` (Shop work): working for the shop outside it; a full day, marked under Present with In shop, Thottam and Home. Applied.
 - `044_visit_why_not.sql` — `customer_activity.why_not`: on a customer form marked Just looking, why they didn't buy. Applied.
 - `045_signin_hours.sql` — owner switch `settings.signin_limit` (People & settings): staff use the apps only during shop hours and on days marked present (P, SW, T, HM, H); Attendance-app staff may sign in during hours to mark; anyone let in today may finish after closing (`profiles.signin_day`). `work_ok()` is part of `device_ok()`; `login_check()` gives the reason. Applied (045a/045b), switched off.
+- `046_designs_rnd.sql` — Design library kind `rnd` (R&D suggestion: no customer needed, notes say why it will sell); owners get a notification for each new suggestion. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

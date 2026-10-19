@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v38';
+const KEY = 'natraj-demo-db-v39';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -192,6 +192,8 @@ function seed(){
   des('restock', 'Gold', 'Earrings', '22K 916', 6, {qty: 3, supplier: 'Kerala Designs', needed_by: addDays(today, -1), notes: 'Jhumkas sold out before the festival.'}, ['earrings'], 8, 'ordered');
   des('restock', 'Silver', 'Bangle', '92.5 sterling', 28, {qty: 5, supplier: 'Salem Silver House', notes: 'Kids’ bangles.'}, ['bangle'], 14, 'received');
   des('restock', 'Gold', 'Pendant', '22K 916', 3, {qty: 4, supplier: 'Sri Murugan Works'}, ['pendant'], 20, 'done').close_note = 'On the counter';
+  des('rnd', 'Gold', 'Bangle', '22K 916', 18, {qty: 2, notes: 'Lightweight temple bangles are selling well in Coimbatore; ₹60–80k; young brides.'}, ['bangle'], 1, 'open');
+  des('rnd', 'Silver', 'Pendant', '92.5 sterling', 6, {qty: 10, notes: 'Name-initial pendants for gifting; under ₹1,500; college students.'}, ['pendant'], 5, 'open');
   const arrived = db.designs.find(d => d.kind === 'enquiry' && d.status === 'received');
   db.notifications.push({id: uid(), user_id: manager.user_id, kind: 'design_arrived', title: 'Arrived for ' + arrived.customer_name, body: '22K 916 gold bangle. Tell the customer.', link: 'designs/#d=' + arrived.id, created_at: new Date(Date.now() - 90 * 60000).toISOString(), read_at: null});
   // repairs & orders: one at every stage, two of them free, one late, one ready to collect
