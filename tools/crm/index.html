@@ -646,13 +646,18 @@ $('cfFor').innerHTML = CAME.map(t => '<button type="button" class="bubble" data-
 $('cfTags').innerHTML = TAGS.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
 $('cfServed').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
 // everyone who helped is saved as one list: "Anu, Ravi"
-const servedOf = v => (v || '').split(',').map(x => x.trim()).filter(Boolean);
+// a name typed all in small letters at sign-up ("parthiban") is shown like the attendance list ("Parthiban"),
+// so one person is never listed twice
+const niceName = n => { n = String(n || '').trim().replace(/\s+/g, ' '); return n && n === n.toLowerCase() ? n.replace(/(^|\s)\S/g, c => c.toUpperCase()) : n; };
+const servedOf = v => [...new Set((v || '').split(',').map(niceName).filter(Boolean))];
 const staffBubble = n => '<button type="button" class="bubble" data-v="' + esc(n) + '" aria-pressed="false">' + esc(n) + '</button>';
 function setServed(list){
-  list.forEach(n => { if(![...$('cfServed').querySelectorAll('[data-v]')].some(x => x.dataset.v === n)) $('cfServed').insertAdjacentHTML('beforeend', staffBubble(n)); });
-  $('cfServed').querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', list.includes(x.dataset.v)));
+  const want = list.map(n => n.toLowerCase());
+  want.forEach((n, i) => { if(![...$('cfServed').querySelectorAll('[data-v]')].some(x => x.dataset.v.toLowerCase() === n)) $('cfServed').insertAdjacentHTML('beforeend', staffBubble(list[i])); });
+  $('cfServed').querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', want.includes(x.dataset.v.toLowerCase())));
 }
 const servedNow = () => pressed('cfServed').join(', ');
+const meServed = () => staffNames.some(n => n.toLowerCase() === niceName(NJ.me.name).toLowerCase()) ? [niceName(NJ.me.name)] : [];
 $('cfTags').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
 $('cfHeard').innerHTML = SOURCES.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
 $('cfStars').innerHTML = [1, 2, 3, 4, 5].map(n => '<button type="button" data-r="' + n + '" aria-label="' + n + ' star' + (n > 1 ? 's' : '') + '">★</button>').join('');
@@ -667,10 +672,12 @@ async function formReady(){
   $('cfDay').max = todayIso();
   if(!staffNames.length){
     const s = (await sb.rpc('leave_staff')).data || [];
-    staffNames = [...new Set([...s.map(x => x.name), ...people.map(p => p.name)])].sort((a, b) => a.localeCompare(b));
+    const seen = new Map();
+    [...s.map(x => x.name), ...people.map(p => p.name)].map(niceName).filter(Boolean).forEach(n => { if(!seen.has(n.toLowerCase())) seen.set(n.toLowerCase(), n); });
+    staffNames = [...seen.values()].sort((a, b) => a.localeCompare(b));
     const keep = pressed('cfServed');
     $('cfServed').innerHTML = staffNames.map(staffBubble).join('');
-    setServed(keep.length ? keep : staffNames.includes(NJ.me.name) ? [NJ.me.name] : []);
+    setServed(keep.length ? keep : meServed());
   }
 }
 // a known mobile number: say whose it is and fill in what we already have
@@ -761,7 +768,7 @@ function leaveEdit(){
   $('cfHeard').querySelectorAll('[data-v]').forEach(x => { if(!SOURCES.includes(x.dataset.v)) x.remove(); });
   clearForm();
   $('cfDay').value = todayIso(); $('cfServed').querySelectorAll('[data-v]').forEach(x => { if(!staffNames.includes(x.dataset.v)) x.remove(); });
-  setServed(staffNames.includes(NJ.me.name) ? [NJ.me.name] : []);
+  setServed(meServed());
 }
 $('cf').addEventListener('submit', async e => {
   e.preventDefault(); const err = m => { $('cfErr').textContent = m; };
