@@ -35,6 +35,20 @@
 .ph{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
 .btn-wa:hover{background:#0B6358;border-color:#0B6358}
+/* today's wishes: a tick for each one done */
+.wrow{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:4px 14px;padding:14px 18px;align-items:center}
+.wrow .tick{width:26px;height:26px;margin:0;accent-color:var(--maroon);cursor:pointer}
+.wrow .ttl{font-weight:600;color:var(--ink)}
+.wrow .sub{font-size:.84rem;color:var(--muted);margin-top:2px}
+.wrow .by{font-size:.82rem;color:var(--p);margin-top:3px}
+.wrow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.wrow.done{background:var(--paper)}
+.wrow.done .ttl{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 60%,transparent)}
+.wprog{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px}
+.wprog .bar2{flex:1 1 220px;max-width:420px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.wprog .bar2 i{display:block;height:100%;background:var(--p);border-radius:99px;transition:width .3s ease}
+.wprog b{font-variant-numeric:lining-nums tabular-nums}
+@media (max-width:640px){.wrow{grid-template-columns:auto auto minmax(0,1fr)}.wrow .acts{grid-column:3;justify-content:flex-start}}
 .tag.late{border-color:var(--a);color:var(--a);background:var(--a-bg)}
 .tag.today{border-color:var(--h);color:var(--h);background:var(--h-bg)}
 .tag.soon{border-color:var(--hm);color:var(--hm);background:var(--hm-bg)}
@@ -125,6 +139,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
       <button role="tab" data-tab="list" aria-selected="true">Customers</button>
       <button role="tab" data-tab="form" aria-selected="false">Enter a form</button>
       <button role="tab" data-tab="follow" aria-selected="false">Follow-ups<span class="count" id="fuCount" hidden></span></button>
+      <button role="tab" data-tab="today" aria-selected="false">Today’s wishes<span class="count" id="wCount" hidden></span></button>
       <button role="tab" data-tab="occ" aria-selected="false">Birthdays &amp; anniversaries</button>
       <button role="tab" data-tab="ins" aria-selected="false" class="owner-only">Insights</button>
     </nav>
@@ -293,6 +308,17 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
   </section>
 
   <!-- OCCASIONS -->
+  <section id="tab-today" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="wEyebrow">Today</span><h2>Today’s wishes</h2></div>
+      <p class="axisnote" style="font-size:.88rem">Every birthday and wedding anniversary today. Wish the customer on WhatsApp or by phone, then tick the box. Everyone sees the ticks, so nobody is wished twice and nobody is missed.</p>
+      <div class="wprog" id="wProg"></div>
+    </div></div>
+    <div class="wrap content">
+      <div class="ledger" id="wList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+
   <section id="tab-occ" hidden>
     <div class="band"><div class="wrap">
       <div class="heading"><span class="eyebrow">Next 30 days</span><h2>Birthdays &amp; anniversaries</h2></div>
@@ -372,19 +398,20 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
 function show(name){
   curTab = name; badge();
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name || (name === 'cust' && b.dataset.tab === 'list')));
-  ['list', 'cust', 'form', 'follow', 'occ', 'ins'].forEach(t => $('tab-' + t).hidden = t !== name);
+  ['list', 'cust', 'form', 'follow', 'today', 'occ', 'ins'].forEach(t => $('tab-' + t).hidden = t !== name);
 }
 async function route(){
   const h = location.hash.slice(1);
   if(h.startsWith('edit=')){ await openEdit(decodeURIComponent(h.slice(5))); return; }
   if(cfEdit) leaveEdit();
   if(h.startsWith('c=')){ await openCustomer(decodeURIComponent(h.slice(2))); return; }
-  show(['form', 'follow', 'occ'].includes(h) || (h === 'ins' && NJ.me.is_owner) ? h : 'list');
+  show(['form', 'follow', 'today', 'occ'].includes(h) || (h === 'ins' && NJ.me.is_owner) ? h : 'list');
   if(curTab === 'form') formReady();
   if(curTab === 'ins') loadInsights().catch(e => toast(e.message));
   if(curTab === 'list') renderList();
   if(curTab === 'follow') renderFollows();
   if(curTab === 'occ') renderOccasions();
+  if(curTab === 'today') loadWishes().catch(e => toast(e.message));
 }
 window.addEventListener('hashchange', () => route().catch(e => toast(e.message)));
 let backTo = 'list';    // the tab a customer page was opened from
@@ -399,6 +426,7 @@ async function loadAll(){
   customers = c; follows = must(f) || [];
   if(!people.length) people = must(await sb.rpc('crm_people')) || [];
   badge();
+  loadWishes().catch(() => {});
 }
 
 /* ---------- list ---------- */
@@ -824,6 +852,56 @@ function renderOccasions(){
     '<div class="sub">' + esc([fmtMonth(c.function_month), c.function_note].filter(Boolean).join(' · ')) + '</div></div>' +
     '<div class="acts">' + (c.phone ? '<a class="btn mini" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') + '</div></div>').join('');
 }
+/* ---------- today's wishes: today's birthdays and anniversaries, each ticked off once wished ---------- */
+let ticks = [];     // occasion_done rows for today
+const OCC = [['birthday', 'Birthday', '🎂'], ['anniversary', 'Wedding anniversary', '💍']];
+const todaysWishes = () => {
+  const out = [];
+  customers.forEach(c => OCC.forEach(([k, label, icon]) => { const n = nextOccur(c[k]); if(n && n.days === 0) out.push({c, k, label, icon, years: c[k].slice(0, 4) === NOYEAR ? 0 : Number(todayIso().slice(0, 4)) - Number(c[k].slice(0, 4))}); }));
+  return out;
+};
+const tickOf = (c, k) => ticks.find(t => t.customer_id === c.id && t.kind === k);
+async function loadWishes(){
+  ticks = must(await sb.from('occasion_done').select('*').eq('day', todayIso())) || [];
+  renderWishes();
+}
+function renderWishes(){
+  const list = todaysWishes(), done = list.filter(w => tickOf(w.c, w.k)).length, left = list.length - done;
+  $('wCount').hidden = !left; $('wCount').textContent = left;
+  if(curTab !== 'today') return;
+  $('wEyebrow').textContent = parse(todayIso()).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'});
+  $('wProg').innerHTML = list.length ? '<div class="bar2"><i style="width:' + Math.round(done / list.length * 100) + '%"></i></div><span><b>' + done + '</b> of <b>' + list.length + '</b> done' + (left ? '' : ' · all wished') + '</span>' : '';
+  // still to do first, then the done ones; each group by name
+  list.sort((a, b) => !!tickOf(a.c, a.k) - !!tickOf(b.c, b.k) || a.c.name.localeCompare(b.c.name));
+  const greet = w => 'Dear ' + w.c.name + ', ' + (w.k === 'birthday' ? 'wishing you a very happy birthday!' : 'wishing you both a very happy wedding anniversary!') +
+    ' May the year ahead bring you joy and good health. Warm wishes from all of us at Natraj Jewels, Tiruppur.';
+  const at = t => new Date(t).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
+  $('wList').innerHTML = list.length ? list.map(w => {
+    const t = tickOf(w.c, w.k), id = 'w-' + w.c.id + '-' + w.k;
+    return '<div class="wrow' + (t ? ' done' : '') + '">' +
+      '<input type="checkbox" class="tick" id="' + esc(id) + '" data-c="' + esc(w.c.id) + '" data-k="' + w.k + '"' + (t ? ' checked' : '') + ' aria-label="' + esc((t ? 'Done: ' : 'Mark done: ') + w.label + ' of ' + w.c.name) + '">' +
+      '<span class="dot" aria-hidden="true">' + w.icon + '</span>' +
+      '<div><button type="button" class="cust-link ttl" data-cust="' + esc(w.c.id) + '">' + esc(w.c.name) + '</button>' +
+      '<div class="sub">' + esc([w.label + (w.years > 0 ? ' · ' + w.years + (w.k === 'birthday' ? ' years old' : ' years') : ''), fmtPhone(w.c.phone)].filter(Boolean).join(' · ')) + '</div>' +
+      (t ? '<div class="by">✓ Done by ' + esc(t.done_by_name || 'someone') + ' at ' + esc(at(t.done_at)) + '</div>' : '') + '</div>' +
+      '<div class="acts">' + (w.c.phone ? (w.c.whatsapp_ok ? '<a class="btn mini btn-wa" href="' + esc(waLink(w.c.phone, greet(w))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') +
+        '<a class="btn mini" href="tel:' + esc(digits(w.c.phone)) + '">Call</a>' : '<span class="axisnote">No phone number</span>') + '</div></div>';
+  }).join('') : '<div class="empty"><h3>No birthdays or anniversaries today</h3><p>The Birthdays &amp; anniversaries tab shows the next 30 days.</p></div>';
+}
+$('wList').addEventListener('click', e => { const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust); });
+$('wList').addEventListener('change', async e => {
+  const box = e.target.closest('.tick'); if(!box) return;
+  const row = {customer_id: box.dataset.c, kind: box.dataset.k, day: todayIso()};
+  box.disabled = true;
+  try{
+    if(box.checked){
+      const r = await sb.from('occasion_done').insert(row).select('*');
+      if(r.error && r.error.code !== '23505') throw new Error(NJ.friendly(r.error));     // 23505: someone else ticked it just now
+    } else must(await sb.from('occasion_done').delete().eq('customer_id', row.customer_id).eq('kind', row.kind).eq('day', row.day));
+    await loadWishes();
+  }catch(err){ box.checked = !box.checked; box.disabled = false; toast(err.message); }
+});
+
 $('occList').addEventListener('click', e => { const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust); });
 
 /* ---------- enter a form ---------- */

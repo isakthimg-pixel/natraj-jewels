@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v41';
+const KEY = 'natraj-demo-db-v42';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -23,7 +23,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -149,9 +149,9 @@ function seed(){
     cust('Sample Customer Meena', '9944055667', 'Palladam', ['Chit member', 'Silver'], 'Radio', {birthday: md(6, 1988), whatsapp_ok: true}),
     cust('Sample Customer Ravi', '9443077889', 'Dharapuram Road', ['VIP', 'Diamond'], 'Passing by', {anniversary: md(12, 2002)}),
     cust('Sample Customer Priya', '9003011223', 'Kangeyam', ['Bridal', 'Gold'], 'Instagram', {birthday: md(21, 1904), whatsapp_ok: true, function_month: md(70, 2026).slice(0, 7), function_note: 'Her wedding'}),
-    cust('Sample Customer Selvam', '9894099887', 'Uthukuli', ['Old gold exchange'], 'Wall painting'),
+    cust('Sample Customer Selvam', '9894099887', 'Uthukuli', ['Old gold exchange'], 'Wall painting', {anniversary: md(0, 2010)}),
     cust('Sample Customer Divya', '9566044556', 'Perumanallur', ['Regular'], 'Pamphlet', {birthday: md(-3, 1990)}),
-    cust('Sample Customer Anbu', '', 'Tiruppur town', ['Wholesale'], 'Referral')
+    cust('Sample Customer Anbu', '9842011223', 'Tiruppur town', ['Wholesale'], 'Referral', {birthday: md(0, 1975), whatsapp_ok: true})
   ];
   const act = (c, kind, body, due, status, by, extra) => db.customer_activity.push(Object.assign({id: uid(), customer_id: c.id, kind, body, due, status, outcome: '', assigned_to: by.user_id, assigned_name: by.name,
     done_at: status === 'done' ? addDays(today, -2) + 'T15:00:00Z' : null, done_by_name: status === 'done' ? by.name : '', created_by: by.user_id, created_by_name: by.name, created_at: addDays(today, -5) + 'T10:30:00Z'}, extra || {}));
@@ -170,6 +170,7 @@ function seed(){
   visit(C[5], 20, ['Gold', 'Investment'], true, 'Gold coins', 4, '', 'Sample Staff 3');
   visit(C[6], 26, ['Gold', 'Gift'], false, 'Kids’ chain', 3, '22K kids’ chain under 4 g', 'Sample Staff 2', 'Price above budget');
   act(C[5], 'followup', 'Old gold exchange rate check', addDays(today, -6), 'done', manager, {outcome: 'Came in, exchanged 18 g.'});
+  db.occasion_done = [{customer_id: C[7].id, kind: 'birthday', day: today, done_by: manager.user_id, done_by_name: manager.name, done_at: today + 'T04:15:00Z'}];
   // design library: customer enquiries and restock at every stage, with drawn sample photos (see samplePhoto)
   const at = (n, h) => addDays(today, n) + 'T' + (h || '11') + ':00:00Z';
   const des = (kind, metal, category, purity, weight_g, extra, kinds, ago, status) => {
@@ -784,7 +785,8 @@ function rest(method, table, params, body, headers, me){
     campaign_contacts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_costs: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     jobs: {read: canUse(me, 'jobs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'jobs')},
-    tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}, entry_queries: {read: true, write: false}
+    tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}, entry_queries: {read: true, write: false},
+    occasion_done: {read: canUse(me, 'crm'), write: canUse(me, 'crm')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
   if(method === 'GET' ? !rule.read : !rule.write) return denied;
@@ -812,6 +814,19 @@ function rest(method, table, params, body, headers, me){
   }
   if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
   if(table === 'user_prefs') return prefsRest(method, params, body, single, wantRows, me);
+  if(table === 'occasion_done'){
+    if(!canUse(me, 'crm')) return method === 'GET' ? {status: 200, body: []} : {status: 403, body: {code: '42501', message: 'permission denied'}};
+    db.occasion_done = db.occasion_done || [];
+    let out = db.occasion_done.filter(r => matches(r, params));
+    if(method === 'POST'){
+      const b = Array.isArray(body) ? body[0] : body;
+      if(db.occasion_done.some(r => r.customer_id === b.customer_id && r.kind === b.kind && r.day === b.day)) return {status: 409, body: {code: '23505', message: 'duplicate key'}};
+      const row = Object.assign({}, b, {done_by: me.user_id, done_by_name: me.name, done_at: new Date().toISOString()});
+      db.occasion_done.push(row); out = [row];
+    } else if(method === 'DELETE') db.occasion_done = db.occasion_done.filter(r => !out.includes(r));
+    if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+    return {status: 200, body: out.map(r => Object.assign({}, r))};
+  }
   if(table === 'customers' || table === 'customer_activity') return crmRest(table, method, params, body, single, wantRows, me);
   if(table === 'bank_accounts') return bankAccountsRest(method, params, body, single, wantRows, me);
   if(table === 'bank_entries') return bankEntriesRest(method, params, body, single, wantRows, me);
