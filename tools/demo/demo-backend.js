@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v40';
+const KEY = 'natraj-demo-db-v41';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -428,7 +428,7 @@ function cmp(a, op, b){
 }
 function matches(row, params){
   for(const [k, v] of params){
-    if(['select', 'order', 'on_conflict', 'limit', 'columns'].includes(k)) continue;
+    if(['select', 'order', 'on_conflict', 'limit', 'offset', 'columns'].includes(k)) continue;
     if(k === 'or'){
       if(!v.replace(/^\(|\)$/g, '').split(',').some(p => { const [c, op, ...val] = p.split('.'); return cmp(row[c], op, val.join('.')); })) return false;
       continue;
@@ -1302,6 +1302,11 @@ async function answer(url, init){
   else if(p.startsWith('/rest/v1/rpc/')) res = rpc(p.split('/').pop(), body || {}, me, headers);
   else if(p.startsWith('/rest/v1/')) res = rest(method, p.split('/').pop(), u.searchParams, body, headers, me);
   else res = {status: 404, body: {message: 'Not found'}};
+  // like the real server: at most 1000 rows per request, and .range() pages through the rest
+  if(p.startsWith('/rest/v1/') && !p.startsWith('/rest/v1/rpc/') && method === 'GET' && Array.isArray(res.body)){
+    const off = Number(u.searchParams.get('offset') || 0), lim = Math.min(Number(u.searchParams.get('limit') || 1000), 1000);
+    res = Object.assign({}, res, {body: res.body.slice(off, off + lim)});
+  }
   save();
   await new Promise(r => setTimeout(r, 120));      // feel like a real network
   return new Response(res.body === null ? null : JSON.stringify(res.body), {status: res.status, headers: {'Content-Type': 'application/json'}});

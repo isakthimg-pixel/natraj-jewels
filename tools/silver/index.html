@@ -475,7 +475,7 @@ async function loadSupport(){
   const todays = rate && new Date(rate.set_at).toDateString() === new Date().toDateString();
   $('rateNote').textContent = rate ? 'Today’s silver rate: ' + inr(rate.silver) + ' per gram' + (todays ? '.' : ' (last set ' + new Date(rate.set_at).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}) + '; today’s is not in yet).') : 'No silver rate has been entered yet. Type the rate on each entry.';
   if(NJ.canUse('crm')){
-    customers = must(await sb.from('customers').select('id,name,phone').order('name')) || [];
+    customers = await NJ.selectAll(() => sb.from('customers').select('id,name,phone').order('name').order('id'));
     $('custList').innerHTML = customers.map(c => '<option value="' + esc(c.name + (c.phone ? ' · ' + c.phone : '')) + '">').join('');
   }
 }

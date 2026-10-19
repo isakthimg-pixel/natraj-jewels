@@ -329,7 +329,7 @@ async function loadAll(){
 }
 async function loadCustomers(){
   if(!NJ.canUse('crm')) return;
-  customers = must(await sb.from('customers').select('id,name,phone').order('name')) || [];
+  customers = await NJ.selectAll(() => sb.from('customers').select('id,name,phone').order('name').order('id'));
   $('custList').innerHTML = customers.map(c => '<option value="' + esc(c.name + (c.phone ? ' · ' + c.phone : '')) + '">').join('');
 }
 

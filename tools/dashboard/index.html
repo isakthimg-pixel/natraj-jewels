@@ -538,7 +538,7 @@ async function loadBank(){
 async function loadCrm(){
   const today = todayIso(), first = today.slice(0, 8) + '01';
   const [c, f] = await Promise.all([
-    sb.from('customers').select('id,name,birthday,anniversary,created_at'),
+    NJ.selectAll(() => sb.from('customers').select('id,name,birthday,anniversary,created_at').order('id')).then(data => ({data}), error => ({error})),
     sb.from('customer_activity').select('due,customer_id').eq('kind', 'followup').eq('status', 'open').lte('due', today)
   ]);
   const cs = must(c) || [], fs = must(f) || [];

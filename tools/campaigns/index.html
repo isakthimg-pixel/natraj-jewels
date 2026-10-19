@@ -258,7 +258,7 @@ async function loadAll(){
     const since = camps.length ? camps.map(x => x.starts).sort()[0] : todayIso();
     const [v, cu] = await Promise.all([
       sb.from('customer_activity').select('customer_id,visit_day,bought').eq('kind', 'visit').gte('visit_day', since),
-      sb.from('customers').select('id,name,phone,area,tags,source,birthday,anniversary,function_month,whatsapp_ok,whatsapp_on_phone,created_at')
+      NJ.selectAll(() => sb.from('customers').select('id,name,phone,area,tags,source,birthday,anniversary,function_month,whatsapp_ok,whatsapp_on_phone,created_at').order('id')).then(data => ({data}), () => ({data: []}))
     ]);
     visits = v.data || []; customers = cu.data || [];
   }

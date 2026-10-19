@@ -630,9 +630,19 @@ function matchExpenses(expenses, bank, from, to){
 }
 
 const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs', 'change_requests', 'jobs', 'entry_queries'];
+// every row of a query, 1000 at a time (the server sends at most 1000 rows per request).
+// make(): a fresh query each time, e.g. () => sb.from('customers').select('*').order('name').order('id')
+async function selectAll(make){
+  const out = [];
+  for(let from = 0; ; from += 1000){
+    const r = must(await make().range(from, from + 999)) || [];
+    out.push(...r);
+    if(r.length < 1000) return out;
+  }
+}
 async function exportAll(){
   const out = {exported_at: new Date().toISOString(), tables: {}};
-  for(const t of TABLES) out.tables[t] = must(await sb.from(t).select('*'));
+  for(const t of TABLES) out.tables[t] = await selectAll(() => sb.from(t).select('*'));
   download('natraj-tools-backup-' + todayIso() + '.json', JSON.stringify(out, null, 1), 'application/json');
 }
 
@@ -922,5 +932,5 @@ async function readXlsx(file, all){
 window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
   pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
   liveCheck, deviceCode, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick,
-  loadQueries, queryMap, queryChip, askQuery, openQuery, queriesBar, queryListen, readXlsx, get me(){ return me; }};
+  loadQueries, queryMap, queryChip, askQuery, openQuery, queriesBar, queryListen, readXlsx, selectAll, get me(){ return me; }};
 })();

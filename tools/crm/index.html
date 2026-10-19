@@ -99,6 +99,17 @@
 .wants div{padding:9px 0;border-top:1px solid var(--line);font-size:.92rem}
 .wants div:first-child{border-top:0}
 .wants small{display:block;color:var(--muted);font-size:.78rem}
+/* bring in a list */
+.imsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+.imsum div{border:1px solid var(--line);border-radius:4px;padding:12px 14px;background:var(--card)}
+.imsum b{display:block;font:600 1.5rem/1.1 var(--display);color:var(--maroon);font-variant-numeric:lining-nums tabular-nums}
+.imsum span{font-size:.82rem;color:var(--muted)}
+.imwrap{overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;background:var(--card)}
+table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:lining-nums tabular-nums}
+.im th,.im td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;vertical-align:top}
+.im thead th{position:sticky;top:0;font:600 .7rem var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
+.im td.why{white-space:normal;color:var(--a);min-width:200px}
+.imbar{gap:10px 14px;align-items:center}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -131,9 +142,23 @@
       <div class="bar">
         <input class="input search" id="q" type="search" placeholder="Search name, phone or area" aria-label="Search customers" autocomplete="off">
         <button class="btn btn-maroon" id="addCust">Enter a form</button>
+        <button class="btn owner-only" id="imPick" type="button">Bring in a list</button>
+        <input type="file" id="imFile" accept=".xlsx,.numbers,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
       </div>
       <div class="bubbles" id="tagFilter" role="group" aria-label="Filter by tag"></div>
     </div></div>
+    <div class="wrap content" id="imBox" hidden>
+      <div class="form panel">
+        <span class="eyebrow" id="imEyebrow">Bring in a list</span><h3 id="imTitle">Birthday and anniversary list</h3>
+        <p class="axisnote" style="font-size:.88rem">One sheet for each month, with the columns Birthday, Anniversary, Ref no, Name and Contact no. Dates are read as day/month/year, and the sheet’s month is trusted when a date looks mixed up. People with the same phone and name are joined into one customer; a family on one phone become separate customers. Customers already saved only get the dates they are missing. Nothing is saved until you press the button.</p>
+        <div class="imsum" id="imSum"></div>
+        <h3 style="font-size:1.1rem" id="imCheckT">Please check these</h3>
+        <div class="imwrap"><table class="im" id="imCheck"></table></div>
+        <p class="axisnote" id="imNote"></p>
+        <p class="err" id="imErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="button" id="imSave">Bring in</button><button class="btn" type="button" id="imCancel">Close</button></div>
+      </div>
+    </div>
     <div class="wrap content">
       <div class="ledger" id="custList"><div class="loading">Loading…</div></div>
     </div>
@@ -368,10 +393,10 @@ $('backBtn').onclick = () => { location.hash = backTo === 'list' ? '' : backTo; 
 /* ---------- loading ---------- */
 async function loadAll(){
   const [c, f] = await Promise.all([
-    sb.from('customers').select('*').order('name'),
+    NJ.selectAll(() => sb.from('customers').select('*').order('name').order('id')),
     sb.from('customer_activity').select('*').eq('kind', 'followup').eq('status', 'open').order('due')
   ]);
-  customers = must(c) || []; follows = must(f) || [];
+  customers = c; follows = must(f) || [];
   if(!people.length) people = must(await sb.rpc('crm_people')) || [];
   badge();
 }
@@ -402,6 +427,175 @@ $('custList').addEventListener('click', e => {
 });
 
 $('addCust').onclick = () => { location.hash = 'form'; };
+
+/* ---------- bring in a list (the shop's old birthday & anniversary sheets) ----------
+   An Excel file with one sheet per month ("JANUARY-1" … "DECEMBER-12"): Birthday, Anniversary, Ref no, Name, Contact no,
+   Contact no. Dates are day/month/year. Excel often turned 01/02/1978 into 2 Jan 1978, so the sheet's month wins: when
+   the month does not match but the day does, the two are swapped back. */
+const MON3 = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const titleCase = n => n === n.toUpperCase() || n === n.toLowerCase() ? n.toLowerCase().replace(/(^|[\s.])\S/g, c => c.toUpperCase()) : n;
+const nameKey = n => String(n || '').toLowerCase().replace(/[^a-z\u0B80-\u0BFF]/g, '');
+function sheetMonth(sh){
+  const m = /-\s*(\d{1,2})\s*$/.exec(sh.name);
+  if(m && Number(m[1]) >= 1 && Number(m[1]) <= 12) return Number(m[1]);
+  const t = (sh.name + ' ' + ((sh.rows[0] || []).join(' '))).toLowerCase().replace(/0/g, 'o');
+  const i = MON3.findIndex(x => new RegExp('\\b' + x).test(t));
+  return i < 0 ? 0 : i + 1;
+}
+const realDay = (y, m, d) => { const x = new Date(y, m - 1, d); return x.getFullYear() === y && x.getMonth() === m - 1 && x.getDate() === d; };
+// a cell → 'yyyy-mm-dd' (NOYEAR when there is no year), '' when empty, null when it cannot be read.
+// listDate.other is set when a clear date (day over 12) is for another month than the sheet's
+function listDate(v, month){
+  listDate.other = false;
+  if(v === undefined || v === null || v === '') return '';
+  if(typeof v === 'string' && /^\s*[2-6]\d{4}\s*$/.test(v)) v = Number(v);     // a date saved as its Excel number
+  let d, m, y;
+  if(typeof v === 'number'){
+    const x = new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 864e5);
+    d = x.getUTCDate(); m = x.getUTCMonth() + 1; y = x.getUTCFullYear();
+  } else {
+    const t = String(v).trim().toLowerCase().replace(/o/g, '0').replace(/[`'’]/g, '');
+    if(!t) return '';
+    const g = t.split(/\D+/).filter(Boolean);
+    if(!g.length) return null;
+    if(g.length === 1 && g[0].length >= 4){ g.splice(0, 1, g[0].slice(0, 2), g[0].slice(2, 4), g[0].slice(4)); }
+    else if(g.length === 2 && g[1].length > 2){ g.splice(1, 1, g[1].slice(0, 2), g[1].slice(2)); }   // 02/0601998
+    if(g.length < 2) return null;
+    d = Number(g[0]); m = Number(g[1]);
+    const ys = (g[2] || '').slice(-4);
+    y = ys.length === 4 ? Number(ys) : ys.length === 2 ? (Number(ys) <= new Date().getFullYear() % 100 ? 2000 : 1900) + Number(ys) : 0;
+  }
+  if(month && m !== month){
+    if(d === month && m <= 31) [d, m] = [m, d];
+    else if(d > 12 && m <= 12) listDate.other = true;
+    else return null;
+  }
+  if(!(y >= 1900 && y <= new Date().getFullYear())) y = Number(NOYEAR);
+  if(!realDay(y, m, d)) return null;
+  return y + '-' + NJ.pad(m) + '-' + NJ.pad(d);
+}
+// how a cell looked in the sheet (Excel keeps dates as numbers)
+const cellText = v => { if(typeof v === 'string' && /^\s*[2-6]\d{4}\s*$/.test(v)) v = Number(v); if(typeof v !== 'number') return String(v); const x = new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 864e5); return NJ.pad(x.getUTCDate()) + '/' + NJ.pad(x.getUTCMonth() + 1) + '/' + x.getUTCFullYear(); };
+const listPhone = v => { let d = typeof v === 'number' ? String(Math.round(v)) : digits(v); if(d.length === 12 && d.startsWith('91')) d = d.slice(2); if(d.length === 11 && d[0] === '0') d = d.slice(1); return d; };
+const goodPhone = d => /^[6-9]\d{9}$/.test(d);
+let im = null;
+function readList(books){
+  const people = new Map(), check = [];
+  let rows = 0, noName = 0, sheets = 0;
+  for(const sh of books){
+    const hi = sh.rows.slice(0, 10).findIndex(r => r.some(c => /^\s*name\b/i.test(String(c || ''))));
+    if(hi < 0) continue;
+    const h = sh.rows[hi].map(c => String(c || '').trim().toLowerCase());
+    const col = re => h.findIndex(c => re.test(c));
+    const cB = col(/birth/), cA = col(/anniv/), cR = col(/^ref/), cN = col(/^name/);
+    const cP = h.map((c, i) => /contact|phone|mobile|cell/.test(c) ? i : -1).filter(i => i >= 0);
+    const month = sheetMonth(sh);
+    if(cN < 0 || (cB < 0 && cA < 0)) continue;
+    sheets++;
+    sh.rows.slice(hi + 1).forEach((r, i) => {
+      const cell = c => c >= 0 ? r[c] : '';
+      const raw = String(cell(cN) ?? '').trim().replace(/\s+/g, ' ');
+      if(!raw){ if(r.some(c => c !== '' && c !== undefined && c !== null)) noName++; return; }
+      rows++;
+      const where = sh.name + ', row ' + (hi + i + 2), why = [];
+      const name = titleCase(raw).slice(0, 80);
+      const ph = listPhone(cell(cP[0])), alt = listPhone(cell(cP[1]));
+      if(!ph) why.push('No phone number'); else if(!goodPhone(ph)) why.push('Phone ' + ph + ' is not a 10-digit mobile');
+      const bd = listDate(cell(cB), month), bdOther = listDate.other, an = listDate(cell(cA), month), anOther = listDate.other;
+      const onSheet = MONTHS[month - 1] + ' sheet';
+      if(bd === null) why.push('Birthday “' + cellText(cell(cB)) + '” could not be read');
+      else if(bdOther) why.push('Birthday saved as ' + fmtDM(bd) + ', but it is on the ' + onSheet);
+      if(an === null) why.push('Anniversary “' + cellText(cell(cA)) + '” could not be read');
+      else if(anOther) why.push('Anniversary saved as ' + fmtDM(an) + ', but it is on the ' + onSheet);
+      if(!bd && !an && bd !== null && an !== null) why.push('No date');
+      const ref = String(cell(cR) ?? '').replace(/\.0+$/, '').trim();
+      const key = (ph.slice(-10) || 'x' + where) + '|' + nameKey(name);
+      const p = people.get(key) || {name, phone: ph, alt: '', birthday: '', anniversary: '', refs: new Set(), where};
+      if(bd && !p.birthday) p.birthday = bd;
+      if(an && !p.anniversary) p.anniversary = an;
+      if(alt && alt !== ph && !p.alt) p.alt = alt;
+      if(ref) p.refs.add(ref);
+      people.set(key, p);
+      if(why.length) check.push({where, name, phone: ph, why: why.join('; ')});
+    });
+  }
+  // match customers already saved: same phone and same name
+  const saved = new Map(customers.map(c => [digits(c.phone).slice(-10) + '|' + nameKey(c.name), c]));
+  const add = [], fill = [];
+  for(const [key, p] of people){
+    const notes = p.refs.size ? 'Card ' + [...p.refs].join(', ') : '';
+    const c = saved.get(key);
+    if(c){
+      const patch = {};
+      if(p.birthday && !c.birthday) patch.birthday = p.birthday;
+      if(p.anniversary && !c.anniversary) patch.anniversary = p.anniversary;
+      if(p.alt && !c.alt_phone) patch.alt_phone = p.alt;
+      if(notes && !(c.notes || '').includes(notes)) patch.notes = ((c.notes ? c.notes + '\n' : '') + notes).slice(0, 1000);
+      if(Object.keys(patch).length) fill.push({id: c.id, patch});
+    } else add.push({name: p.name, phone: p.phone.slice(0, 20), alt_phone: p.alt.slice(0, 20), birthday: p.birthday || null, anniversary: p.anniversary || null, notes: notes.slice(0, 1000)});
+  }
+  return {sheets, rows, noName, people: people.size, add, fill, check, same: people.size - add.length - fill.length};
+}
+function showList(){
+  const n = x => x.toLocaleString('en-IN');
+  $('imSum').innerHTML = [[im.rows, 'rows read from ' + im.sheets + ' sheet' + (im.sheets === 1 ? '' : 's')], [im.people, 'people, after joining repeats'],
+    [im.add.length, 'new customers to add'], [im.fill.length, 'saved customers get missing dates'], [im.check.length, 'rows to check']]
+    .map(([v, t]) => '<div><b>' + n(v) + '</b><span>' + esc(t) + '</span></div>').join('');
+  $('imCheckT').hidden = !im.check.length; $('imCheck').parentNode.hidden = !im.check.length;
+  $('imCheck').innerHTML = '<thead><tr><th>Where</th><th>Name</th><th>Phone</th><th>What to check</th></tr></thead><tbody>' +
+    im.check.slice(0, 500).map(x => '<tr><td>' + esc(x.where) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.phone) + '</td><td class="why">' + esc(x.why) + '</td></tr>').join('') + '</tbody>';
+  $('imNote').textContent = [im.check.length > 500 ? 'Showing the first 500 rows to check.' : '', im.check.length ? 'These are still brought in with what could be read; fix them later on the customer page.' : '',
+    im.same ? n(im.same) + ' people are already saved with these details.' : '', im.noName ? n(im.noName) + ' rows without a name are left out.' : ''].filter(Boolean).join(' ');
+  const total = im.add.length + im.fill.length;
+  $('imSave').disabled = !total;
+  $('imSave').textContent = total ? 'Bring in ' + n(im.add.length) + ' new' + (im.fill.length ? ' and update ' + n(im.fill.length) : '') : 'Nothing new to bring in';
+  $('imErr').textContent = '';
+}
+$('imPick').onclick = () => $('imFile').click();
+$('imFile').addEventListener('change', async () => {
+  const f = $('imFile').files[0]; $('imFile').value = '';
+  if(!f) return;
+  if(/\.numbers$/i.test(f.name)){ dialog({title: 'Save it as Excel first', msg: 'This is a Numbers file. In Numbers, choose File › Export To › Excel…, save it, and pick that .xlsx file here.', ok: 'OK', cancel: null}); return; }
+  $('imPick').setAttribute('aria-busy', 'true');
+  try{
+    const books = await NJ.readXlsx(f, true);
+    im = readList(books);
+    if(!im.sheets) throw new Error('No sheet in this file has the columns Name and Birthday or Anniversary.');
+    $('imTitle').textContent = f.name.replace(/\.xlsx$/i, '');
+    showList();
+    $('imBox').hidden = false;
+    $('imBox').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }catch(e){ toast(e.message); }
+  $('imPick').removeAttribute('aria-busy');
+});
+$('imCancel').onclick = () => { im = null; $('imBox').hidden = true; };
+$('imSave').onclick = async () => {
+  if(!im) return;
+  const btn = $('imSave'), total = im.add.length + im.fill.length;
+  btn.disabled = true; $('imErr').textContent = '';
+  let done = 0;
+  const step = () => { btn.textContent = 'Saving… ' + Math.round(done / total * 100) + '%'; };
+  try{
+    while(im.add.length){
+      const part = im.add.slice(0, 500);
+      const rows = must(await sb.from('customers').insert(part).select('*')) || [];
+      customers.push(...rows); im.add.splice(0, part.length); done += part.length; step();
+    }
+    while(im.fill.length){
+      const {id, patch} = im.fill[0];
+      const row = must(await sb.from('customers').update(patch).eq('id', id).select('*').single());
+      const c = custById(id); if(c) Object.assign(c, row);
+      im.fill.shift(); done++; step();
+    }
+    customers.sort((a, b) => a.name.localeCompare(b.name));
+    toast(total.toLocaleString('en-IN') + ' customers brought in');
+    im = null; $('imBox').hidden = true; renderList();
+  }catch(e){
+    // what was saved stays saved; pressing again carries on with the rest
+    $('imErr').textContent = e.message + ' ' + done.toLocaleString('en-IN') + ' were saved. Press the button again to carry on.';
+    showList(); btn.disabled = false;
+  }
+};
 
 /* ---------- one customer ---------- */
 async function openCustomer(id){
