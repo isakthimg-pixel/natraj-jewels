@@ -629,7 +629,7 @@ function matchExpenses(expenses, bank, from, to){
   return {matched, missing, waiting, noAccount, extra};
 }
 
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs', 'change_requests', 'jobs', 'entry_queries', 'occasion_done'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs', 'change_requests', 'jobs', 'entry_queries', 'occasion_done', 'campaign_posts', 'marketing_dates'];
 // every row of a query, 1000 at a time (the server sends at most 1000 rows per request).
 // make(): a fresh query each time, e.g. () => sb.from('customers').select('*').order('name').order('id')
 async function selectAll(make){

@@ -86,6 +86,111 @@
 .ctab tr[data-id]{cursor:pointer}
 .ctab tr[data-id]:hover td{background:color-mix(in srgb,var(--gold) 6%,var(--card))}
 .good{color:var(--p);font-weight:700} .bad{color:var(--a);font-weight:700}
+
+/* ---------- planner: a month of posts, campaigns and key dates ---------- */
+.pbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.pbar .grow{flex:1}
+.pbar select.input{width:auto;min-width:150px;padding-block:8px}
+.seg button.ic{min-width:40px;font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;background:var(--sc)}
+.plan{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+@media (max-width:1100px){.plan{grid-template-columns:1fr}}
+.st-idea{--sc:#8B8178} .st-making{--sc:var(--h)} .st-ready{--sc:var(--hm)} .st-posted{--sc:var(--p)}
+.cal{background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.cal .dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--paper);border-bottom:1px solid var(--line)}
+.cal .dow span{padding:8px 10px;font:600 .68rem/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.cal .grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.pc{min-height:128px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 6px 8px;display:flex;flex-direction:column;gap:4px;cursor:pointer;min-width:0;transition:background .15s}
+.pc:nth-child(7n){border-right:0}
+.pc:hover{background:color-mix(in srgb,var(--gold) 5%,var(--card))}
+.pc.out{background:color-mix(in srgb,var(--paper) 70%,var(--card))}
+.pc.out .dn{opacity:.45}
+.pc.drop{background:color-mix(in srgb,var(--gold) 16%,var(--card));outline:2px dashed var(--gold);outline-offset:-3px}
+.pc .dh{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.pc .dn{font:600 .82rem/1 var(--body);font-variant-numeric:tabular-nums;color:var(--ink);width:26px;height:26px;display:grid;place-items:center;border-radius:50%}
+.pc.today .dn{background:var(--maroon);color:#FFF7EE}
+.pc .plus{opacity:0;border:0;background:none;color:var(--gold);font:700 1rem/1 var(--body);cursor:pointer;padding:2px 6px}
+.pc:hover .plus{opacity:1}
+.kd{display:block;font:600 .7rem/1.25 var(--body);padding:3px 6px;border-radius:4px;background:color-mix(in srgb,var(--gold) 16%,var(--card));color:var(--gold);border:0;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.kd.shop{background:color-mix(in srgb,var(--maroon) 12%,var(--card));color:var(--maroon)}
+.kd.day{background:var(--paper);color:var(--muted)}
+.cb{display:block;height:18px;margin:0 -6px;padding:0 8px;background:color-mix(in srgb,var(--c) 18%,var(--card));border-left:3px solid transparent;color:var(--c);font:700 .68rem/18px var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;border-top:0;border-bottom:0;border-right:0;text-align:left;width:calc(100% + 12px)}
+.cb.first{border-left-color:var(--c);margin-left:0;width:calc(100% + 6px);border-radius:3px 0 0 3px}
+.cb.last{margin-right:0;width:calc(100% + 6px);border-radius:0 3px 3px 0}
+.cb.first.last{width:100%;border-radius:3px}
+.pp{display:flex;align-items:center;gap:6px;width:100%;padding:4px 6px;border:1px solid var(--line);border-left:3px solid var(--sc);border-radius:4px;background:var(--card);font:600 .74rem/1.25 var(--body);color:var(--ink);text-align:left;cursor:grab;min-width:0}
+.pp:hover{border-color:var(--muted);border-left-color:var(--sc)}
+.pp .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.pp img{width:22px;height:22px;border-radius:3px;object-fit:cover;flex:none}
+.pp img + .chd{display:none}
+.pp.posted .t{color:var(--muted)}
+.chd{width:8px;height:8px;border-radius:50%;flex:none;background:var(--chc,#8B8178)}
+.more{border:0;background:none;color:var(--gold);font:700 .72rem var(--body);text-align:left;padding:2px 4px;cursor:pointer}
+@media (max-width:700px){
+  .pc{min-height:64px;padding:4px 3px}
+  .pc .dn{width:22px;height:22px;font-size:.76rem}
+  .pc .plus,.pc .kd span,.pp .t,.pp img,.cb{display:none}
+  .kd{height:5px;padding:0;border-radius:3px;background:var(--gold)}
+  .pp{width:auto;padding:0;border:0;background:none;display:inline-flex}
+  .pp .chd,.pp img + .chd{display:block;width:9px;height:9px;background:var(--sc)}
+  .pc .pps{display:flex;flex-wrap:wrap;gap:3px}
+}
+/* list view */
+.agenda{background:var(--card);border:1px solid var(--line);border-radius:4px}
+.agenda .ad{display:grid;grid-template-columns:86px minmax(0,1fr);border-top:1px solid var(--line)}
+.agenda .ad:first-child{border-top:0}
+.agenda .ad.today{background:color-mix(in srgb,var(--maroon) 4%,var(--card))}
+.agenda .when{padding:14px 12px;border-right:1px solid var(--line);font:600 .78rem/1.3 var(--body);color:var(--muted)}
+.agenda .when b{display:block;font:700 1.5rem/1 var(--display);color:var(--ink);font-variant-numeric:lining-nums tabular-nums}
+.agenda .its{padding:10px 14px;display:grid;gap:8px;min-width:0}
+.arow2{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-left:3px solid var(--sc,var(--line));border-radius:4px;cursor:pointer;background:var(--card)}
+.arow2:hover{border-color:var(--muted)}
+.arow2 img,.arow2 .noimg{width:44px;height:44px;border-radius:4px;object-fit:cover;background:var(--paper);display:grid;place-items:center;color:var(--muted);font-size:1.1rem}
+.arow2 .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow2 .sub{font-size:.8rem;color:var(--muted);margin-top:2px}
+.arow2.kdrow{--sc:var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--card))}
+.arow2.cbrow{--sc:var(--c)}
+@media (max-width:560px){.agenda .ad{grid-template-columns:58px minmax(0,1fr)}.agenda .when{padding:12px 8px}.agenda .its{padding:8px}.arow2{grid-template-columns:auto minmax(0,1fr);gap:8px}.arow2 .stl{grid-column:2;justify-self:start}.arow2 img,.arow2 .noimg{width:38px;height:38px}}
+.stl{font:700 .68rem/1 var(--body);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px;color:var(--sc);background:color-mix(in srgb,var(--sc) 12%,var(--card));white-space:nowrap}
+/* side panel */
+.side{display:grid;gap:16px}
+.side .box > h3{font-size:1rem}
+.up{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:12px 16px;border-top:1px solid var(--line);align-items:start}
+.up:first-of-type{border-top:0}
+.up .cnt{font:700 1.15rem/1 var(--display);color:var(--maroon);text-align:center;min-width:38px;font-variant-numeric:lining-nums tabular-nums}
+.up .cnt small{display:block;font:600 .62rem/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.up .nm{font-weight:700}
+.up .sub{font-size:.8rem;color:var(--muted)}
+.up .ok{font-size:.8rem;color:var(--p);font-weight:600}
+.up .warn{font-size:.8rem;color:var(--a);font-weight:600}
+.up .acts{grid-column:2;display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.td{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 16px;border-top:1px solid var(--line);cursor:pointer;align-items:center}
+.td:hover{background:color-mix(in srgb,var(--gold) 5%,var(--card))}
+.td .nm{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td .sub{font-size:.78rem;color:var(--muted)}
+.td .late{color:var(--a);font-weight:700}
+/* post editor */
+dialog.pe{width:min(860px,calc(100vw - 24px));max-width:min(860px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:0;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);box-shadow:0 30px 80px rgba(20,12,10,.35)}
+dialog.pe::backdrop{background:rgba(30,18,15,.5)}
+.pe form{display:grid;grid-template-columns:300px minmax(0,1fr);padding:0;gap:0}
+.pe label{display:grid;gap:6px;font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.pe .actions{justify-content:flex-start;margin-top:0}
+#pView{--c:var(--maroon)}
+@media (max-width:720px){.pe form{grid-template-columns:1fr}.pe .art{border-right:0;border-bottom:1px solid var(--line)}.pe .ph{max-width:220px;justify-self:center;width:100%}}
+.pe .art{background:var(--paper);border-right:1px solid var(--line);padding:18px;display:grid;gap:12px;align-content:start}
+.pe .ph{aspect-ratio:1/1;border:1px dashed var(--line);border-radius:6px;display:grid;place-items:center;overflow:hidden;background:var(--card);color:var(--muted);font-size:.86rem;text-align:center;max-width:100%}
+.pe .ph img{width:100%;height:100%;object-fit:cover}
+.pe .fields{padding:20px 22px;display:grid;gap:14px;align-content:start;min-width:0}
+.pe .fields h2{margin:0;font-size:1.3rem;color:var(--maroon)}
+.pe .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.pe .two{grid-template-columns:1fr}}
+.pe .field > span{font-size:.8rem;font-weight:600;color:var(--muted)}
+.pe .stb button[aria-pressed="true"]{background:var(--sc);border-color:var(--sc)}
+.pe .cc{display:flex;justify-content:space-between;font-size:.76rem;color:var(--muted)}
+.pe .meta{font-size:.78rem;color:var(--muted)}
+.pe .actions{display:flex;flex-wrap:wrap;gap:8px}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -98,7 +203,8 @@
     </div>
     <div class="access" id="access"></div>
     <nav class="tabs" role="tablist">
-      <button role="tab" data-tab="list" aria-selected="true">Campaigns</button>
+      <button role="tab" data-tab="planner" aria-selected="true">Planner</button>
+      <button role="tab" data-tab="list" aria-selected="false">Campaigns</button>
       <button role="tab" data-tab="new" aria-selected="false">New campaign</button>
       <button role="tab" data-tab="compare" aria-selected="false" class="owner-only">Compare</button>
     </nav>
@@ -109,8 +215,32 @@
 <div class="wrap content no-access-msg"><div class="form panel"><h3>No access</h3><p>Ask the owner to switch on Campaigns for you in People &amp; settings.</p></div></div>
 
 <main>
+  <!-- PLANNER -->
+  <section id="tab-planner">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Marketing planner</span><h2 id="pTitle">Planner</h2></div>
+      <div class="pbar">
+        <div class="seg"><button type="button" class="ic" id="pPrev" aria-label="Previous month">‹</button><button type="button" id="pToday">Today</button><button type="button" class="ic" id="pNext" aria-label="Next month">›</button></div>
+        <div class="seg" id="pView" role="group" aria-label="View"><button type="button" data-v="month" aria-pressed="true">Month</button><button type="button" data-v="list" aria-pressed="false">List</button></div>
+        <select class="input" id="pCh" aria-label="Channel"></select>
+        <span class="grow"></span>
+        <button class="btn" type="button" id="pCamp">New campaign</button>
+        <button class="btn btn-maroon" type="button" id="pAdd">Plan a post</button>
+      </div>
+      <div class="legend" id="pLegend"></div>
+    </div></div>
+    <div class="wrap content plan">
+      <div id="pCal"><div class="loading">Loading…</div></div>
+      <aside class="side">
+        <div class="box"><h3>Coming up<small>next 60 days</small></h3><div id="pUp"></div></div>
+        <div class="box"><h3>Posts to do<small id="pTdN"></small></h3><div id="pTd"></div></div>
+        <div class="box owner-only"><h3>Key dates</h3><div class="sendbar"><p class="hint">Festivals and shop days on the calendar. Lunar festivals can move by a day between panchangs; tap one on the calendar to change it.</p><div class="bar"><button class="btn" type="button" id="pKdAdd">Add a key date</button></div></div></div>
+      </aside>
+    </div>
+  </section>
+
   <!-- LIST -->
-  <section id="tab-list">
+  <section id="tab-list" hidden>
     <div class="band"><div class="wrap">
       <div class="heading"><span class="eyebrow">Marketing</span><h2 id="lTitle">Campaigns</h2></div>
       <div class="bar"><button class="btn btn-maroon" id="goNew">New campaign</button></div>
@@ -130,6 +260,7 @@
         <button data-s="people" aria-selected="false">People &amp; results</button>
         <button data-s="add" aria-selected="false">Choose customers</button>
         <button data-s="costs" aria-selected="false">Costs</button>
+        <button data-s="posts" aria-selected="false">Posts</button>
       </div>
     </div></div>
     <div class="wrap content">
@@ -137,6 +268,7 @@
       <div id="s-people" class="box" hidden></div>
       <div id="s-add" class="box" hidden></div>
       <div id="s-costs" class="box" hidden></div>
+      <div id="s-posts" class="box" hidden></div>
     </div>
   </section>
 
@@ -182,6 +314,37 @@
   </section>
 </main>
 
+<dialog class="pe" id="pe" aria-labelledby="peTitle">
+  <form method="dialog" id="peForm" novalidate>
+    <div class="art">
+      <div class="ph" id="pePh">No picture yet</div>
+      <div class="bar"><button class="btn mini" type="button" id="pePick">Add a picture</button><button class="btn mini" type="button" id="peNoPic" hidden>Remove</button></div>
+      <input type="file" id="peFile" accept="image/*" hidden>
+      <label>Design link (Canva)<input class="input" id="peUrl" maxlength="500" placeholder="https://www.canva.com/design/…" inputmode="url"></label>
+      <a class="btn mini" id="peOpen" href="#" target="_blank" rel="noopener" hidden>Open the design</a>
+      <p class="hint">Make the design in Canva, then paste its share link here and add the finished picture.</p>
+    </div>
+    <div class="fields">
+      <h2 id="peTitle">Plan a post</h2>
+      <label>What is it<input class="input" id="peName" maxlength="120" placeholder="e.g. Deepavali gold coin reel"></label>
+      <div class="two">
+        <label>Day<input class="input" type="date" id="peDay"></label>
+        <label>Channel<select class="input" id="peCh"></select></label>
+      </div>
+      <div class="field"><span>Status</span><div class="seg stb" id="peSt" role="group" aria-label="Status"></div></div>
+      <div class="two">
+        <label>Campaign<select class="input" id="peCamp"></select></label>
+        <label>Given to<select class="input" id="peWho"></select></label>
+      </div>
+      <label>Caption<textarea class="input" id="peCap" maxlength="2000" rows="5" placeholder="The words that go with the post. Hashtags too."></textarea></label>
+      <div class="cc"><span id="peCc">0 / 2000</span><span><button class="linkish" type="button" id="peCopy">Copy caption</button> · <button class="linkish" type="button" id="peWa">Share on WhatsApp</button></span></div>
+      <p class="meta" id="peMeta"></p>
+      <p class="err" id="peErr" role="alert"></p>
+      <div class="actions"><button class="btn btn-maroon" type="submit" id="peSave">Save</button><button class="btn" type="button" id="peCancel">Cancel</button><button class="btn btn-danger" type="button" id="peDel" hidden>Delete</button></div>
+    </div>
+  </form>
+</dialog>
+
 <footer>
   <div class="wrap">
     <img src="../img/logo-cream.png" alt="Natraj Jewels">
@@ -202,6 +365,7 @@ const OCCASIONS = ['Diwali', 'Akshaya Tritiya', 'Pongal', 'Navaratri', 'Wedding 
 const DEFAULT_MSG = 'Vanakkam {name}! 🙏\n{occasion} offer at Natraj Jewels, Tiruppur: {offer}.\nValid till {ends}. Visit us at 24, Eswaran Kovil St.\nReply STOP if you do not want offers.';
 const VISIT_AFTER = 7;    // a visit up to a week after the campaign still counts
 let camps = [], contacts = [], costs = [], visits = [], customers = [], cur = null, editing = null, sub = 'send', fCh = [];
+let posts = [], kdates = [], staff = [];
 
 const inr = n => '₹' + Math.round(Number(n || 0)).toLocaleString('en-IN');
 const num = s => { const v = String(s || '').replace(/[,\s₹]/g, ''); return v === '' ? null : /^\d+(\.\d+)?$/.test(v) ? Number(v) : NaN; };
@@ -229,13 +393,15 @@ function results(c){
     perVisit: came.length && spent ? spent / came.length : null, perRupee: spent ? sales / spent : null};
 }
 
-/* ---------- tabs and routes: #c=<id>, #new, #edit=<id>, #compare ---------- */
-document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.tab === 'list' ? '' : b.dataset.tab; }));
+/* ---------- tabs and routes: planner (no hash), #list, #c=<id>, #new, #edit=<id>, #compare ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.tab === 'planner' ? '' : b.dataset.tab; }));
+let shown = '';
 function show(name){
   const tab = name === 'one' ? 'list' : name === 'new' && editing ? 'list' : name;
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
-  ['list', 'one', 'new', 'compare'].forEach(t => $('tab-' + t).hidden = t !== name);
-  window.scrollTo(0, 0);
+  ['planner', 'list', 'one', 'new', 'compare'].forEach(t => $('tab-' + t).hidden = t !== name);
+  if(shown !== name) window.scrollTo(0, 0);
+  shown = name;
 }
 function route(){
   const h = decodeURIComponent(location.hash.slice(1));
@@ -243,17 +409,22 @@ function route(){
   if(h === 'new') return openForm(null);
   if(h.startsWith('edit=')) return openForm(camps.find(c => c.id === h.slice(5)) || null);
   if(h === 'compare' && NJ.me.is_owner){ show('compare'); return renderCompare(); }
-  show('list'); renderList();
+  if(h === 'list'){ show('list'); return renderList(); }
+  show('planner'); renderPlanner();
 }
 window.addEventListener('hashchange', route);
 
 async function loadAll(){
-  const [a, b, c] = await Promise.all([
+  const [a, b, c, d, e, f] = await Promise.all([
     sb.from('campaigns').select('*').order('starts', {ascending: false}),
-    sb.from('campaign_contacts').select('*').order('created_at'),
-    sb.from('campaign_costs').select('*').order('day')
+    NJ.selectAll(() => sb.from('campaign_contacts').select('*').order('created_at').order('id')),
+    sb.from('campaign_costs').select('*').order('day'),
+    NJ.selectAll(() => sb.from('campaign_posts').select('*').order('day').order('created_at')),
+    sb.from('marketing_dates').select('*').order('day'),
+    staff.length ? {data: staff} : sb.rpc('campaign_people')
   ]);
-  camps = must(a) || []; contacts = must(b) || []; costs = must(c) || [];
+  camps = must(a) || []; contacts = b; costs = must(c) || []; posts = d; kdates = must(e) || []; staff = must(f) || [];
+  sign(posts.map(x => x.photo)).then(() => { if(shown === 'planner') renderPlanner(); }).catch(() => {});
   if(NJ.canUse('crm')){
     const since = camps.length ? camps.map(x => x.starts).sort()[0] : todayIso();
     const [v, cu] = await Promise.all([
@@ -299,12 +470,12 @@ function renderCampaign(){
     '<div><span>Sales</span><b>' + inr(r.sales) + '</b><em>' + r.bought.length + ' bought' + (r.bought.some(k => !(Number(k.bought) > 0)) ? ' · ' + r.bought.filter(k => !(Number(k.bought) > 0)).length + ' bill not entered' : '') + '</em></div>' +
     '<div><span>Spent</span><b>' + inr(r.spent) + '</b><em>' + (c.budget ? 'of ' + inr(c.budget) + ' budget' : 'no budget set') + (r.perVisit ? ' · ' + inr(r.perVisit) + ' a visitor' : '') + '</em></div>';
   $('oTabs').querySelectorAll('[data-s]').forEach(b => b.setAttribute('aria-selected', b.dataset.s === sub));
-  ['send', 'people', 'add', 'costs'].forEach(k => $('s-' + k).hidden = k !== sub);
-  ({send: renderSend, people: renderPeople, add: renderAdd, costs: renderCosts})[sub]();
+  ['send', 'people', 'add', 'costs', 'posts'].forEach(k => $('s-' + k).hidden = k !== sub);
+  ({send: renderSend, people: renderPeople, add: renderAdd, costs: renderCosts, posts: renderCampPosts})[sub]();
 }
 $('oTabs').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if(b){ sub = b.dataset.s; renderCampaign(); } });
 $('oOffer').addEventListener('click', e => { if(e.target.id === 'oEdit') location.hash = 'edit=' + cur.id; });
-$('backBtn').onclick = () => { location.hash = ''; };
+$('backBtn').onclick = () => { location.hash = 'list'; };
 
 /* send: one tap opens WhatsApp with the message for that person, and marks them sent */
 function renderSend(){
@@ -447,11 +618,21 @@ $('s-costs').addEventListener('click', async e => {
 });
 
 /* ---------- new / edit ---------- */
-$('occList').innerHTML = OCCASIONS.map(o => '<option value="' + esc(o) + '">').join('');
+const occOptions = () => { $('occList').innerHTML = [...new Set([...kdates.filter(k => k.day >= todayIso()).map(k => k.name), ...OCCASIONS])].map(o => '<option value="' + esc(o) + '">').join(''); };
+occOptions();
+// a new campaign for a key date coming up: run it for the two weeks before, ending on the day
+$('fOcc').addEventListener('change', () => {
+  if(editing) return;
+  const k = kdates.find(x => x.day >= todayIso() && x.name.toLowerCase() === $('fOcc').value.trim().toLowerCase());
+  if(!k) return;
+  $('fEnd').value = k.day; const st = addDays(k.day, -14); $('fStart').value = st < todayIso() ? todayIso() : st;
+  if(!$('fName').value.trim()) $('fName').value = k.name + ' ' + k.day.slice(0, 4) + ' offer';
+});
 function renderCh(){ $('fCh').innerHTML = CHANNELS.map(x => '<button type="button" class="bubble" data-c="' + esc(x) + '" aria-pressed="' + fCh.includes(x) + '">' + esc(x) + '</button>').join(''); }
 $('fCh').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if(!b) return; fCh = fCh.includes(b.dataset.c) ? fCh.filter(x => x !== b.dataset.c) : [...fCh, b.dataset.c]; renderCh(); });
+let formPreset = null;     // from the planner: {occasion, day}
 function openForm(c){
-  editing = c; show('new');
+  editing = c; show('new'); occOptions();
   $('fEyebrow').textContent = c ? 'Edit' : 'New'; $('fTitle').textContent = c ? c.name : 'New campaign';
   $('fName').value = c ? c.name : ''; $('fOcc').value = c ? c.occasion : '';
   $('fStart').value = c ? c.starts : todayIso(); $('fEnd').value = c ? c.ends : addDays(todayIso(), 14);
@@ -459,8 +640,10 @@ function openForm(c){
   $('fOffer').value = c ? c.offer : ''; $('fMsg').value = c ? c.message : DEFAULT_MSG;
   $('fBudget').value = c && c.budget != null ? Number(c.budget) : ''; $('fNotes').value = c ? c.notes : '';
   $('fErr').textContent = ''; $('fDel').hidden = !c;
+  if(!c && formPreset){ $('fOcc').value = formPreset.occasion; $('fOcc').dispatchEvent(new Event('change')); }
+  formPreset = null;
 }
-$('fCancel').onclick = () => { location.hash = editing ? 'c=' + editing.id : ''; };
+$('fCancel').onclick = () => { location.hash = editing ? 'c=' + editing.id : 'list'; };
 $('cf').addEventListener('submit', async e => {
   e.preventDefault(); const err = t => { $('fErr').textContent = t; }; err('');
   const b = num($('fBudget').value);
@@ -481,9 +664,295 @@ $('cf').addEventListener('submit', async e => {
 });
 $('fDel').onclick = async () => {
   if(!editing || !await ask('Delete ' + editing.name + '?', 'Its customer list, results and costs are removed for good.', 'Delete', true)) return;
-  try{ must(await sb.from('campaigns').delete().eq('id', editing.id)); camps = camps.filter(c => c !== editing); contacts = contacts.filter(k => k.campaign_id !== editing.id); costs = costs.filter(x => x.campaign_id !== editing.id); editing = null; toast('Campaign deleted'); location.hash = ''; }
+  try{ must(await sb.from('campaigns').delete().eq('id', editing.id)); camps = camps.filter(c => c !== editing); contacts = contacts.filter(k => k.campaign_id !== editing.id); costs = costs.filter(x => x.campaign_id !== editing.id); editing = null; toast('Campaign deleted'); location.hash = 'list'; }
   catch(x){ toast(x.message); }
 };
+
+/* ---------- planner: a month of posts, campaigns and key dates (like Canva's content planner) ---------- */
+const POST_CH = ['Instagram', 'Facebook', 'WhatsApp', 'YouTube', 'Google', 'Newspaper', 'Pamphlet', 'Radio', 'Hoarding', 'SMS', 'In the shop', 'Other'];
+const CH_COLOR = {Instagram: '#C13584', Facebook: '#1877F2', WhatsApp: '#0E7A6C', YouTube: '#D62D20', Google: '#4A7BD0', Newspaper: '#5E5650', Pamphlet: '#9A6A12', Radio: '#7A3B6A', Hoarding: '#845E22', SMS: '#1F6B73', 'In the shop': '#8E2A2A'};
+const PST = {idea: 'Idea', making: 'Being made', ready: 'Ready', posted: 'Posted'};
+const CAMP_COLORS = ['#8E2A2A', '#1F6B73', '#7A3B6A', '#2E7D4F', '#9A6A12', '#3C5A99', '#B4532A', '#5B6B2E'];
+const campColor = c => CAMP_COLORS[[...c.id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % CAMP_COLORS.length];
+const KD_ICON = {festival: '🪔', shop: '★', day: '•'};
+const BUCKET = 'marketing';
+let pMonth = todayIso().slice(0, 7), pView = matchMedia('(max-width:700px)').matches ? 'list' : 'month', pCh = '';
+const fmtLong = d => parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
+const daysTo = d => Math.round((parse(d) - parse(todayIso())) / 864e5);
+const monthAdd = (m, n) => { const d = parse(m + '-01'); d.setMonth(d.getMonth() + n); return iso(d).slice(0, 7); };
+const canDel = x => NJ.me.is_owner || x.created_by === NJ.me.user_id;
+
+/* photos: private bucket, signed links cached until shortly before they expire */
+const urls = {};
+async function sign(paths){
+  if(window.NJ_DEMO && NJ_DEMO.photo) return;
+  const need = [...new Set(paths)].filter(p => p && !(urls[p] && urls[p].until > Date.now()));
+  for(let i = 0; i < need.length; i += 100){
+    const {data, error} = await sb.storage.from(BUCKET).createSignedUrls(need.slice(i, i + 100), 6 * 3600);
+    if(error) throw error;
+    (data || []).forEach(d => { if(d.signedUrl) urls[d.path] = {url: d.signedUrl, until: Date.now() + 5.5 * 3600e3}; });
+  }
+}
+const src = p => p ? (window.NJ_DEMO && NJ_DEMO.photo && NJ_DEMO.photo(p)) || (urls[p] && urls[p].url) || '' : '';
+async function shrink(file){
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('That file is not a picture we can read.')); i.src = URL.createObjectURL(file); });
+  const max = 1400, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+  URL.revokeObjectURL(img.src);
+  let q = .85, blob;
+  do { blob = await new Promise(r => c.toBlob(r, 'image/jpeg', q)); q -= .12; } while(blob && blob.size > 600e3 && q > .4);
+  if(!blob) throw new Error('Could not prepare that picture.');
+  return blob;
+}
+
+$('pCh').innerHTML = '<option value="">All channels</option>' + POST_CH.map(c => '<option>' + esc(c) + '</option>').join('');
+$('pLegend').innerHTML = Object.entries(PST).map(([k, l]) => '<span class="st-' + k + '"><i></i>' + l + '</span>').join('') + '<span><i style="--sc:var(--gold)"></i>Key date</span>';
+const shownPosts = () => posts.filter(x => !pCh || x.channel === pCh);
+const campsOn = d => camps.filter(c => c.starts <= d && c.ends >= d).sort((a, b) => a.starts.localeCompare(b.starts) || a.name.localeCompare(b.name));
+// the campaigns for a key date: running that day, or named for it and ending within 10 days of it (Diwali = Deepavali)
+const occKey = t => String(t || '').toLowerCase().replace(/deepavali/g, 'diwali').replace(/[^a-z]/g, '');
+const campsFor = k => camps.filter(c => (c.starts <= k.day && c.ends >= k.day) || (c.occasion && occKey(k.name).includes(occKey(c.occasion)) && Math.abs(daysTo(c.ends) - daysTo(k.day)) <= 10));
+const chDot = ch => '<span class="chd" style="--chc:' + (CH_COLOR[ch] || '#8B8178') + '" title="' + esc(ch) + '"></span>';
+
+function renderPlanner(){
+  const first = pMonth + '-01', title = parse(first).toLocaleDateString('en-IN', {month: 'long', year: 'numeric'});
+  $('pTitle').textContent = title;
+  $('pView').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === pView));
+  $('pCh').value = pCh;
+  if(pView === 'month') renderMonth(); else renderAgenda();
+  renderSide();
+}
+function renderMonth(){
+  const first = parse(pMonth + '-01'), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
+  const last = new Date(first.getFullYear(), first.getMonth() + 1, 0), end = new Date(last); end.setDate(last.getDate() + (7 - ((last.getDay() + 6) % 7) - 1));
+  const t = todayIso(), ps = shownPosts(), cells = [];
+  for(const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)){
+    const day = iso(d), col = (d.getDay() + 6) % 7, out = day.slice(0, 7) !== pMonth;
+    const kd = kdates.filter(k => k.day === day), cs = campsOn(day), dp = ps.filter(x => x.day === day);
+    cells.push('<div class="pc' + (out ? ' out' : '') + (day === t ? ' today' : '') + '" data-day="' + day + '">' +
+      '<div class="dh"><span class="dn">' + d.getDate() + '</span><button type="button" class="plus" data-add="' + day + '" aria-label="Plan a post on ' + esc(fmtLong(day)) + '">+</button></div>' +
+      kd.map(k => '<button type="button" class="kd ' + k.kind + '" data-kd="' + esc(k.id) + '" title="' + esc(k.name + (k.note ? ' · ' + k.note : '')) + '"><span>' + KD_ICON[k.kind] + ' ' + esc(k.name) + '</span></button>').join('') +
+      cs.map(c => { const f = c.starts === day || col === 0, l = c.ends === day || col === 6;
+        return '<button type="button" class="cb' + (c.starts === day ? ' first' : '') + (c.ends === day ? ' last' : '') + '" style="--c:' + campColor(c) + '" data-camp="' + esc(c.id) + '" title="' + esc(c.name) + '">' + (f ? esc(c.name) : '&nbsp;') + '</button>'; }).join('') +
+      '<div class="pps">' + dp.slice(0, 3).map(x => '<button type="button" class="pp st-' + x.status + (x.status === 'posted' ? ' posted' : '') + '" draggable="true" data-post="' + esc(x.id) + '" title="' + esc(x.title + ' · ' + x.channel + ' · ' + PST[x.status]) + '">' +
+        (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '') + chDot(x.channel) + '<span class="t">' + esc(x.title) + '</span></button>').join('') +
+        (dp.length > 3 ? '<button type="button" class="more" data-more="' + day + '">+' + (dp.length - 3) + ' more</button>' : '') + '</div></div>');
+  }
+  $('pCal').innerHTML = '<div class="cal"><div class="dow">' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(x => '<span>' + x + '</span>').join('') + '</div><div class="grid">' + cells.join('') + '</div></div>';
+}
+function renderAgenda(){
+  const t = todayIso(), ps = shownPosts(), days = new Set();
+  const inM = d => d.slice(0, 7) === pMonth;
+  ps.filter(x => inM(x.day)).forEach(x => days.add(x.day));
+  kdates.filter(k => inM(k.day)).forEach(k => days.add(k.day));
+  camps.forEach(c => { if(inM(c.starts)) days.add(c.starts); if(inM(c.ends)) days.add(c.ends); });
+  if(t.slice(0, 7) === pMonth) days.add(t);
+  const list = [...days].sort();
+  $('pCal').innerHTML = '<div class="agenda">' + (list.length ? list.map(day => {
+    const d = parse(day), items = [];
+    kdates.filter(k => k.day === day).forEach(k => items.push('<div class="arow2 kdrow" data-kd="' + esc(k.id) + '"><span class="noimg">' + KD_ICON[k.kind] + '</span><div><div class="nm">' + esc(k.name) + '</div><div class="sub">' + esc(k.note || (k.kind === 'shop' ? 'Shop date' : 'Key date')) + '</div></div><span class="stl" style="--sc:var(--gold)">Key date</span></div>'));
+    camps.filter(c => c.starts === day || c.ends === day).forEach(c => items.push('<div class="arow2 cbrow" style="--c:' + campColor(c) + '" data-camp="' + esc(c.id) + '"><span class="noimg" style="color:' + campColor(c) + '">▮</span><div><div class="nm">' + esc(c.name) + '</div><div class="sub">Campaign ' + (c.starts === day ? 'starts' : 'ends') + ' · ' + fmtD(c.starts) + ' – ' + fmtD(c.ends) + '</div></div><span class="stl" style="--sc:' + campColor(c) + '">Campaign</span></div>'));
+    ps.filter(x => x.day === day).forEach(x => { const c = camps.find(y => y.id === x.campaign_id);
+      items.push('<div class="arow2 st-' + x.status + '" data-post="' + esc(x.id) + '">' + (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '<span class="noimg">' + chDot(x.channel) + '</span>') +
+        '<div><div class="nm">' + esc(x.title) + '</div><div class="sub">' + esc([x.channel, c ? c.name : '', x.assigned_name ? 'for ' + x.assigned_name : ''].filter(Boolean).join(' · ')) + '</div></div><span class="stl">' + PST[x.status] + '</span></div>'); });
+    if(!items.length) items.push('<div class="hint" style="padding:6px 2px">Nothing planned today. <button class="linkish" data-add="' + day + '">Plan a post</button></div>');
+    return '<div class="ad' + (day === t ? ' today' : '') + '" id="ad-' + day + '"><div class="when"><b>' + d.getDate() + '</b>' + esc(d.toLocaleDateString('en-IN', {weekday: 'short', month: 'short'})) + '</div><div class="its">' + items.join('') + '</div></div>';
+  }).join('') : '<div class="empty"><h3>Nothing planned this month</h3><p>Tap “Plan a post” to add the first one.</p></div>') + '</div>';
+}
+function renderSide(){
+  const t = todayIso(), until = addDays(t, 60);
+  const up = kdates.filter(k => k.day >= t && k.day <= until);
+  $('pUp').innerHTML = up.length ? up.map(k => {
+    const n = daysTo(k.day), cs = campsFor(k), pn = posts.filter(x => x.day >= addDays(k.day, -14) && x.day <= k.day && (x.title + ' ' + x.caption).toLowerCase().includes(k.name.toLowerCase().split(' ')[0])).length;
+    return '<div class="up"><div class="cnt">' + (n === 0 ? 'Today' : n) + (n ? '<small>day' + (n === 1 ? '' : 's') + '</small>' : '') + '</div><div><div class="nm">' + KD_ICON[k.kind] + ' ' + esc(k.name) + '</div><div class="sub">' + esc(fmtLong(k.day)) + '</div>' +
+      (cs.length ? '<div class="ok">✓ ' + esc(cs.map(c => c.name).join(', ')) + '</div>' : '<div class="warn">No campaign yet</div>') + (pn ? '<div class="sub">' + pn + ' post' + (pn > 1 ? 's' : '') + ' planned</div>' : '') +
+      '<div class="acts">' + (cs.length ? '' : '<button class="btn mini" data-kdcamp="' + esc(k.id) + '">Start a campaign</button>') + '<button class="btn mini" data-kdpost="' + esc(k.id) + '">Plan a post</button></div></div></div>';
+  }).join('') : '<div class="empty-s">No key dates in the next 60 days.' + (NJ.me.is_owner ? ' Add the shop’s own below.' : '') + '</div>';
+  const todo = posts.filter(x => x.status !== 'posted' && x.day <= addDays(t, 14)).sort((a, b) => a.day.localeCompare(b.day));
+  $('pTdN').textContent = todo.length ? todo.length + ' in the next 2 weeks' : '';
+  $('pTd').innerHTML = todo.length ? todo.slice(0, 30).map(x => '<div class="td st-' + x.status + '" data-post="' + esc(x.id) + '"><div><div class="nm">' + esc(x.title) + '</div><div class="sub">' +
+    (x.day < t ? '<span class="late">Late · ' + esc(fmtLong(x.day)) + '</span>' : esc(x.day === t ? 'Today' : fmtLong(x.day))) + ' · ' + esc(x.channel) + (x.assigned_name ? ' · ' + esc(x.assigned_name) : '') + '</div></div><span class="stl">' + PST[x.status] + '</span></div>').join('')
+    : '<div class="empty-s">Nothing waiting. Plan the next post on the calendar.</div>';
+}
+
+/* clicks on the calendar, the list and the side panel */
+function plannerClick(e){
+  const g = a => e.target.closest('[' + a + ']');
+  let b;
+  if((b = g('data-post'))) return openPost(posts.find(x => x.id === b.dataset.post));
+  if((b = g('data-camp'))) return void (location.hash = 'c=' + b.dataset.camp);
+  if((b = g('data-kd'))) return openKd(kdates.find(k => k.id === b.dataset.kd));
+  if((b = g('data-more'))){ pView = 'list'; renderPlanner(); const el = $('ad-' + b.dataset.more); if(el) el.scrollIntoView({block: 'start', behavior: 'smooth'}); return; }
+  if((b = g('data-kdcamp'))){ const k = kdates.find(x => x.id === b.dataset.kdcamp); formPreset = {occasion: k.name}; location.hash = 'new'; return; }
+  if((b = g('data-kdpost'))){ const k = kdates.find(x => x.id === b.dataset.kdpost); return openPost(null, {day: k.day, title: k.name + ' wishes'}); }
+  if((b = g('data-add'))) return openPost(null, {day: b.dataset.add});
+  if((b = g('data-day'))){
+    // on a phone the month only shows dots: open that day in the list instead
+    const d = b.dataset.day;
+    if(matchMedia('(max-width:700px)').matches && (posts.some(x => x.day === d) || kdates.some(k => k.day === d))){
+      pMonth = d.slice(0, 7); pView = 'list'; renderPlanner(); const el = $('ad-' + d); if(el) el.scrollIntoView({block: 'start', behavior: 'smooth'}); return;
+    }
+    return openPost(null, {day: d});
+  }
+}
+$('pCal').addEventListener('click', plannerClick);
+document.querySelector('#tab-planner .side').addEventListener('click', plannerClick);
+$('pPrev').onclick = () => { pMonth = monthAdd(pMonth, -1); renderPlanner(); };
+$('pNext').onclick = () => { pMonth = monthAdd(pMonth, 1); renderPlanner(); };
+$('pToday').onclick = () => { pMonth = todayIso().slice(0, 7); renderPlanner(); if(pView === 'list'){ const el = $('ad-' + todayIso()); if(el) el.scrollIntoView({block: 'start'}); } };
+$('pView').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b){ pView = b.dataset.v; renderPlanner(); } });
+$('pCh').addEventListener('change', () => { pCh = $('pCh').value; renderPlanner(); });
+$('pAdd').onclick = () => openPost(null, {day: pMonth === todayIso().slice(0, 7) ? todayIso() : pMonth + '-01'});
+$('pCamp').onclick = () => { location.hash = 'new'; };
+
+/* drag a post to another day */
+let dragId = null;
+$('pCal').addEventListener('dragstart', e => { const b = e.target.closest('[data-post]'); if(!b) return; dragId = b.dataset.post; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId); });
+$('pCal').addEventListener('dragover', e => { const c = e.target.closest('.pc'); if(!c || !dragId) return; e.preventDefault(); document.querySelectorAll('.pc.drop').forEach(x => x !== c && x.classList.remove('drop')); c.classList.add('drop'); });
+$('pCal').addEventListener('dragleave', e => { const c = e.target.closest('.pc'); if(c && !c.contains(e.relatedTarget)) c.classList.remove('drop'); });
+$('pCal').addEventListener('dragend', () => { dragId = null; document.querySelectorAll('.pc.drop').forEach(x => x.classList.remove('drop')); });
+$('pCal').addEventListener('drop', async e => {
+  const c = e.target.closest('.pc'); if(!c || !dragId) return; e.preventDefault();
+  const x = posts.find(y => y.id === dragId); dragId = null; c.classList.remove('drop');
+  if(!x || x.day === c.dataset.day) return;
+  const was = x.day; x.day = c.dataset.day; renderPlanner();
+  try{ Object.assign(x, must(await sb.from('campaign_posts').update({day: x.day}).eq('id', x.id).select().single())); toast('Moved to ' + fmtLong(x.day)); }
+  catch(err){ x.day = was; renderPlanner(); toast(err.message); }
+});
+
+/* a key date: the owner changes or removes it; everyone can plan for it */
+async function openKd(k){
+  if(!k) return;
+  const cs = campsFor(k);
+  if(!NJ.me.is_owner){
+    const v = await dialog({title: KD_ICON[k.kind] + ' ' + k.name, msg: fmtLong(k.day) + (k.note ? ' · ' + k.note : '') + (cs.length ? '. Campaign: ' + cs.map(c => c.name).join(', ') : '. No campaign yet.'), ok: 'Plan a post', cancel: 'Close'});
+    if(v) openPost(null, {day: k.day, title: k.name + ' wishes'});
+    return;
+  }
+  const v = await dialog({title: 'Key date', ok: 'Save', fields: [
+    {id: 'name', label: 'Name', value: k.name, maxlength: 60}, {id: 'day', label: 'Date', type: 'date', value: k.day},
+    {id: 'kind', label: 'Kind', type: 'select', value: k.kind, options: [['festival', 'Festival'], ['shop', 'Shop date (anniversary, sale)'], ['day', 'Other day']]},
+    {id: 'note', label: 'Note (optional)', value: k.note, maxlength: 200}, {id: 'del', label: 'Remove this date from the calendar', type: 'checkbox'}],
+    validate: async v => !v.name ? 'Type a name.' : !v.day ? 'Choose the date.' : ''});
+  if(!v) return;
+  try{
+    if(v.del){ must(await sb.from('marketing_dates').delete().eq('id', k.id)); kdates = kdates.filter(x => x !== k); toast('Removed'); }
+    else { Object.assign(k, must(await sb.from('marketing_dates').update({name: v.name, day: v.day, kind: v.kind, note: v.note}).eq('id', k.id).select().single())); kdates.sort((a, b) => a.day.localeCompare(b.day)); toast('Saved'); }
+    renderPlanner();
+  }catch(err){ toast(err.message); }
+}
+$('pKdAdd').onclick = async () => {
+  const v = await dialog({title: 'Add a key date', msg: 'E.g. the shop’s anniversary, a wedding muhurtham day, a sale.', ok: 'Add', fields: [
+    {id: 'name', label: 'Name', maxlength: 60, placeholder: 'e.g. Shop anniversary'}, {id: 'day', label: 'Date', type: 'date', value: todayIso()},
+    {id: 'kind', label: 'Kind', type: 'select', value: 'shop', options: [['festival', 'Festival'], ['shop', 'Shop date (anniversary, sale)'], ['day', 'Other day']]},
+    {id: 'note', label: 'Note (optional)', maxlength: 200}],
+    validate: async v => { if(!v.name) return 'Type a name.'; if(!v.day) return 'Choose the date.';
+      kdates.push(must(await sb.from('marketing_dates').insert({name: v.name, day: v.day, kind: v.kind, note: v.note}).select().single())); return ''; }});
+  if(v){ kdates.sort((a, b) => a.day.localeCompare(b.day)); pMonth = v.day.slice(0, 7); toast('Added'); renderPlanner(); }
+};
+
+/* the post editor */
+let pe = null, peSt = 'idea', pePhoto = null;   // pePhoto: {blob, url} new picture, or '' when removed
+$('peCh').innerHTML = POST_CH.map(c => '<option>' + esc(c) + '</option>').join('');
+$('peSt').innerHTML = Object.entries(PST).map(([k, l]) => '<button type="button" class="st-' + k + '" data-st="' + k + '" aria-pressed="false">' + l + '</button>').join('');
+const paintSt = () => $('peSt').querySelectorAll('[data-st]').forEach(b => b.setAttribute('aria-pressed', b.dataset.st === peSt));
+$('peSt').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if(b){ peSt = b.dataset.st; paintSt(); } });
+function campOptions(day, keep){
+  const near = camps.filter(c => c.id === keep || (c.ends >= addDays(day || todayIso(), -30) && c.starts <= addDays(day || todayIso(), 60)));
+  $('peCamp').innerHTML = '<option value="">Not part of a campaign</option>' + near.map(c => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('');
+  $('peCamp').value = keep || '';
+}
+function paintPhoto(){
+  const url = pePhoto ? pePhoto.url : pePhoto === '' ? '' : pe ? src(pe.photo) : '';
+  $('pePh').innerHTML = url ? '<img src="' + esc(url) + '" alt="The picture for this post">' : 'No picture yet';
+  $('pePick').textContent = url ? 'Change picture' : 'Add a picture'; $('peNoPic').hidden = !url;
+}
+const paintUrl = () => { const u = $('peUrl').value.trim(); $('peOpen').hidden = !/^https?:\/\//i.test(u); $('peOpen').href = /^https?:\/\//i.test(u) ? u : '#'; };
+const paintCc = () => { $('peCc').textContent = $('peCap').value.length + ' / 2000'; };
+function openPost(x, preset){
+  pe = x || null; pePhoto = null; preset = preset || {};
+  $('peTitle').textContent = x ? 'Post' : 'Plan a post';
+  $('peName').value = x ? x.title : preset.title || '';
+  $('peDay').value = x ? x.day : preset.day || todayIso();
+  $('peCh').value = x ? x.channel : pCh || preset.channel || 'Instagram';
+  peSt = x ? x.status : 'idea'; paintSt();
+  const auto = x ? x.campaign_id : preset.campaign || (campsOn($('peDay').value)[0] || {}).id || '';
+  campOptions($('peDay').value, auto);
+  $('peWho').innerHTML = '<option value="">Nobody yet</option>' + staff.map(p => '<option value="' + esc(p.user_id) + '">' + esc(p.name) + '</option>').join('');
+  $('peWho').value = x ? x.assigned_to || '' : '';
+  $('peCap').value = x ? x.caption : ''; $('peUrl').value = x ? x.design_url : '';
+  $('peMeta').textContent = x ? ['Added by ' + (x.created_by_name || 'someone'), x.updated_by_name ? 'changed by ' + x.updated_by_name : '', x.posted_at ? 'posted by ' + (x.posted_by_name || 'someone') + ' on ' + fmtLong(iso(new Date(x.posted_at))) : ''].filter(Boolean).join(' · ') : '';
+  $('peDel').hidden = !(x && canDel(x)); $('peErr').textContent = '';
+  paintPhoto(); paintUrl(); paintCc();
+  $('pe').showModal(); if(!x) $('peName').focus();
+}
+$('peDay').addEventListener('change', () => campOptions($('peDay').value, $('peCamp').value || (campsOn($('peDay').value)[0] || {}).id || ''));
+$('peUrl').addEventListener('input', paintUrl);
+$('peCap').addEventListener('input', paintCc);
+$('pePick').onclick = () => $('peFile').click();
+$('peFile').addEventListener('change', async () => {
+  const f = $('peFile').files[0]; $('peFile').value = ''; if(!f) return;
+  try{ const blob = await shrink(f); pePhoto = {blob, url: URL.createObjectURL(blob)}; paintPhoto(); }catch(err){ toast(err.message); }
+});
+$('peNoPic').onclick = () => { pePhoto = ''; paintPhoto(); };
+$('peCancel').onclick = () => $('pe').close();
+$('peCopy').onclick = async () => { try{ await navigator.clipboard.writeText($('peCap').value); toast('Caption copied'); }catch(e){ $('peCap').select(); toast('Press Copy on the selected text'); } };
+$('peWa').onclick = () => { window.open('https://wa.me/?text=' + encodeURIComponent($('peCap').value || $('peName').value), '_blank', 'noopener'); };
+$('peForm').addEventListener('submit', async e => {
+  e.preventDefault(); const err = m => { $('peErr').textContent = m; }; err('');
+  const title = $('peName').value.trim(), day = $('peDay').value, url = $('peUrl').value.trim();
+  if(!title) return err('Say what the post is, e.g. “Deepavali coin offer reel”.');
+  if(!day) return err('Choose the day.');
+  if(url && !/^https?:\/\//i.test(url)) return err('The design link should start with https://');
+  const row = {title, day, channel: $('peCh').value, status: peSt, campaign_id: $('peCamp').value || null, assigned_to: $('peWho').value || null, caption: $('peCap').value.trim(), design_url: url};
+  $('peSave').setAttribute('aria-busy', 'true');
+  let uploaded = '';
+  try{
+    const old = pe ? pe.photo : '';
+    if(pePhoto && pePhoto.blob){
+      uploaded = NJ.me.user_id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.jpg';
+      const {error} = await sb.storage.from(BUCKET).upload(uploaded, await pePhoto.blob.arrayBuffer(), {contentType: 'image/jpeg', upsert: false});
+      if(error) throw new Error(NJ.friendly(error));
+      row.photo = uploaded; urls[uploaded] = {url: pePhoto.url, until: Date.now() + 3600e3};
+      if(window.NJ_DEMO && NJ_DEMO.keepPhoto) NJ_DEMO.keepPhoto(uploaded, pePhoto.url);
+    } else if(pePhoto === '') row.photo = '';
+    const saved = must(pe ? await sb.from('campaign_posts').update(row).eq('id', pe.id).select().single() : await sb.from('campaign_posts').insert(row).select().single());
+    if(pe) Object.assign(pe, saved); else posts.push(saved);
+    if(old && 'photo' in row && row.photo !== old) sb.storage.from(BUCKET).remove([old]).catch(() => {});
+    posts.sort((a, b) => a.day.localeCompare(b.day));
+    $('pe').close(); toast(pe ? 'Saved' : 'Post planned for ' + fmtLong(saved.day));
+    if(shown === 'planner'){ pMonth = saved.day.slice(0, 7); renderPlanner(); } else if(cur) renderCampaign();
+  }catch(x){
+    if(uploaded) sb.storage.from(BUCKET).remove([uploaded]).catch(() => {});
+    err(x.message);
+  }
+  $('peSave').removeAttribute('aria-busy');
+});
+$('peDel').onclick = async () => {
+  if(!pe) return;
+  const x = pe; $('pe').close();
+  if(!await ask('Delete this post?', x.title + ' · ' + fmtLong(x.day), 'Delete', true)) return;
+  try{ must(await sb.from('campaign_posts').delete().eq('id', x.id)); if(x.photo) sb.storage.from(BUCKET).remove([x.photo]).catch(() => {});
+    posts = posts.filter(y => y !== x); toast('Post deleted'); if(shown === 'planner') renderPlanner(); else if(cur) renderCampaign(); }
+  catch(err){ toast(err.message); }
+};
+
+/* a campaign's own posts */
+function renderCampPosts(){
+  const ps = posts.filter(x => x.campaign_id === cur.id), done = ps.filter(x => x.status === 'posted').length;
+  $('s-posts').innerHTML = '<h3>Posts<small>' + done + ' of ' + ps.length + ' posted</small></h3>' +
+    '<div class="sendbar"><div class="bar"><button class="btn btn-maroon" id="cpAdd">Plan a post for this campaign</button><a class="btn" href="#" id="cpCal">See it on the planner</a></div>' +
+    '<p class="hint">Instagram reels, Facebook posts, the pamphlet, the newspaper ad: one line each, with the picture, caption and who is making it.</p></div>' +
+    (ps.length ? '<div style="display:grid;gap:8px;padding:12px 18px">' + ps.map(x => '<div class="arow2 st-' + x.status + '" data-post="' + esc(x.id) + '">' + (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '<span class="noimg">' + chDot(x.channel) + '</span>') +
+      '<div><div class="nm">' + esc(x.title) + '</div><div class="sub">' + esc([fmtLong(x.day), x.channel, x.assigned_name ? 'for ' + x.assigned_name : ''].filter(Boolean).join(' · ')) + '</div></div><span class="stl">' + PST[x.status] + '</span></div>').join('') + '</div>'
+      : '<div class="empty-s">No posts planned yet.</div>');
+}
+$('s-posts').addEventListener('click', e => {
+  const b = e.target.closest('[data-post]'); if(b) return openPost(posts.find(x => x.id === b.dataset.post));
+  if(e.target.closest('#cpAdd')) return openPost(null, {day: cur.starts > todayIso() ? cur.starts : todayIso() > cur.ends ? cur.ends : todayIso(), campaign: cur.id, title: cur.occasion ? cur.occasion + ' offer' : ''});
+  if(e.target.closest('#cpCal')){ e.preventDefault(); pMonth = (cur.starts > todayIso() ? cur.starts : todayIso() > cur.ends ? cur.starts : todayIso()).slice(0, 7); location.hash = ''; }
+});
 
 /* ---------- compare (owner) ---------- */
 function renderCompare(){

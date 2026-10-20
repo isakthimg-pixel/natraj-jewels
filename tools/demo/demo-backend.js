@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v42';
+const KEY = 'natraj-demo-db-v43';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -23,7 +23,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [], campaign_posts: [], marketing_dates: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -288,6 +288,25 @@ function seed(){
   [C[0], C[1], C[2], C[4]].forEach((cu, i) => contact(dip, cu, i < 2 ? {sent_at: addDays(today, -2) + 'T11:00:00Z', sent_by_name: manager.name} : {}));
   cost(dip, addDays(today, -3), 'Radio', '20 radio spots, Hello FM', 18000);
   cost(dip, addDays(today, -2), 'Instagram', 'Boosted post, 7 days', 3500);
+  // the planner: key dates, and posts for the Diwali campaign and around it
+  [['2026-01-15', 'Thai Pongal'], ['2026-04-14', 'Tamil New Year'], ['2026-04-20', 'Akshaya Tritiya'], ['2026-08-03', 'Aadi Perukku'], ['2026-08-28', 'Varalakshmi Vratham'],
+   ['2026-10-20', 'Vijayadashami'], ['2026-11-06', 'Dhanteras'], ['2026-11-08', 'Deepavali'], ['2026-11-24', 'Karthigai Deepam'], ['2027-01-15', 'Thai Pongal'], ['2027-04-14', 'Tamil New Year'],
+   ['2027-05-09', 'Akshaya Tritiya'], ['2027-08-03', 'Aadi Perukku'], ['2027-10-27', 'Dhanteras'], ['2027-10-29', 'Deepavali']].forEach(([day, name]) => db.marketing_dates.push({id: uid(), day, name, kind: 'festival', note: ''}));
+  [['2026-12-25', 'Christmas'], ['2027-01-01', 'New Year'], ['2027-02-14', 'Valentine’s Day'], ['2027-03-08', 'Women’s Day']].forEach(([day, name]) => db.marketing_dates.push({id: uid(), day, name, kind: 'day', note: ''}));
+  db.marketing_dates.push({id: uid(), day: addDays(today, 26), name: 'Shop anniversary', kind: 'shop', note: '32 years in Tiruppur'});
+  db.marketing_dates.sort((a, b) => a.day.localeCompare(b.day));
+  const post = (day, title, channel, status, extra) => { const r = Object.assign({id: uid(), day: addDays(today, day), title, channel, status, campaign_id: null, caption: '', design_url: '', photo: '', assigned_to: null, assigned_name: '', posted_at: null, posted_by_name: '',
+    created_by: owner.user_id, created_by_name: owner.name, created_at: addDays(today, -5) + 'T10:00:00Z', updated_by_name: '', updated_at: null}, extra || {});
+    if(r.assigned_to) r.assigned_name = (db.profiles.find(p => p.user_id === r.assigned_to) || {}).name || '';
+    if(status === 'posted'){ r.posted_at = r.day + 'T12:30:00Z'; r.posted_by_name = manager.name; } db.campaign_posts.push(r); };
+  post(-3, 'Diwali offer launch reel', 'Instagram', 'posted', {campaign_id: dip.id, photo: 'sample/necklace-gold-0-j6.svg', caption: 'This Diwali, no wastage on gold coins ✨ 50% off making on necklaces. Natraj Jewels, Tiruppur. #Diwali #GoldCoins #Tiruppur', design_url: 'https://www.canva.com/'});
+  post(-2, 'Offer poster', 'Facebook', 'posted', {campaign_id: dip.id, photo: 'sample/bangle-gold-1-j6.svg'});
+  post(0, 'Gold coin close-up', 'Instagram', 'ready', {campaign_id: dip.id, photo: 'sample/pendant-gold-2-j6.svg', assigned_to: manager.user_id, caption: '22K gold coins, no wastage till Diwali. Book yours today.'});
+  post(2, 'Customer story: Lakshmi’s bangles', 'Instagram', 'making', {campaign_id: dip.id, assigned_to: manager.user_id});
+  post(4, 'Radio spot reminder', 'Radio', 'idea', {campaign_id: dip.id});
+  post(6, 'Necklace making-charge offer', 'WhatsApp', 'idea', {campaign_id: dip.id});
+  post(9, 'Silver gift ideas for Diwali', 'Instagram', 'idea', {photo: 'sample/ring-silver-3-j6.svg'});
+  post(-1, 'Navaratri thank-you post', 'Facebook', 'ready', {});
   // who is online: Sample Staff 2 is always on the tasks page on a phone, the manager on a store computer
   const ago = m => new Date(Date.now() - m * 60000).toISOString();
   db.presence.push({user_id: worker.user_id, page: 'Tasks', device: 'Phone', signed_in_at: ago(25), last_seen: ago(0), signed_out_at: null, demo_live: true},
@@ -729,6 +748,7 @@ function rpc(name, a, me, headers){
       if(!l.some(c => c.toLowerCase() === v.toLowerCase())) l.push(v);
       return {status: 200, body: l};
     }
+    case 'campaign_people': return {status: 200, body: canUse(me, 'campaigns') ? db.profiles.filter(p => p.is_owner || p.apps.includes('campaigns')).map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'crm_people': return {status: 200, body: canUse(me, 'crm') ? db.profiles.filter(p => p.is_owner || p.apps.includes('crm')).map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'bank_balances': return {status: 200, body: bankBalances(a.p_until, me)};
     case 'assignable_people': return {status: 200, body: canUse(me, 'todo') ? db.profiles.map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
@@ -782,7 +802,7 @@ function rest(method, table, params, body, headers, me){
     notifications: {read: true, write: true}, customers: {read: true, write: true}, user_prefs: {read: true, write: true}, customer_activity: {read: true, write: true}, bank_accounts: {read: true, write: true}, bank_entries: {read: true, write: true},
     chit_plans: {read: canUse(me, 'chits'), write: me.is_owner}, chit_members: {read: canUse(me, 'chits'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'chits')},
     chit_payments: {read: canUse(me, 'chits'), write: canUse(me, 'chits')}, presence: {read: true, write: false}, approved_devices: {read: me.is_owner, write: me.is_owner}, campaigns: {read: canUse(me, 'campaigns'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'campaigns')},
-    campaign_contacts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_costs: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
+    campaign_contacts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_costs: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, campaign_posts: {read: canUse(me, 'campaigns'), write: canUse(me, 'campaigns')}, marketing_dates: {read: canUse(me, 'campaigns'), write: method === 'GET' || me.is_owner}, report_cards: {read: true, write: me.is_owner}, silver_entries: {read: canUse(me, 'silver'), write: canUse(me, 'silver')},
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     jobs: {read: canUse(me, 'jobs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'jobs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}, entry_queries: {read: true, write: false},
@@ -1140,6 +1160,14 @@ function jobsRest(method, params, body, single, wantRows, me){
   return {status: 200, body: out};
 }
 /* campaigns (migration 025): sent times and who sent are stamped here; costs fixed on the day or by the owner */
+// like the stamp_campaign_post trigger (migration 049): the name of who it is given to, and who marked it posted
+function postFix(r, old, me){
+  r.assigned_name = (db.profiles.find(p => p.user_id === r.assigned_to) || {}).name || '';
+  if(r.status === 'posted' && (!old || old.status !== 'posted')){ r.posted_at = now(); r.posted_by_name = me.name; }
+  else if(r.status !== 'posted'){ r.posted_at = null; r.posted_by_name = ''; }
+  if(r.assigned_to && r.assigned_to !== me.user_id && (!old || old.assigned_to !== r.assigned_to))
+    db.notifications.push({id: uid(), user_id: r.assigned_to, kind: 'post', title: 'Marketing post for you: ' + r.title.slice(0, 80), body: r.day + ' · ' + r.channel, link: 'campaigns/#planner', read_at: null, created_at: now()});
+}
 function campaignsRest(table, method, params, body, single, wantRows, me){
   const nowIso = now(), ownToday = r => r.created_by === me.user_id && new Date(r.created_at).toDateString() === new Date().toDateString();
   let out = db[table].filter(r => matches(r, params));
@@ -1147,19 +1175,23 @@ function campaignsRest(table, method, params, body, single, wantRows, me){
   else if(method === 'POST'){
     const base = table === 'campaigns' ? {occasion: '', channels: [], offer: '', message: '', budget: null, notes: '', updated_by_name: '', updated_at: null, created_by_name: me.name}
       : table === 'campaign_contacts' ? {customer_id: null, phone: '', walk_in: false, sent_at: null, sent_by_name: '', came: false, came_on: null, bought: null, note: '', updated_by_name: '', updated_at: null}
+      : table === 'campaign_posts' ? {campaign_id: null, channel: 'Instagram', caption: '', status: 'idea', design_url: '', photo: '', assigned_to: null, posted_at: null, posted_by_name: '', created_by_name: me.name, updated_by_name: '', updated_at: null}
       : {channel: '', what: '', day: iso(new Date()), created_by_name: me.name};
     out = (Array.isArray(body) ? body : [body]).map(b => { const r = Object.assign({id: uid()}, base, b, {created_by: me.user_id, created_at: nowIso});
-      if(table === 'campaign_contacts'){ if(r.sent_at){ r.sent_at = nowIso; r.sent_by_name = me.name; } if(!r.came) r.came_on = null; } return r; });
+      if(table === 'campaign_contacts'){ if(r.sent_at){ r.sent_at = nowIso; r.sent_by_name = me.name; } if(!r.came) r.came_on = null; }
+      if(table === 'campaign_posts') postFix(r, null, me); return r; });
     if(table === 'campaign_contacts' && out.some(r => r.customer_id && db.campaign_contacts.some(x => x.campaign_id === r.campaign_id && x.customer_id === r.customer_id))) return {status: 409, body: {code: '23505', message: 'Already on the list'}};
     db[table].push(...out);
   } else if(method === 'PATCH'){
     if(table === 'campaign_costs') out = out.filter(r => me.is_owner || ownToday(r));
     out.forEach(r => { const old = Object.assign({}, r); Object.assign(r, body);
       if(table === 'campaign_contacts'){ if(r.sent_at && !old.sent_at){ r.sent_at = nowIso; r.sent_by_name = me.name; } else if(!r.sent_at) r.sent_by_name = ''; else { r.sent_at = old.sent_at; r.sent_by_name = old.sent_by_name; } if(!r.came) r.came_on = null; }
+      if(table === 'campaign_posts') postFix(r, old, me);
       if(table !== 'campaign_costs'){ r.updated_by_name = me.name; r.updated_at = nowIso; } });
   } else if(method === 'DELETE'){
-    out = out.filter(r => table === 'campaign_costs' ? (me.is_owner || ownToday(r)) : true);
+    out = out.filter(r => table === 'campaign_costs' ? (me.is_owner || ownToday(r)) : table === 'campaign_posts' ? (me.is_owner || r.created_by === me.user_id) : true);
     db[table] = db[table].filter(r => !out.includes(r));
+    if(table === 'campaigns') db.campaign_posts.forEach(x => { if(out.some(c => c.id === x.campaign_id)) x.campaign_id = null; });
     if(table === 'campaigns'){ db.campaign_contacts = db.campaign_contacts.filter(k => !out.some(c => c.id === k.campaign_id)); db.campaign_costs = db.campaign_costs.filter(k => !out.some(c => c.id === k.campaign_id)); }
   }
   if(method !== 'GET' && !wantRows) return {status: 204, body: null};
@@ -1243,10 +1275,10 @@ function chitsRest(table, method, params, body, single, wantRows, me){
 }
 /* the photo bucket: the demo keeps the pictures in NJ_DEMO.photo, so this only answers */
 function storage(method, p, body, me){
-  const m = /^\/storage\/v1\/object\/(sign\/)?(designs|jobs)(\/(.*))?$/.exec(p);
+  const m = /^\/storage\/v1\/object\/(sign\/)?(designs|jobs|marketing)(\/(.*))?$/.exec(p);
   if(!m) return {status: 404, body: {message: 'Not found'}};
   const bucket = m[2];
-  if(!me || !canUse(me, bucket)) return {status: 403, body: {statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy'}};
+  if(!me || !canUse(me, bucket === 'marketing' ? 'campaigns' : bucket)) return {status: 403, body: {statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy'}};
   if(m[1] && !m[4]) return {status: 200, body: (body.paths || []).map(x => ({path: x, signedURL: '/object/sign/' + bucket + '/' + x + '?token=demo', error: null}))};
   if(!m[1] && m[4] && method === 'POST') return {status: 200, body: {Key: bucket + '/' + decodeURIComponent(m[4]), Id: uid()}};
   if(!m[1] && !m[4] && method === 'DELETE'){ (body.prefixes || []).forEach(k => delete db.photos[k]); return {status: 200, body: (body.prefixes || []).map(name => ({name}))}; }
