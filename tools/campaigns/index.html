@@ -61,6 +61,24 @@
 .st{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px}
 .st.sent{background:var(--hm-bg);color:var(--hm)} .st.came{background:var(--p-bg);color:var(--p)} .st.bought{background:var(--p);color:#fff} .st.walk{background:var(--paper);color:var(--maroon);border:1px solid var(--line)}
 .empty-s{padding:24px 18px;color:var(--muted);font-size:.92rem}
+.after{display:grid;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--p) 5%,var(--card))}
+.after h4{margin:0;font:600 .72rem/1.2 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.after p{margin:0;font-size:.9rem}
+#tLang{--c:var(--maroon)}
+/* budget plan and report */
+.ctab td.l{text-align:left}
+.ctab tfoot td{font-weight:700;border-top:2px solid var(--line)}
+.over{color:var(--a);font-weight:700}
+.rep{display:grid;gap:18px;padding:18px}
+.rep h4{margin:0 0 8px;font:600 .72rem/1.2 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.rep .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.rep .kpis div{border:1px solid var(--line);border-radius:4px;padding:12px;background:var(--card)}
+.rep .kpis b{display:block;font:700 1.35rem/1.1 var(--display);color:var(--ink);font-variant-numeric:lining-nums tabular-nums}
+.rep .kpis span{font-size:.78rem;color:var(--muted)}
+.rep .kpis em{display:block;font-style:normal;font-size:.74rem;font-weight:700;margin-top:4px}
+.rep ul{margin:0;padding-left:20px;display:grid;gap:6px;font-size:.92rem}
+.rep .up2{color:var(--p)} .rep .dn2{color:var(--a)}
+@media print{header.top,footer,.notebar,.subtabs,#backBtn,.bar,.no-print,#oEdit{display:none!important}.band{background:none!important}.box{border:0}}
 .msg{white-space:pre-line;background:#E7F6E9;border:1px solid #CBE6CF;border-radius:4px 14px 14px 14px;padding:12px 14px;font-size:.92rem;color:#1F2B21;max-width:560px}
 .sendbar{display:grid;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
 .btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
@@ -78,6 +96,10 @@
 @media (max-width:560px){.cform .two{grid-template-columns:1fr}}
 .cform .field > span{font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
 .hint{font-size:.8rem;color:var(--muted);margin:0}
+.tpl{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.tpl select.input{flex:1 1 220px;width:auto}
+#fLang{--c:var(--maroon)}
+.lasttime{border-left:3px solid var(--gold);padding:8px 12px;background:color-mix(in srgb,var(--gold) 8%,var(--card));border-radius:0 4px 4px 0;font-size:.85rem;color:var(--ink);white-space:pre-line}
 .tablewrap{overflow-x:auto}
 .ctab{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
 .ctab th{text-align:right;font:600 .72rem/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -126,6 +148,9 @@
 .pp img{width:22px;height:22px;border-radius:3px;object-fit:cover;flex:none}
 .pp img + .chd{display:none}
 .pp.posted .t{color:var(--muted)}
+.pp.shoot{border-style:dashed;border-left-style:solid;background:color-mix(in srgb,var(--sw) 6%,var(--card))}
+#peKind{--c:var(--maroon)}
+#peShoot[hidden]{display:none!important}
 .chd{width:8px;height:8px;border-radius:50%;flex:none;background:var(--chc,#8B8178)}
 .more{border:0;background:none;color:var(--gold);font:700 .72rem var(--body);text-align:left;padding:2px 4px;cursor:pointer}
 @media (max-width:700px){
@@ -261,6 +286,7 @@ dialog.pe::backdrop{background:rgba(30,18,15,.5)}
         <button data-s="add" aria-selected="false">Choose customers</button>
         <button data-s="costs" aria-selected="false">Costs</button>
         <button data-s="posts" aria-selected="false">Posts</button>
+        <button data-s="report" aria-selected="false">Report</button>
       </div>
     </div></div>
     <div class="wrap content">
@@ -269,6 +295,7 @@ dialog.pe::backdrop{background:rgba(30,18,15,.5)}
       <div id="s-add" class="box" hidden></div>
       <div id="s-costs" class="box" hidden></div>
       <div id="s-posts" class="box" hidden></div>
+      <div id="s-report" class="box" hidden></div>
     </div>
   </section>
 
@@ -289,12 +316,18 @@ dialog.pe::backdrop{background:rgba(30,18,15,.5)}
         </div>
         <div class="field"><span>Channels</span><div class="bubbles" id="fCh" role="group" aria-label="Channels"></div></div>
         <label>The offer<textarea class="input" id="fOffer" maxlength="300" rows="2" placeholder="e.g. No wastage on gold coins and 50% off making on necklaces"></textarea></label>
+        <div class="field"><span>Ready-made message</span>
+          <div class="tpl"><select class="input" id="fTpl" aria-label="Ready-made message"></select>
+            <div class="seg" id="fLang" role="group" aria-label="Language"><button type="button" data-l="en" aria-pressed="true">English</button><button type="button" data-l="ta" aria-pressed="false">தமிழ்</button></div>
+            <button class="btn" type="button" id="fTplUse">Use this message</button></div></div>
         <label>WhatsApp message<textarea class="input" id="fMsg" maxlength="1000" rows="5"></textarea></label>
-        <p class="hint">{name} becomes the customer’s name, {offer} the offer, {occasion} the occasion and {ends} the last day.</p>
+        <p class="hint">{name} becomes the customer’s name, {offer} the offer, {occasion} the occasion and {ends} the last day. Change any word after choosing a ready-made message.</p>
         <div class="two">
           <label class="money">Budget (₹)<input class="input" id="fBudget" inputmode="decimal" placeholder="optional"></label>
           <label>Notes<input class="input" id="fNotes" maxlength="500" placeholder="optional"></label>
         </div>
+        <label>What other jewellers are offering<textarea class="input" id="fComp" maxlength="1000" rows="3" placeholder="e.g. GRT: 0% wastage on coins. Local shop on Kumaran Road: free silver coin above ₹50,000. Seen on their Instagram, 12 Oct."></textarea></label>
+        <p class="hint" id="fCompLast">Write it down each time, so next year you can see how offers in town changed.</p>
         <p class="err" id="fErr" role="alert"></p>
         <div class="actions"><button class="btn btn-maroon" type="submit" id="fSave">Save campaign</button><button class="btn" type="button" id="fCancel">Cancel</button><button class="btn btn-danger owner-only" type="button" id="fDel" hidden>Delete campaign</button></div>
       </form>
@@ -326,18 +359,23 @@ dialog.pe::backdrop{background:rgba(30,18,15,.5)}
     </div>
     <div class="fields">
       <h2 id="peTitle">Plan a post</h2>
+      <div class="seg" id="peKind" role="group" aria-label="Kind"><button type="button" data-k="post" aria-pressed="true">Post</button><button type="button" data-k="shoot" aria-pressed="false">📷 Photo shoot</button></div>
       <label>What is it<input class="input" id="peName" maxlength="120" placeholder="e.g. Deepavali gold coin reel"></label>
       <div class="two">
         <label>Day<input class="input" type="date" id="peDay"></label>
-        <label>Channel<select class="input" id="peCh"></select></label>
+        <label id="peChL">Channel<select class="input" id="peCh"></select></label>
       </div>
-      <div class="field"><span>Status</span><div class="seg stb" id="peSt" role="group" aria-label="Status"></div></div>
+      <div id="peShoot" hidden style="display:grid;gap:14px">
+        <label>Pieces to shoot<textarea class="input" id="pePieces" maxlength="500" rows="3" placeholder="e.g. Temple bridal set (new), 3 antique bangles, 8 g and 4 g coins, the ruby choker from the Design library"></textarea></label>
+        <label>Model, props and place<textarea class="input" id="peNeeds" maxlength="500" rows="3" placeholder="e.g. Model in a silk saree, brass lamps and marigolds, shoot in the shop at 9 am before opening, photographer Ravi"></textarea></label>
+      </div>
+      <div class="field"><span id="peStL">Status</span><div class="seg stb" id="peSt" role="group" aria-label="Status"></div></div>
       <div class="two">
         <label>Campaign<select class="input" id="peCamp"></select></label>
         <label>Given to<select class="input" id="peWho"></select></label>
       </div>
-      <label>Caption<textarea class="input" id="peCap" maxlength="2000" rows="5" placeholder="The words that go with the post. Hashtags too."></textarea></label>
-      <div class="cc"><span id="peCc">0 / 2000</span><span><button class="linkish" type="button" id="peCopy">Copy caption</button> · <button class="linkish" type="button" id="peWa">Share on WhatsApp</button></span></div>
+      <label id="peCapL">Caption<textarea class="input" id="peCap" maxlength="2000" rows="5" placeholder="The words that go with the post. Hashtags too."></textarea></label>
+      <div class="cc" id="peCcRow"><span id="peCc">0 / 2000</span><span><button class="linkish" type="button" id="peCopy">Copy caption</button> · <button class="linkish" type="button" id="peWa">Share on WhatsApp</button></span></div>
       <p class="meta" id="peMeta"></p>
       <p class="err" id="peErr" role="alert"></p>
       <div class="actions"><button class="btn btn-maroon" type="submit" id="peSave">Save</button><button class="btn" type="button" id="peCancel">Cancel</button><button class="btn btn-danger" type="button" id="peDel" hidden>Delete</button></div>
@@ -363,9 +401,32 @@ const $ = id => document.getElementById(id);
 const CHANNELS = ['WhatsApp', 'Instagram', 'Facebook', 'Newspaper', 'Pamphlet', 'Radio', 'Wall painting', 'Hoarding', 'SMS', 'Other'];
 const OCCASIONS = ['Diwali', 'Akshaya Tritiya', 'Pongal', 'Navaratri', 'Wedding season', 'Aadi offer', 'Varalakshmi Vratham', 'Christmas & New Year', 'Shop anniversary', 'Monsoon offer'];
 const DEFAULT_MSG = 'Vanakkam {name}! 🙏\n{occasion} offer at Natraj Jewels, Tiruppur: {offer}.\nValid till {ends}. Visit us at 24, Eswaran Kovil St.\nReply STOP if you do not want offers.';
+// ready-made WhatsApp messages, in English and Tamil
+const TEMPLATES = [
+  {k: 'offer', l: 'Festival offer', en: DEFAULT_MSG,
+   ta: 'வணக்கம் {name}! 🙏\n{occasion} சிறப்பு சலுகை – நடராஜ் ஜுவல்லர்ஸ், திருப்பூர்: {offer}.\n{ends} வரை மட்டும். 24, ஈஸ்வரன் கோவில் தெருவில் உங்களை வரவேற்கிறோம்.\nசலுகைகள் வேண்டாம் என்றால் STOP என்று பதில் அனுப்பவும்.'},
+  {k: 'wishes', l: 'Festival wishes (no offer)', en: 'Dear {name}, wishing you and your family a very happy {occasion}! 🪔\nWith warm wishes from all of us at Natraj Jewels, Tiruppur.',
+   ta: 'அன்புள்ள {name}, உங்களுக்கும் உங்கள் குடும்பத்தினருக்கும் இனிய {occasion} நல்வாழ்த்துகள்! 🪔\n– நடராஜ் ஜுவல்லர்ஸ், திருப்பூர்.'},
+  {k: 'new', l: 'New designs arrived', en: 'Vanakkam {name}! ✨ New designs have arrived at Natraj Jewels, Tiruppur: {offer}.\nCome and see them before {ends}. 24, Eswaran Kovil St.\nReply STOP if you do not want offers.',
+   ta: 'வணக்கம் {name}! ✨ நடராஜ் ஜுவல்லர்ஸில் புதிய டிசைன்கள் வந்துள்ளன: {offer}.\n{ends}க்குள் வந்து பாருங்கள். 24, ஈஸ்வரன் கோவில் தெரு, திருப்பூர்.\nசலுகைகள் வேண்டாம் என்றால் STOP என்று பதில் அனுப்பவும்.'},
+  {k: 'wedding', l: 'Wedding in the family', en: 'Vanakkam {name}! 💍 Planning a wedding in the family? Our bridal collection is ready at Natraj Jewels, Tiruppur: {offer}.\nValid till {ends}. Visit us at 24, Eswaran Kovil St.',
+   ta: 'வணக்கம் {name}! 💍 வீட்டில் திருமணம் வருகிறதா? நடராஜ் ஜுவல்லர்ஸில் திருமண நகைகள் தயார்: {offer}.\n{ends} வரை. 24, ஈஸ்வரன் கோவில் தெரு, திருப்பூர்.'},
+  {k: 'exchange', l: 'Old gold exchange', en: 'Vanakkam {name}! Exchange your old gold at the best value at Natraj Jewels, Tiruppur: {offer}.\nTill {ends}. 24, Eswaran Kovil St.',
+   ta: 'வணக்கம் {name}! உங்கள் பழைய தங்கத்தை நல்ல மதிப்பில் மாற்றுங்கள் – நடராஜ் ஜுவல்லர்ஸ், திருப்பூர்: {offer}.\n{ends} வரை. 24, ஈஸ்வரன் கோவில் தெரு.'},
+  {k: 'chit', l: 'Chit ending soon', en: 'Vanakkam {name}! Your chit at Natraj Jewels is ending soon. Turn your savings into jewellery: {offer}.\nVisit us before {ends}.',
+   ta: 'வணக்கம் {name}! நடராஜ் ஜுவல்லர்ஸில் உங்கள் சீட்டு விரைவில் முடிகிறது. உங்கள் சேமிப்பை நகையாக மாற்றுங்கள்: {offer}.\n{ends}க்குள் வாருங்கள்.'},
+  {k: 'back', l: 'We miss you', en: 'Vanakkam {name}! It has been a while. We would love to see you again at Natraj Jewels, Tiruppur.\n{offer}, till {ends}.',
+   ta: 'வணக்கம் {name}! உங்களைப் பார்த்து நாளாகிவிட்டது. மீண்டும் நடராஜ் ஜுவல்லர்ஸுக்கு வாருங்கள்.\n{offer}, {ends} வரை.'}
+];
+// the thank-you after buying, with the shop's Google review link when it is set
+const THANKS = {en: 'Dear {name}, thank you for shopping at Natraj Jewels! We hope you love your jewellery. 🙏',
+  ta: 'அன்புள்ள {name}, நடராஜ் ஜுவல்லர்ஸில் வாங்கியதற்கு நன்றி! உங்கள் நகை உங்களுக்குப் பிடிக்கும் என நம்புகிறோம். 🙏'};
+const REVIEW = {en: 'If you were happy with us, please leave a short review here: ', ta: 'எங்கள் சேவை பிடித்திருந்தால், இங்கே ஒரு சிறு மதிப்பாய்வு எழுதுங்கள்: '};
+let lang = (() => { try{ return localStorage.getItem('nj-camp-lang') || 'en'; }catch(e){ return 'en'; } })();
+const setLang = l => { lang = l; try{ localStorage.setItem('nj-camp-lang', l); }catch(e){} };
 const VISIT_AFTER = 7;    // a visit up to a week after the campaign still counts
 let camps = [], contacts = [], costs = [], visits = [], customers = [], cur = null, editing = null, sub = 'send', fCh = [];
-let posts = [], kdates = [], staff = [];
+let posts = [], kdates = [], staff = [], chitM = [], chitP = [], arrived = [], reviewLink = '';
 
 const inr = n => '₹' + Math.round(Number(n || 0)).toLocaleString('en-IN');
 const num = s => { const v = String(s || '').replace(/[,\s₹]/g, ''); return v === '' ? null : /^\d+(\.\d+)?$/.test(v) ? Number(v) : NaN; };
@@ -425,10 +486,14 @@ async function loadAll(){
   ]);
   camps = must(a) || []; contacts = b; costs = must(c) || []; posts = d; kdates = must(e) || []; staff = must(f) || [];
   sign(posts.map(x => x.photo)).then(() => { if(shown === 'planner') renderPlanner(); }).catch(() => {});
+  sb.from('settings').select('review_link').eq('id', 1).maybeSingle().then(r => { reviewLink = (r.data && r.data.review_link) || ''; }, () => {});
+  // for the ready-made groups: chits ending soon, and pieces customers asked for that have arrived
+  if(NJ.canUse('chits')) Promise.all([NJ.selectAll(() => sb.from('chit_members').select('customer_id,phone,start_month,status,plan_id').eq('status', 'active').order('id')), sb.from('chit_plans').select('id,months')])
+    .then(([m, p]) => { chitM = m; chitP = p.data || []; }).catch(() => {});
+  if(NJ.canUse('designs')) sb.from('designs').select('customer_id,customer_phone,category,metal').eq('kind', 'enquiry').eq('status', 'received').then(r => { arrived = r.data || []; }, () => {});
   if(NJ.canUse('crm')){
-    const since = camps.length ? camps.map(x => x.starts).sort()[0] : todayIso();
     const [v, cu] = await Promise.all([
-      sb.from('customer_activity').select('customer_id,visit_day,bought').eq('kind', 'visit').gte('visit_day', since),
+      NJ.selectAll(() => sb.from('customer_activity').select('customer_id,visit_day,bought').eq('kind', 'visit').order('id')).then(data => ({data}), () => ({data: []})),
       NJ.selectAll(() => sb.from('customers').select('id,name,phone,area,tags,source,birthday,anniversary,function_month,whatsapp_ok,whatsapp_on_phone,created_at').order('id')).then(data => ({data}), () => ({data: []}))
     ]);
     visits = v.data || []; customers = cu.data || [];
@@ -464,14 +529,14 @@ function renderCampaign(){
   $('oName').textContent = c.name;
   $('oEyebrow').textContent = STATE[s] + ' · ' + [c.occasion, fmtD(c.starts) + ' – ' + fmtDY(c.ends)].filter(Boolean).join(' · ');
   $('oOffer').innerHTML = (c.offer ? '<b>Offer:</b> ' + esc(c.offer) : '') + (c.channels.length ? ' <span class="chips" style="display:inline-flex;margin-left:6px">' + c.channels.map(x => '<span class="chip">' + esc(x) + '</span>').join('') + '</span>' : '') +
-    ' <button class="linkish" id="oEdit">Edit campaign</button>';
+    ' <button class="linkish" id="oEdit">Edit campaign</button>' + (c.competitors ? '<span style="display:block;margin-top:6px"><b>Other jewellers:</b> ' + esc(c.competitors) + '</span>' : '');
   $('oStats').innerHTML = '<div><span>Messages sent</span><b>' + r.sent.length + ' / ' + r.list.length + '</b><em>' + (r.list.length ? Math.round(r.sent.length * 100 / r.list.length) + '% done' : 'choose customers') + '</em></div>' +
     '<div><span>Came in</span><b>' + r.came.length + '</b><em>' + (r.sent.length ? Math.round(r.came.filter(k => !k.walk_in).length * 100 / r.sent.length) + '% of those sent' : '') + (r.walkIns ? ' · ' + r.walkIns + ' walk-in' + (r.walkIns > 1 ? 's' : '') : '') + '</em></div>' +
     '<div><span>Sales</span><b>' + inr(r.sales) + '</b><em>' + r.bought.length + ' bought' + (r.bought.some(k => !(Number(k.bought) > 0)) ? ' · ' + r.bought.filter(k => !(Number(k.bought) > 0)).length + ' bill not entered' : '') + '</em></div>' +
     '<div><span>Spent</span><b>' + inr(r.spent) + '</b><em>' + (c.budget ? 'of ' + inr(c.budget) + ' budget' : 'no budget set') + (r.perVisit ? ' · ' + inr(r.perVisit) + ' a visitor' : '') + '</em></div>';
   $('oTabs').querySelectorAll('[data-s]').forEach(b => b.setAttribute('aria-selected', b.dataset.s === sub));
-  ['send', 'people', 'add', 'costs', 'posts'].forEach(k => $('s-' + k).hidden = k !== sub);
-  ({send: renderSend, people: renderPeople, add: renderAdd, costs: renderCosts, posts: renderCampPosts})[sub]();
+  ['send', 'people', 'add', 'costs', 'posts', 'report'].forEach(k => $('s-' + k).hidden = k !== sub);
+  ({send: renderSend, people: renderPeople, add: renderAdd, costs: renderCosts, posts: renderCampPosts, report: renderReport})[sub]();
 }
 $('oTabs').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if(b){ sub = b.dataset.s; renderCampaign(); } });
 $('oOffer').addEventListener('click', e => { if(e.target.id === 'oEdit') location.hash = 'edit=' + cur.id; });
@@ -506,18 +571,62 @@ $('s-send').addEventListener('click', async e => {
 function renderPeople(){
   const r = results(cur), order = k => (Number(k.bought) > 0 ? 0 : k.came || visitOf(cur, k) ? 1 : k.sent_at ? 2 : 3);
   const ks = r.ks.slice().sort((a, b) => order(a) - order(b) || a.name.localeCompare(b.name));
+  const fu = afterList(r);
   $('s-people').innerHTML = '<h3>People &amp; results<small>' + r.came.length + ' came · ' + inr(r.sales) + ' sales</small></h3>' +
     '<div class="sendbar"><div class="bar"><button class="btn btn-maroon" id="addWalk">Add a walk-in who came for the offer</button></div>' +
     '<p class="hint">Visit forms filled in Customers during the campaign (or up to a week after) count as “came” on their own. Mark others by hand, and add the bill amount when they buy.</p></div>' +
+    (fu.buyers.length || fu.noBuy.length ? '<div class="after"><h4>After the campaign</h4>' +
+      '<div class="tpl"><span class="hint">Thank-you message in</span><div class="seg" id="tLang" role="group" aria-label="Language"><button type="button" data-l="en" aria-pressed="' + (lang === 'en') + '">English</button><button type="button" data-l="ta" aria-pressed="' + (lang === 'ta') + '">தமிழ்</button></div>' +
+      (NJ.me.is_owner ? '<button class="linkish" id="revSet">' + (reviewLink ? 'Change the Google review link' : 'Add the shop’s Google review link') + '</button>' : '') + '</div>' +
+      (reviewLink ? '' : '<p class="hint">' + (NJ.me.is_owner ? 'Add the Google review link so each thank-you asks for a review.' : 'Ask the owner to add the shop’s Google review link, so each thank-you asks for a review.') + '</p>') +
+      '<div class="msg">' + esc(thanksText(fu.buyers[0] ? fu.buyers[0].name : 'Lakshmi')) + '</div>' +
+      '<p><b>' + fu.buyers.filter(k => !k.thanked_at).length + '</b> of ' + fu.buyers.length + ' buyers still to thank' + (fu.buyers.some(k => !k.thanked_at && k.phone) ? ' · <button class="btn btn-wa mini" data-thank="' + esc(fu.buyers.find(k => !k.thanked_at && k.phone).id) + '">Thank ' + esc(fu.buyers.find(k => !k.thanked_at && k.phone).name) + ' (next)</button>' : '') + '</p>' +
+      '<p><b>' + fu.noBuy.length + '</b> came but did not buy' + (fu.noBuy.length ? ': ' + fu.noBuy.filter(k => k.followup_at).length + ' have a follow-up call' : '') +
+        (fu.noBuy.some(k => !k.followup_at && k.customer_id) && NJ.canUse('crm') ? ' · <button class="btn mini" id="fuAll">Add follow-up calls for ' + fu.noBuy.filter(k => !k.followup_at && k.customer_id).length + '</button>' : '') + '</p>' +
+      (fu.noBuy.some(k => !k.customer_id && !k.followup_at) ? '<p class="hint">' + fu.noBuy.filter(k => !k.customer_id && !k.followup_at).length + ' are not saved in Customers, so call them from here.</p>' : '') + '</div>' : '') +
     (ks.length ? ks.map(k => { const v = visitOf(cur, k), came = k.came || v;
       return '<div class="prow"><div><div class="nm">' + esc(k.name) + (k.walk_in ? '<span class="st walk">walk-in</span>' : k.sent_at ? '<span class="st sent">sent</span>' : '') + (came ? '<span class="st came">came' + (!k.came && v ? ' · visit form' : '') + '</span>' : '') + (Number(k.bought) > 0 ? '<span class="st bought">bought ' + inr(k.bought) + '</span>' : '') + '</div>' +
         '<div class="sub">' + esc([k.phone, k.sent_at ? 'sent ' + fmtD(iso(new Date(k.sent_at))) + (k.sent_by_name ? ' by ' + k.sent_by_name : '') : '', k.came_on ? 'came ' + fmtD(k.came_on) : v ? 'visited ' + fmtD(v.visit_day) : '', k.note].filter(Boolean).join(' · ')) + '</div></div>' +
         '<div class="acts">' + (k.came ? '<button class="btn mini" data-uncame="' + esc(k.id) + '">Not came</button>' : '<button class="btn mini" data-came="' + esc(k.id) + '">Came in</button>') +
-        '<button class="btn mini" data-bought="' + esc(k.id) + '">' + (Number(k.bought) > 0 ? 'Change bill' : 'Bought') + '</button></div></div>'; }).join('')
+        '<button class="btn mini" data-bought="' + esc(k.id) + '">' + (Number(k.bought) > 0 ? 'Change bill' : 'Bought') + '</button>' +
+        (Number(k.bought) > 0 && k.phone ? '<button class="btn mini' + (k.thanked_at ? '' : ' btn-wa') + '" data-thank="' + esc(k.id) + '">' + (k.thanked_at ? 'Thanked ✓' : 'Thank') + '</button>' : '') + '</div></div>'; }).join('')
       : '<div class="empty-s">No one yet.</div>');
 }
+// after the campaign: buyers to thank, and people who came but did not buy (a follow-up call in Customers)
+function afterList(r){
+  const buyers = r.ks.filter(k => Number(k.bought) > 0), noBuy = r.came.filter(k => !(Number(k.bought) > 0) && !(visitOf(cur, k) && visitOf(cur, k).bought));
+  return {buyers, noBuy};
+}
+const thanksText = name => (THANKS[lang] + (reviewLink ? '\n' + REVIEW[lang] + reviewLink : '')).replace(/\{name\}/g, (name || '').split(' ')[0] || 'friend');
 $('s-people').addEventListener('click', async e => {
   if(e.target.closest('#addWalk')) return addWalkIn();
+  const lb = e.target.closest('#tLang [data-l]');
+  if(lb){ setLang(lb.dataset.l); return renderCampaign(); }
+  if(e.target.closest('#revSet')){
+    const v = await dialog({title: 'Google review link', msg: 'On Google Maps, open the shop, tap “Share” or “Ask for reviews”, copy the link and paste it here.', ok: 'Save', fields: [{id: 'u', label: 'Review link', value: reviewLink, maxlength: 300, placeholder: 'https://g.page/r/…'}],
+      validate: async v => v.u && !/^https?:\/\//i.test(v.u) ? 'The link should start with https://' : ''});
+    if(!v) return;
+    try{ must(await sb.from('settings').update({review_link: v.u.trim()}).eq('id', 1).select()); reviewLink = v.u.trim(); toast('Saved'); renderCampaign(); }catch(err){ toast(err.message); }
+    return;
+  }
+  const th = e.target.closest('[data-thank]');
+  if(th){
+    const k = contacts.find(y => y.id === th.dataset.thank); if(!k) return;
+    window.open('https://wa.me/' + digits(k.phone) + '?text=' + encodeURIComponent(thanksText(k.name)), '_blank', 'noopener');
+    if(!k.thanked_at) try{ Object.assign(k, must(await sb.from('campaign_contacts').update({thanked_at: new Date().toISOString()}).eq('id', k.id).select().single())); }catch(err){ toast(err.message); }
+    return renderCampaign();
+  }
+  if(e.target.closest('#fuAll')){
+    const list = afterList(results(cur)).noBuy.filter(k => !k.followup_at && k.customer_id);
+    if(!list.length || !await ask('Add ' + list.length + ' follow-up calls?', 'Each one goes to Follow-ups in Customers for the day after tomorrow, given to you: “Came for ' + cur.name + ' but did not buy”.', 'Add calls')) return;
+    try{
+      must(await sb.from('customer_activity').insert(list.map(k => ({customer_id: k.customer_id, kind: 'followup', body: ('Came for ' + cur.name + ' but did not buy. Ask what would help.').slice(0, 500), due: addDays(todayIso(), 2), assigned_to: NJ.me.user_id}))).select('id'));
+      const at = new Date().toISOString();
+      for(const k of list) Object.assign(k, must(await sb.from('campaign_contacts').update({followup_at: at}).eq('id', k.id).select().single()));
+      toast(list.length + ' follow-up calls added in Customers'); renderCampaign();
+    }catch(err){ toast(err.message); }
+    return;
+  }
   const b = e.target.closest('[data-came],[data-uncame],[data-bought]'); if(!b) return;
   const k = contacts.find(y => y.id === (b.dataset.came || b.dataset.uncame || b.dataset.bought)); if(!k) return;
   try{
@@ -550,12 +659,41 @@ async function addWalkIn(){
 }
 
 /* choose customers from Customers: only those who agreed to offers on WhatsApp, with a phone */
-let flt = {tags: [], area: '', occasion: false, fn: false, quiet: '', source: ''};
+let flt = {tags: [], area: '', occasion: false, fn: false, quiet: '', source: '', preset: ''};
+const last10 = p => String(p || '').replace(/\D/g, '').slice(-10);
+const PRESETS = [
+  {k: 'back', l: 'Come back', d: 'Bought before, no visit for 6 months or more'},
+  {k: 'wed', l: 'Wedding coming', d: 'A family function in the next 3 months'},
+  {k: 'chit', l: 'Chit ending', d: 'Their chit finishes in the next 2 months: turn the savings into jewellery', app: 'chits'},
+  {k: 'arrived', l: 'Their piece arrived', d: 'Asked for something we did not have, and it has now come in', app: 'designs'},
+  {k: 'looking', l: 'Just looking', d: 'Visited in the last 30 days and did not buy'}
+];
+// who belongs to each ready-made group, worked out from Customers, Chits and the Design library
+function presetTest(k){
+  const t = todayIso(), byC = {};
+  visits.forEach(v => { (byC[v.customer_id] = byC[v.customer_id] || []).push(v); });
+  if(k === 'back'){
+    const boughtCamp = new Set(contacts.filter(x => x.customer_id && Number(x.bought) > 0).map(x => x.customer_id)), since = addDays(t, -180);
+    return c => { const vs = byC[c.id] || []; return (boughtCamp.has(c.id) || vs.some(v => v.bought)) && !vs.some(v => v.visit_day >= since); };
+  }
+  if(k === 'wed'){ const a = t.slice(0, 7), b = addDays(t, 92).slice(0, 7); return c => !!c.function_month && c.function_month >= a && c.function_month <= b; }
+  if(k === 'chit'){
+    const months = {}; chitP.forEach(p => { months[p.id] = p.months; });
+    const end = m => { const d = parse(m.start_month); d.setMonth(d.getMonth() + (months[m.plan_id] || 11) - 1); return iso(d).slice(0, 7); };
+    const soon = chitM.filter(m => end(m) <= addDays(t, 61).slice(0, 7));
+    const ids = new Set(soon.map(m => m.customer_id).filter(Boolean)), phones = new Set(soon.map(m => last10(m.phone)).filter(Boolean));
+    return c => ids.has(c.id) || phones.has(last10(c.phone));
+  }
+  if(k === 'arrived'){ const ids = new Set(arrived.map(d => d.customer_id).filter(Boolean)), phones = new Set(arrived.map(d => last10(d.customer_phone)).filter(Boolean)); return c => ids.has(c.id) || phones.has(last10(c.phone)); }
+  if(k === 'looking'){ const since = addDays(t, -30); return c => { const vs = byC[c.id] || []; return vs.some(v => v.visit_day >= since && v.bought === false) && !vs.some(v => v.visit_day >= since && v.bought); }; }
+  return () => true;
+}
 function audience(){
   const inWin = (d, from, to) => { if(!d) return false; const md = d.slice(5); const a = from.slice(5), b = to.slice(5); return a <= b ? md >= a && md <= b : md >= a || md <= b; };
   const lastVisit = {}; visits.forEach(v => { if(!lastVisit[v.customer_id] || v.visit_day > lastVisit[v.customer_id]) lastVisit[v.customer_id] = v.visit_day; });
   const quietSince = flt.quiet ? addDays(todayIso(), -Number(flt.quiet)) : null;
-  return customers.filter(c => (!flt.tags.length || flt.tags.some(t => (c.tags || []).includes(t))) && (!flt.area || c.area === flt.area) && (!flt.source || c.source === flt.source) &&
+  const inPreset = presetTest(flt.preset);
+  return customers.filter(c => inPreset(c) && (!flt.tags.length || flt.tags.some(t => (c.tags || []).includes(t))) && (!flt.area || c.area === flt.area) && (!flt.source || c.source === flt.source) &&
     (!flt.occasion || inWin(c.birthday, cur.starts, addDays(cur.ends, 0)) || (flt.occasion && inWin(c.anniversary, cur.starts, cur.ends))) &&
     (!flt.fn || (c.function_month && c.function_month >= cur.starts.slice(0, 7) && c.function_month <= addDays(cur.ends, 92).slice(0, 7))) &&
     (!quietSince || !lastVisit[c.id] || lastVisit[c.id] < quietSince));
@@ -564,7 +702,11 @@ function renderAdd(){
   if(!NJ.canUse('crm')){ $('s-add').innerHTML = '<h3>Choose customers</h3><div class="empty-s">Choosing customers needs the Customers app. Ask the owner to switch it on for you.</div>'; return; }
   const tags = [...new Set(customers.flatMap(c => c.tags || []))].sort(), areas = [...new Set(customers.map(c => c.area).filter(Boolean))].sort(), sources = [...new Set(customers.map(c => c.source).filter(Boolean))].sort();
   const all = audience(), ok = all.filter(c => c.whatsapp_ok && c.phone), already = new Set(contacts.filter(k => k.campaign_id === cur.id).map(k => k.customer_id)), fresh = ok.filter(c => !already.has(c.id));
+  const pc = k => customers.filter(presetTest(k)).length;
   $('s-add').innerHTML = '<h3>Choose customers<small>' + customers.length + ' in Customers</small></h3><div class="filters">' +
+    '<div class="field"><span>Ready-made groups</span><div class="bubbles" id="aPre">' + PRESETS.map(x => { const off = x.app && !NJ.canUse(x.app);
+      return '<button type="button" class="bubble" data-pre="' + x.k + '" aria-pressed="' + (flt.preset === x.k) + '"' + (off ? ' disabled title="Needs the ' + (x.app === 'chits' ? 'Chit scheme' : 'Design library') + ' app"' : '') + '>' + esc(x.l) + (off ? '' : ' · ' + pc(x.k)) + '</button>'; }).join('') + '</div>' +
+    '<p class="hint">' + esc(flt.preset ? PRESETS.find(x => x.k === flt.preset).d + '. Add more filters below, or tap again to clear.' : 'Tap a group to start from it. The filters below narrow it further.') + '</p></div>' +
     '<div class="field"><span>Tags (any of)</span><div class="bubbles" id="aTags">' + (tags.map(t => '<button type="button" class="bubble" data-t="' + esc(t) + '" aria-pressed="' + flt.tags.includes(t) + '">' + esc(t) + '</button>').join('') || '<span class="hint">No tags yet</span>') + '</div></div>' +
     '<div class="two"><label>Area<select class="input" id="aArea"><option value="">Any area</option>' + areas.map(a => '<option' + (flt.area === a ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select></label>' +
     '<label>First heard from<select class="input" id="aSrc"><option value="">Any</option>' + sources.map(a => '<option' + (flt.source === a ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select></label></div>' +
@@ -576,6 +718,8 @@ function renderAdd(){
     '<p class="hint">Only customers who agreed to get offers on WhatsApp are added. Ask the others when they next visit, in Customers.</p></div>';
 }
 $('s-add').addEventListener('click', async e => {
+  const pr = e.target.closest('[data-pre]');
+  if(pr){ flt.preset = flt.preset === pr.dataset.pre ? '' : pr.dataset.pre; return renderAdd(); }
   const t = e.target.closest('[data-t]');
   if(t){ flt.tags = flt.tags.includes(t.dataset.t) ? flt.tags.filter(x => x !== t.dataset.t) : [...flt.tags, t.dataset.t]; return renderAdd(); }
   if(e.target.closest('#aAdd')){
@@ -598,12 +742,34 @@ $('s-add').addEventListener('change', e => {
 function renderCosts(){
   const cs = costs.filter(x => x.campaign_id === cur.id), total = cs.reduce((s, x) => s + Number(x.amount), 0);
   const canFix = x => NJ.me.is_owner || (x.created_by === NJ.me.user_id && iso(new Date(x.created_at)) === todayIso());
+  const pl = planRows(cur), planned = pl.reduce((s2, x) => s2 + x.planned, 0);
   $('s-costs').innerHTML = '<h3>Costs<small>' + inr(total) + (cur.budget ? ' of ' + inr(cur.budget) + (total > cur.budget ? ' · over budget' : '') : '') + '</small></h3>' +
+    '<div class="sendbar"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline"><b>Budget plan by channel</b><button class="btn mini" id="planEdit">' + (planned ? 'Change the plan' : 'Plan the budget') + '</button></div>' +
+    (pl.length ? '<div class="tablewrap"><table class="ctab"><thead><tr><th>Channel</th><th>Planned</th><th>Spent</th><th>Left</th></tr></thead><tbody>' +
+      pl.map(x => '<tr><td>' + esc(x.ch) + '</td><td>' + (x.planned ? inr(x.planned) : '–') + '</td><td>' + inr(x.spent) + '</td><td' + (x.planned && x.spent > x.planned ? ' class="over">' + inr(x.spent - x.planned) + ' over' : '>' + (x.planned ? inr(x.planned - x.spent) : '–')) + '</td></tr>').join('') +
+      '</tbody><tfoot><tr><td>Total</td><td>' + inr(planned) + '</td><td>' + inr(total) + '</td><td' + (planned && total > planned ? ' class="over">' + inr(total - planned) + ' over' : '>' + (planned ? inr(planned - total) : '–')) + '</td></tr></tfoot></table></div>' : '<p class="hint">Split the money between channels before spending: radio, pamphlets, Instagram boost…</p>') +
+    (cur.budget && planned && planned !== Number(cur.budget) ? '<p class="hint">The plan adds up to ' + inr(planned) + '; the campaign budget is ' + inr(cur.budget) + '.</p>' : '') + '</div>' +
     '<div class="sendbar"><div class="bar"><button class="btn btn-maroon" id="costAdd">Add a cost</button></div><p class="hint">E.g. printing pamphlets, the newspaper ad, Instagram boost, radio spots. Also enter it in Expenses if the shop paid it.</p></div>' +
     (cs.length ? cs.map(x => '<div class="prow"><div><div class="nm">' + esc(x.what || x.channel || 'Cost') + '</div><div class="sub">' + esc([fmtDY(x.day), x.channel, x.created_by_name].filter(Boolean).join(' · ')) + '</div></div>' +
       '<div class="acts"><b style="font-variant-numeric:tabular-nums">' + inr(x.amount) + '</b>' + (canFix(x) ? '<button class="btn mini btn-danger" data-delcost="' + esc(x.id) + '">Delete</button>' : '') + '</div></div>').join('') : '<div class="empty-s">No costs entered yet.</div>');
 }
+// planned and spent for each channel: the campaign's channels, plus any with a plan or a cost
+function planRows(c){
+  const plan = c.plan || {}, cs = costs.filter(x => x.campaign_id === c.id);
+  const chs = [...new Set([...c.channels, ...Object.keys(plan), ...cs.map(x => x.channel || 'Other')])];
+  return chs.map(ch => ({ch, planned: Number(plan[ch] || 0), spent: cs.filter(x => (x.channel || 'Other') === ch).reduce((s2, x) => s2 + Number(x.amount), 0)}));
+}
 $('s-costs').addEventListener('click', async e => {
+  if(e.target.closest('#planEdit')){
+    const chs = [...new Set([...cur.channels, ...Object.keys(cur.plan || {}), ...CHANNELS])];
+    const v = await dialog({title: 'Budget plan', msg: 'How much to spend on each channel. Leave a channel empty to skip it.' + (cur.budget ? ' Campaign budget: ' + inr(cur.budget) + '.' : ''), ok: 'Save plan',
+      fields: chs.map((ch, i) => ({id: 'c' + i, label: ch + ' (₹)', value: (cur.plan || {})[ch] ? String(cur.plan[ch]) : '', maxlength: 12, placeholder: cur.channels.includes(ch) ? 'e.g. 5000' : ''})),
+      validate: async v => chs.some((ch, i) => Number.isNaN(num(v['c' + i]))) ? 'Type amounts in rupees.' : ''});
+    if(!v) return;
+    const plan = {}; chs.forEach((ch, i) => { const a = num(v['c' + i]); if(a > 0) plan[ch] = a; });
+    try{ Object.assign(cur, must(await sb.from('campaigns').update({plan}).eq('id', cur.id).select().single())); toast('Plan saved'); renderCampaign(); }catch(err){ toast(err.message); }
+    return;
+  }
   if(e.target.closest('#costAdd')){
     const v = await dialog({title: 'Add a cost', ok: 'Add', fields: [
       {id: 'channel', label: 'Channel', type: 'select', value: cur.channels[0] || 'Other', options: [...new Set([...cur.channels, ...CHANNELS])].map(x => [x, x])},
@@ -639,10 +805,22 @@ function openForm(c){
   fCh = c ? c.channels.slice() : ['WhatsApp']; renderCh();
   $('fOffer').value = c ? c.offer : ''; $('fMsg').value = c ? c.message : DEFAULT_MSG;
   $('fBudget').value = c && c.budget != null ? Number(c.budget) : ''; $('fNotes').value = c ? c.notes : '';
+  $('fComp').value = c ? c.competitors || '' : ''; paintLang(); showLastTime();
   $('fErr').textContent = ''; $('fDel').hidden = !c;
   if(!c && formPreset){ $('fOcc').value = formPreset.occasion; $('fOcc').dispatchEvent(new Event('change')); }
   formPreset = null;
 }
+$('fTpl').innerHTML = TEMPLATES.map(t => '<option value="' + t.k + '">' + esc(t.l) + '</option>').join('');
+const paintLang = () => $('fLang').querySelectorAll('[data-l]').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === lang));
+$('fLang').addEventListener('click', e => { const b = e.target.closest('[data-l]'); if(b){ setLang(b.dataset.l); paintLang(); } });
+$('fTplUse').onclick = () => { const t = TEMPLATES.find(x => x.k === $('fTpl').value); $('fMsg').value = t[lang]; $('fMsg').focus(); };
+// last time for the same occasion: what other jewellers offered then
+function showLastTime(){
+  const k = occKey($('fOcc').value), prev = k ? camps.filter(c => c !== editing && occKey(c.occasion) === k && c.competitors && c.starts < ($('fStart').value || todayIso())).sort((a, b) => b.starts.localeCompare(a.starts))[0] : null;
+  $('fCompLast').className = prev ? 'lasttime' : 'hint';
+  $('fCompLast').textContent = prev ? 'Last time (' + prev.name + ', ' + fmtDY(prev.starts) + '):\n' + prev.competitors : 'Write it down each time, so next year you can see how offers in town changed.';
+}
+$('fOcc').addEventListener('input', showLastTime);
 $('fCancel').onclick = () => { location.hash = editing ? 'c=' + editing.id : 'list'; };
 $('cf').addEventListener('submit', async e => {
   e.preventDefault(); const err = t => { $('fErr').textContent = t; }; err('');
@@ -651,7 +829,7 @@ $('cf').addEventListener('submit', async e => {
   if(!$('fStart').value || !$('fEnd').value) return err('Choose the first and last day.');
   if($('fEnd').value < $('fStart').value) return err('The last day is before the first day.');
   if(Number.isNaN(b)) return err('Type the budget in rupees, or leave it empty.');
-  const row = {name: $('fName').value.trim(), occasion: $('fOcc').value.trim(), starts: $('fStart').value, ends: $('fEnd').value, channels: fCh, offer: $('fOffer').value.trim(), message: $('fMsg').value.trim(), budget: b, notes: $('fNotes').value.trim()};
+  const row = {name: $('fName').value.trim(), occasion: $('fOcc').value.trim(), starts: $('fStart').value, ends: $('fEnd').value, channels: fCh, offer: $('fOffer').value.trim(), message: $('fMsg').value.trim(), budget: b, notes: $('fNotes').value.trim(), competitors: $('fComp').value.trim()};
   $('fSave').setAttribute('aria-busy', 'true');
   try{
     const saved = must(editing ? await sb.from('campaigns').update(row).eq('id', editing.id).select().single() : await sb.from('campaigns').insert(row).select().single());
@@ -672,6 +850,9 @@ $('fDel').onclick = async () => {
 const POST_CH = ['Instagram', 'Facebook', 'WhatsApp', 'YouTube', 'Google', 'Newspaper', 'Pamphlet', 'Radio', 'Hoarding', 'SMS', 'In the shop', 'Other'];
 const CH_COLOR = {Instagram: '#C13584', Facebook: '#1877F2', WhatsApp: '#0E7A6C', YouTube: '#D62D20', Google: '#4A7BD0', Newspaper: '#5E5650', Pamphlet: '#9A6A12', Radio: '#7A3B6A', Hoarding: '#845E22', SMS: '#1F6B73', 'In the shop': '#8E2A2A'};
 const PST = {idea: 'Idea', making: 'Being made', ready: 'Ready', posted: 'Posted'};
+const SST = {idea: 'Idea', making: 'Booked', ready: 'Shot', posted: 'Done'};       // the same steps, for a photo shoot
+const stName = x => (x.kind === 'shoot' ? SST : PST)[x.status];
+const SHOOT = '__shoot';
 const CAMP_COLORS = ['#8E2A2A', '#1F6B73', '#7A3B6A', '#2E7D4F', '#9A6A12', '#3C5A99', '#B4532A', '#5B6B2E'];
 const campColor = c => CAMP_COLORS[[...c.id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % CAMP_COLORS.length];
 const KD_ICON = {festival: '🪔', shop: '★', day: '•'};
@@ -706,9 +887,9 @@ async function shrink(file){
   return blob;
 }
 
-$('pCh').innerHTML = '<option value="">All channels</option>' + POST_CH.map(c => '<option>' + esc(c) + '</option>').join('');
-$('pLegend').innerHTML = Object.entries(PST).map(([k, l]) => '<span class="st-' + k + '"><i></i>' + l + '</span>').join('') + '<span><i style="--sc:var(--gold)"></i>Key date</span>';
-const shownPosts = () => posts.filter(x => !pCh || x.channel === pCh);
+$('pCh').innerHTML = '<option value="">All channels</option><option value="' + SHOOT + '">📷 Photo shoots</option>' + POST_CH.map(c => '<option>' + esc(c) + '</option>').join('');
+$('pLegend').innerHTML = Object.entries(PST).map(([k, l]) => '<span class="st-' + k + '"><i></i>' + l + '</span>').join('') + '<span><i style="--sc:var(--gold)"></i>Key date</span><span>📷 Photo shoot</span>';
+const shownPosts = () => posts.filter(x => !pCh || (pCh === SHOOT ? x.kind === 'shoot' : x.kind !== 'shoot' && x.channel === pCh));
 const campsOn = d => camps.filter(c => c.starts <= d && c.ends >= d).sort((a, b) => a.starts.localeCompare(b.starts) || a.name.localeCompare(b.name));
 // the campaigns for a key date: running that day, or named for it and ending within 10 days of it (Diwali = Deepavali)
 const occKey = t => String(t || '').toLowerCase().replace(/deepavali/g, 'diwali').replace(/[^a-z]/g, '');
@@ -735,8 +916,8 @@ function renderMonth(){
       kd.map(k => '<button type="button" class="kd ' + k.kind + '" data-kd="' + esc(k.id) + '" title="' + esc(k.name + (k.note ? ' · ' + k.note : '')) + '"><span>' + KD_ICON[k.kind] + ' ' + esc(k.name) + '</span></button>').join('') +
       cs.map(c => { const f = c.starts === day || col === 0, l = c.ends === day || col === 6;
         return '<button type="button" class="cb' + (c.starts === day ? ' first' : '') + (c.ends === day ? ' last' : '') + '" style="--c:' + campColor(c) + '" data-camp="' + esc(c.id) + '" title="' + esc(c.name) + '">' + (f ? esc(c.name) : '&nbsp;') + '</button>'; }).join('') +
-      '<div class="pps">' + dp.slice(0, 3).map(x => '<button type="button" class="pp st-' + x.status + (x.status === 'posted' ? ' posted' : '') + '" draggable="true" data-post="' + esc(x.id) + '" title="' + esc(x.title + ' · ' + x.channel + ' · ' + PST[x.status]) + '">' +
-        (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '') + chDot(x.channel) + '<span class="t">' + esc(x.title) + '</span></button>').join('') +
+      '<div class="pps">' + dp.slice(0, 3).map(x => '<button type="button" class="pp st-' + x.status + (x.status === 'posted' ? ' posted' : '') + (x.kind === 'shoot' ? ' shoot' : '') + '" draggable="true" data-post="' + esc(x.id) + '" title="' + esc(x.title + ' · ' + (x.kind === 'shoot' ? 'Photo shoot' : x.channel) + ' · ' + stName(x)) + '">' +
+        (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '') + chDot(x.channel) + '<span class="t">' + (x.kind === 'shoot' ? '📷 ' : '') + esc(x.title) + '</span></button>').join('') +
         (dp.length > 3 ? '<button type="button" class="more" data-more="' + day + '">+' + (dp.length - 3) + ' more</button>' : '') + '</div></div>');
   }
   $('pCal').innerHTML = '<div class="cal"><div class="dow">' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(x => '<span>' + x + '</span>').join('') + '</div><div class="grid">' + cells.join('') + '</div></div>';
@@ -754,8 +935,8 @@ function renderAgenda(){
     kdates.filter(k => k.day === day).forEach(k => items.push('<div class="arow2 kdrow" data-kd="' + esc(k.id) + '"><span class="noimg">' + KD_ICON[k.kind] + '</span><div><div class="nm">' + esc(k.name) + '</div><div class="sub">' + esc(k.note || (k.kind === 'shop' ? 'Shop date' : 'Key date')) + '</div></div><span class="stl" style="--sc:var(--gold)">Key date</span></div>'));
     camps.filter(c => c.starts === day || c.ends === day).forEach(c => items.push('<div class="arow2 cbrow" style="--c:' + campColor(c) + '" data-camp="' + esc(c.id) + '"><span class="noimg" style="color:' + campColor(c) + '">▮</span><div><div class="nm">' + esc(c.name) + '</div><div class="sub">Campaign ' + (c.starts === day ? 'starts' : 'ends') + ' · ' + fmtD(c.starts) + ' – ' + fmtD(c.ends) + '</div></div><span class="stl" style="--sc:' + campColor(c) + '">Campaign</span></div>'));
     ps.filter(x => x.day === day).forEach(x => { const c = camps.find(y => y.id === x.campaign_id);
-      items.push('<div class="arow2 st-' + x.status + '" data-post="' + esc(x.id) + '">' + (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '<span class="noimg">' + chDot(x.channel) + '</span>') +
-        '<div><div class="nm">' + esc(x.title) + '</div><div class="sub">' + esc([x.channel, c ? c.name : '', x.assigned_name ? 'for ' + x.assigned_name : ''].filter(Boolean).join(' · ')) + '</div></div><span class="stl">' + PST[x.status] + '</span></div>'); });
+      items.push('<div class="arow2 st-' + x.status + '" data-post="' + esc(x.id) + '">' + (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '<span class="noimg">' + (x.kind === 'shoot' ? '📷' : chDot(x.channel)) + '</span>') +
+        '<div><div class="nm">' + (x.kind === 'shoot' ? '📷 ' : '') + esc(x.title) + '</div><div class="sub">' + esc([x.kind === 'shoot' ? (x.shoot_pieces || 'Photo shoot') : x.channel, c ? c.name : '', x.assigned_name ? 'for ' + x.assigned_name : ''].filter(Boolean).join(' · ')) + '</div></div><span class="stl">' + stName(x) + '</span></div>'); });
     if(!items.length) items.push('<div class="hint" style="padding:6px 2px">Nothing planned today. <button class="linkish" data-add="' + day + '">Plan a post</button></div>');
     return '<div class="ad' + (day === t ? ' today' : '') + '" id="ad-' + day + '"><div class="when"><b>' + d.getDate() + '</b>' + esc(d.toLocaleDateString('en-IN', {weekday: 'short', month: 'short'})) + '</div><div class="its">' + items.join('') + '</div></div>';
   }).join('') : '<div class="empty"><h3>Nothing planned this month</h3><p>Tap “Plan a post” to add the first one.</p></div>') + '</div>';
@@ -767,12 +948,13 @@ function renderSide(){
     const n = daysTo(k.day), cs = campsFor(k), pn = posts.filter(x => x.day >= addDays(k.day, -14) && x.day <= k.day && (x.title + ' ' + x.caption).toLowerCase().includes(k.name.toLowerCase().split(' ')[0])).length;
     return '<div class="up"><div class="cnt">' + (n === 0 ? 'Today' : n) + (n ? '<small>day' + (n === 1 ? '' : 's') + '</small>' : '') + '</div><div><div class="nm">' + KD_ICON[k.kind] + ' ' + esc(k.name) + '</div><div class="sub">' + esc(fmtLong(k.day)) + '</div>' +
       (cs.length ? '<div class="ok">✓ ' + esc(cs.map(c => c.name).join(', ')) + '</div>' : '<div class="warn">No campaign yet</div>') + (pn ? '<div class="sub">' + pn + ' post' + (pn > 1 ? 's' : '') + ' planned</div>' : '') +
-      '<div class="acts">' + (cs.length ? '' : '<button class="btn mini" data-kdcamp="' + esc(k.id) + '">Start a campaign</button>') + '<button class="btn mini" data-kdpost="' + esc(k.id) + '">Plan a post</button></div></div></div>';
+      '<div class="acts">' + (cs.length ? '' : '<button class="btn mini" data-kdcamp="' + esc(k.id) + '">Start a campaign</button>') + '<button class="btn mini" data-kdpost="' + esc(k.id) + '">Plan a post</button>' +
+      (n >= 7 && !posts.some(x => x.kind === 'shoot' && x.day <= k.day && x.day >= addDays(k.day, -45)) ? '<button class="btn mini" data-kdshoot="' + esc(k.id) + '">📷 Plan a shoot</button>' : '') + '</div></div></div>';
   }).join('') : '<div class="empty-s">No key dates in the next 60 days.' + (NJ.me.is_owner ? ' Add the shop’s own below.' : '') + '</div>';
   const todo = posts.filter(x => x.status !== 'posted' && x.day <= addDays(t, 14)).sort((a, b) => a.day.localeCompare(b.day));
   $('pTdN').textContent = todo.length ? todo.length + ' in the next 2 weeks' : '';
   $('pTd').innerHTML = todo.length ? todo.slice(0, 30).map(x => '<div class="td st-' + x.status + '" data-post="' + esc(x.id) + '"><div><div class="nm">' + esc(x.title) + '</div><div class="sub">' +
-    (x.day < t ? '<span class="late">Late · ' + esc(fmtLong(x.day)) + '</span>' : esc(x.day === t ? 'Today' : fmtLong(x.day))) + ' · ' + esc(x.channel) + (x.assigned_name ? ' · ' + esc(x.assigned_name) : '') + '</div></div><span class="stl">' + PST[x.status] + '</span></div>').join('')
+    (x.day < t ? '<span class="late">Late · ' + esc(fmtLong(x.day)) + '</span>' : esc(x.day === t ? 'Today' : fmtLong(x.day))) + ' · ' + esc(x.kind === 'shoot' ? '📷 Photo shoot' : x.channel) + (x.assigned_name ? ' · ' + esc(x.assigned_name) : '') + '</div></div><span class="stl">' + stName(x) + '</span></div>').join('')
     : '<div class="empty-s">Nothing waiting. Plan the next post on the calendar.</div>';
 }
 
@@ -785,6 +967,7 @@ function plannerClick(e){
   if((b = g('data-kd'))) return openKd(kdates.find(k => k.id === b.dataset.kd));
   if((b = g('data-more'))){ pView = 'list'; renderPlanner(); const el = $('ad-' + b.dataset.more); if(el) el.scrollIntoView({block: 'start', behavior: 'smooth'}); return; }
   if((b = g('data-kdcamp'))){ const k = kdates.find(x => x.id === b.dataset.kdcamp); formPreset = {occasion: k.name}; location.hash = 'new'; return; }
+  if((b = g('data-kdshoot'))){ const k = kdates.find(x => x.id === b.dataset.kdshoot), d = addDays(k.day, -21); return openPost(null, {day: d < todayIso() ? todayIso() : d, title: k.name + ' photo shoot', kind: 'shoot', campaign: (campsFor(k)[0] || {}).id}); }
   if((b = g('data-kdpost'))){ const k = kdates.find(x => x.id === b.dataset.kdpost); return openPost(null, {day: k.day, title: k.name + ' wishes'}); }
   if((b = g('data-add'))) return openPost(null, {day: b.dataset.add});
   if((b = g('data-day'))){
@@ -853,10 +1036,19 @@ $('pKdAdd').onclick = async () => {
 };
 
 /* the post editor */
-let pe = null, peSt = 'idea', pePhoto = null;   // pePhoto: {blob, url} new picture, or '' when removed
+let pe = null, peSt = 'idea', pePhoto = null, peKind = 'post';   // pePhoto: {blob, url} new picture, or '' when removed
 $('peCh').innerHTML = POST_CH.map(c => '<option>' + esc(c) + '</option>').join('');
 $('peSt').innerHTML = Object.entries(PST).map(([k, l]) => '<button type="button" class="st-' + k + '" data-st="' + k + '" aria-pressed="false">' + l + '</button>').join('');
-const paintSt = () => $('peSt').querySelectorAll('[data-st]').forEach(b => b.setAttribute('aria-pressed', b.dataset.st === peSt));
+const paintSt = () => $('peSt').querySelectorAll('[data-st]').forEach(b => { b.setAttribute('aria-pressed', b.dataset.st === peSt); b.textContent = (peKind === 'shoot' ? SST : PST)[b.dataset.st]; });
+function paintKind(){
+  const sh = peKind === 'shoot';
+  $('peKind').querySelectorAll('[data-k]').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === peKind));
+  $('peShoot').hidden = !sh; $('peChL').hidden = sh; $('peCapL').hidden = sh; $('peCcRow').hidden = sh;
+  $('peName').placeholder = sh ? 'e.g. Deepavali bridal photo shoot' : 'e.g. Deepavali gold coin reel';
+  if(!pe) $('peTitle').textContent = sh ? 'Plan a photo shoot' : 'Plan a post';
+  paintSt();
+}
+$('peKind').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if(b){ peKind = b.dataset.k; paintKind(); } });
 $('peSt').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if(b){ peSt = b.dataset.st; paintSt(); } });
 function campOptions(day, keep){
   const near = camps.filter(c => c.id === keep || (c.ends >= addDays(day || todayIso(), -30) && c.starts <= addDays(day || todayIso(), 60)));
@@ -872,10 +1064,12 @@ const paintUrl = () => { const u = $('peUrl').value.trim(); $('peOpen').hidden =
 const paintCc = () => { $('peCc').textContent = $('peCap').value.length + ' / 2000'; };
 function openPost(x, preset){
   pe = x || null; pePhoto = null; preset = preset || {};
-  $('peTitle').textContent = x ? 'Post' : 'Plan a post';
+  peKind = x ? x.kind || 'post' : preset.kind || (pCh === SHOOT ? 'shoot' : 'post');
+  $('peTitle').textContent = x ? (peKind === 'shoot' ? 'Photo shoot' : 'Post') : 'Plan a post';
   $('peName').value = x ? x.title : preset.title || '';
   $('peDay').value = x ? x.day : preset.day || todayIso();
-  $('peCh').value = x ? x.channel : pCh || preset.channel || 'Instagram';
+  $('peCh').value = x && x.kind !== 'shoot' ? x.channel : (pCh && pCh !== SHOOT ? pCh : '') || preset.channel || 'Instagram';
+  $('pePieces').value = x ? x.shoot_pieces || '' : ''; $('peNeeds').value = x ? x.shoot_needs || '' : '';
   peSt = x ? x.status : 'idea'; paintSt();
   const auto = x ? x.campaign_id : preset.campaign || (campsOn($('peDay').value)[0] || {}).id || '';
   campOptions($('peDay').value, auto);
@@ -884,7 +1078,7 @@ function openPost(x, preset){
   $('peCap').value = x ? x.caption : ''; $('peUrl').value = x ? x.design_url : '';
   $('peMeta').textContent = x ? ['Added by ' + (x.created_by_name || 'someone'), x.updated_by_name ? 'changed by ' + x.updated_by_name : '', x.posted_at ? 'posted by ' + (x.posted_by_name || 'someone') + ' on ' + fmtLong(iso(new Date(x.posted_at))) : ''].filter(Boolean).join(' · ') : '';
   $('peDel').hidden = !(x && canDel(x)); $('peErr').textContent = '';
-  paintPhoto(); paintUrl(); paintCc();
+  paintPhoto(); paintUrl(); paintCc(); paintKind();
   $('pe').showModal(); if(!x) $('peName').focus();
 }
 $('peDay').addEventListener('change', () => campOptions($('peDay').value, $('peCamp').value || (campsOn($('peDay').value)[0] || {}).id || ''));
@@ -902,10 +1096,11 @@ $('peWa').onclick = () => { window.open('https://wa.me/?text=' + encodeURICompon
 $('peForm').addEventListener('submit', async e => {
   e.preventDefault(); const err = m => { $('peErr').textContent = m; }; err('');
   const title = $('peName').value.trim(), day = $('peDay').value, url = $('peUrl').value.trim();
-  if(!title) return err('Say what the post is, e.g. “Deepavali coin offer reel”.');
+  if(!title) return err(peKind === 'shoot' ? 'Say what the shoot is for, e.g. “Deepavali bridal shoot”.' : 'Say what the post is, e.g. “Deepavali coin offer reel”.');
   if(!day) return err('Choose the day.');
   if(url && !/^https?:\/\//i.test(url)) return err('The design link should start with https://');
-  const row = {title, day, channel: $('peCh').value, status: peSt, campaign_id: $('peCamp').value || null, assigned_to: $('peWho').value || null, caption: $('peCap').value.trim(), design_url: url};
+  const shoot = peKind === 'shoot';
+  const row = {title, day, kind: peKind, channel: shoot ? 'Photo shoot' : $('peCh').value, shoot_pieces: shoot ? $('pePieces').value.trim() : '', shoot_needs: shoot ? $('peNeeds').value.trim() : '', status: peSt, campaign_id: $('peCamp').value || null, assigned_to: $('peWho').value || null, caption: peKind === 'shoot' ? '' : $('peCap').value.trim(), design_url: url};
   $('peSave').setAttribute('aria-busy', 'true');
   let uploaded = '';
   try{
@@ -938,18 +1133,75 @@ $('peDel').onclick = async () => {
   catch(err){ toast(err.message); }
 };
 
+/* the campaign report: what it reached, what it brought in, which channel worked, compared with last time */
+function channelResults(c){
+  const r = results(c), rows = planRows(c), by = {};
+  rows.forEach(x => { by[x.ch] = Object.assign({came: 0, sales: 0}, x); });
+  const add = (ch, k) => { by[ch] = by[ch] || {ch, planned: 0, spent: 0, came: 0, sales: 0}; by[ch].came++; by[ch].sales += Number(k.bought || 0); };
+  r.came.forEach(k => { const m = /^Heard via (.+)$/.exec(k.note || ''); add(k.walk_in ? (m ? m[1] : 'Other') : 'WhatsApp', k); });
+  return Object.values(by).filter(x => x.planned || x.spent || x.came).sort((a, b) => b.sales - a.sales || b.spent - a.spent);
+}
+function lastSame(c){ const k = occKey(c.occasion); return k ? camps.filter(x => x.id !== c.id && occKey(x.occasion) === k && x.starts < c.starts).sort((a, b) => b.starts.localeCompare(a.starts))[0] || null : null; }
+function suggestions(c, r, chs, prev){
+  const out = [], spentCh = chs.filter(x => x.spent > 0);
+  const best = spentCh.filter(x => x.sales > 0).sort((a, b) => b.sales / b.spent - a.sales / a.spent)[0];
+  if(best) out.push('Best value: ' + best.ch + ', ' + inr(best.sales / best.spent) + ' of sales for every ₹1 spent. Put more there next time.');
+  spentCh.filter(x => !x.came).forEach(x => out.push(x.ch + ': ' + inr(x.spent) + ' spent and nobody said they came from it. Change it or drop it, and ask walk-ins how they heard.'));
+  if(c.budget && r.spent > Number(c.budget)) out.push('Spent ' + inr(r.spent - c.budget) + ' more than the budget.');
+  if(r.sent.length >= 10 && r.came.filter(k => !k.walk_in).length / r.sent.length < .05) out.push('Under 5% of the people messaged came in. Try a stronger offer, the Tamil message, or a smaller list such as “Come back” or “Wedding coming”.');
+  const fu = afterList(r);
+  if(fu.buyers.some(k => !k.thanked_at)) out.push(fu.buyers.filter(k => !k.thanked_at).length + ' buyers have not been thanked yet: thank them and ask for a Google review (People & results).');
+  if(fu.noBuy.some(k => !k.followup_at)) out.push(fu.noBuy.filter(k => !k.followup_at).length + ' came but did not buy: add follow-up calls (People & results).');
+  if(prev){ const pr = results(prev); if(pr.sales && r.sales < pr.sales) out.push('Sales are below last time (' + prev.name + '). Look at what the other jewellers offered and what changed in the offer.'); }
+  if(!out.length) out.push(stateOf(c) === 'over' ? 'A good campaign. Run it again next year with the same channels.' : 'Results come in as people visit. Check back after the campaign ends.');
+  return out;
+}
+function reportText(c){
+  const r = results(c), chs = channelResults(c);
+  return [c.name + ' · ' + fmtD(c.starts) + ' – ' + fmtDY(c.ends), c.offer ? 'Offer: ' + c.offer : '',
+    'Messaged ' + r.sent.length + ' · came ' + r.came.length + ' · bought ' + r.bought.length + ' · sales ' + inr(r.sales),
+    'Spent ' + inr(r.spent) + (c.budget ? ' of ' + inr(c.budget) : '') + (r.perVisit ? ' · ' + inr(r.perVisit) + ' a visitor' : '') + (r.perRupee ? ' · ' + inr(r.perRupee) + ' sales per ₹1' : ''),
+    ...chs.map(x => '• ' + x.ch + ': spent ' + inr(x.spent) + ', ' + x.came + ' came, ' + inr(x.sales) + ' sales'),
+    c.competitors ? 'Other jewellers: ' + c.competitors : ''].filter(Boolean).join('\n');
+}
+function renderReport(){
+  const c = cur, r = results(c), chs = channelResults(c), prev = lastSame(c), pr = prev ? results(prev) : null;
+  const ps = posts.filter(x => x.campaign_id === c.id && x.kind !== 'shoot'), sold = r.ks.filter(k => Number(k.bought) > 0).sort((a, b) => b.bought - a.bought);
+  const vs = (now, then, money) => pr == null ? '' : then ? '<em class="' + (now >= then ? 'up2' : 'dn2') + '">' + (now >= then ? '▲ ' : '▼ ') + Math.round(Math.abs(now - then) / then * 100) + '% vs last time</em>' : '';
+  $('s-report').innerHTML = '<h3>Report<small>' + STATE[stateOf(c)] + '</small></h3><div class="rep">' +
+    '<div class="kpis"><div><span>Messaged</span><b>' + r.sent.length + '</b>' + vs(r.sent.length, pr && pr.sent.length) + '</div><div><span>Came in</span><b>' + r.came.length + '</b>' + vs(r.came.length, pr && pr.came.length) + '</div>' +
+    '<div><span>Bought</span><b>' + r.bought.length + '</b>' + vs(r.bought.length, pr && pr.bought.length) + '</div><div><span>Sales</span><b>' + inr(r.sales) + '</b>' + vs(r.sales, pr && pr.sales) + '</div>' +
+    '<div><span>Spent</span><b>' + inr(r.spent) + '</b><em style="color:var(--muted)">' + (c.budget ? 'of ' + inr(c.budget) : 'no budget set') + '</em></div><div><span>Cost a visitor</span><b>' + (r.perVisit ? inr(r.perVisit) : '–') + '</b></div>' +
+    '<div><span>Sales per ₹1 spent</span><b>' + (r.perRupee ? inr(r.perRupee) : '–') + '</b></div><div><span>Posts done</span><b>' + ps.filter(x => x.status === 'posted').length + ' / ' + ps.length + '</b></div></div>' +
+    '<div><h4>By channel</h4>' + (chs.length ? '<div class="tablewrap"><table class="ctab"><thead><tr><th>Channel</th><th>Planned</th><th>Spent</th><th>Came</th><th>Sales</th><th>Sales per ₹1</th></tr></thead><tbody>' +
+      chs.map(x => '<tr><td>' + esc(x.ch) + '</td><td>' + (x.planned ? inr(x.planned) : '–') + '</td><td' + (x.planned && x.spent > x.planned ? ' class="over"' : '') + '>' + inr(x.spent) + '</td><td>' + x.came + '</td><td>' + inr(x.sales) + '</td><td>' + (x.spent ? '<span class="' + (x.sales / x.spent >= 5 ? 'good' : x.sales / x.spent < 1 ? 'bad' : '') + '">' + inr(x.sales / x.spent) + '</span>' : '–') + '</td></tr>').join('') + '</tbody></table></div>'
+      : '<p class="hint">No costs or visits yet.</p>') + '<p class="hint" style="margin-top:6px">People on the WhatsApp list count for WhatsApp; walk-ins count for the channel they said they heard from.</p></div>' +
+    (sold.length ? '<div><h4>What sold</h4><ul>' + sold.slice(0, 10).map(k => '<li>' + esc(k.name) + ' · ' + inr(k.bought) + (k.note && !/^Heard via/.test(k.note) ? ' · ' + esc(k.note) : '') + '</li>').join('') + '</ul></div>' : '') +
+    (prev ? '<div><h4>Last time: ' + esc(prev.name) + '</h4><p class="hint">' + esc(fmtD(prev.starts) + ' – ' + fmtDY(prev.ends) + ' · messaged ' + pr.sent.length + ' · came ' + pr.came.length + ' · sales ' + inr(pr.sales) + ' · spent ' + inr(pr.spent)) + (prev.competitors ? '<br>Other jewellers then: ' + esc(prev.competitors) : '') + '</p></div>' : '') +
+    (c.competitors ? '<div><h4>What other jewellers offered</h4><p style="margin:0;white-space:pre-line">' + esc(c.competitors) + '</p></div>' : '<div><h4>What other jewellers offered</h4><p class="hint">Not written yet. <button class="linkish" id="repComp">Add it</button></p></div>') +
+    '<div><h4>Suggestions</h4><ul>' + suggestions(c, r, chs, prev).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' +
+    '<div class="bar no-print"><button class="btn" id="repCopy">Copy the report</button><button class="btn btn-wa" id="repWa">Share on WhatsApp</button><button class="btn" id="repPrint">Print</button></div></div>';
+}
+$('s-report').addEventListener('click', async e => {
+  if(e.target.closest('#repComp')) return void (location.hash = 'edit=' + cur.id);
+  if(e.target.closest('#repCopy')){ try{ await navigator.clipboard.writeText(reportText(cur)); toast('Report copied'); }catch(err){ toast('Could not copy here'); } }
+  if(e.target.closest('#repWa')) window.open('https://wa.me/?text=' + encodeURIComponent(reportText(cur)), '_blank', 'noopener');
+  if(e.target.closest('#repPrint')) window.print();
+});
+
 /* a campaign's own posts */
 function renderCampPosts(){
   const ps = posts.filter(x => x.campaign_id === cur.id), done = ps.filter(x => x.status === 'posted').length;
   $('s-posts').innerHTML = '<h3>Posts<small>' + done + ' of ' + ps.length + ' posted</small></h3>' +
-    '<div class="sendbar"><div class="bar"><button class="btn btn-maroon" id="cpAdd">Plan a post for this campaign</button><a class="btn" href="#" id="cpCal">See it on the planner</a></div>' +
+    '<div class="sendbar"><div class="bar"><button class="btn btn-maroon" id="cpAdd">Plan a post for this campaign</button><button class="btn" id="cpShoot">📷 Plan a photo shoot</button><a class="btn" href="#" id="cpCal">See it on the planner</a></div>' +
     '<p class="hint">Instagram reels, Facebook posts, the pamphlet, the newspaper ad: one line each, with the picture, caption and who is making it.</p></div>' +
-    (ps.length ? '<div style="display:grid;gap:8px;padding:12px 18px">' + ps.map(x => '<div class="arow2 st-' + x.status + '" data-post="' + esc(x.id) + '">' + (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '<span class="noimg">' + chDot(x.channel) + '</span>') +
-      '<div><div class="nm">' + esc(x.title) + '</div><div class="sub">' + esc([fmtLong(x.day), x.channel, x.assigned_name ? 'for ' + x.assigned_name : ''].filter(Boolean).join(' · ')) + '</div></div><span class="stl">' + PST[x.status] + '</span></div>').join('') + '</div>'
+    (ps.length ? '<div style="display:grid;gap:8px;padding:12px 18px">' + ps.map(x => '<div class="arow2 st-' + x.status + '" data-post="' + esc(x.id) + '">' + (src(x.photo) ? '<img src="' + esc(src(x.photo)) + '" alt="">' : '<span class="noimg">' + (x.kind === 'shoot' ? '📷' : chDot(x.channel)) + '</span>') +
+      '<div><div class="nm">' + (x.kind === 'shoot' ? '📷 ' : '') + esc(x.title) + '</div><div class="sub">' + esc([fmtLong(x.day), x.kind === 'shoot' ? 'Photo shoot' : x.channel, x.assigned_name ? 'for ' + x.assigned_name : ''].filter(Boolean).join(' · ')) + '</div></div><span class="stl">' + stName(x) + '</span></div>').join('') + '</div>'
       : '<div class="empty-s">No posts planned yet.</div>');
 }
 $('s-posts').addEventListener('click', e => {
   const b = e.target.closest('[data-post]'); if(b) return openPost(posts.find(x => x.id === b.dataset.post));
+  if(e.target.closest('#cpShoot')){ const d = addDays(cur.starts, -10); return openPost(null, {day: d < todayIso() ? todayIso() : d, campaign: cur.id, kind: 'shoot', title: (cur.occasion || cur.name) + ' photo shoot'}); }
   if(e.target.closest('#cpAdd')) return openPost(null, {day: cur.starts > todayIso() ? cur.starts : todayIso() > cur.ends ? cur.ends : todayIso(), campaign: cur.id, title: cur.occasion ? cur.occasion + ' offer' : ''});
   if(e.target.closest('#cpCal')){ e.preventDefault(); pMonth = (cur.starts > todayIso() ? cur.starts : todayIso() > cur.ends ? cur.starts : todayIso()).slice(0, 7); location.hash = ''; }
 });

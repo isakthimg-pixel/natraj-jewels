@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v43';
+const KEY = 'natraj-demo-db-v44';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -23,7 +23,7 @@ function seed(){
   const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [], campaign_posts: [], marketing_dates: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, review_link: 'https://g.page/r/natraj-jewels-demo/review', silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [], campaign_posts: [], marketing_dates: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -275,8 +275,8 @@ function seed(){
   db.report_cards.push({id: uid(), staff_id: staff[0].id, month: month0, ratings: {punctual: 5, service: 4, team: 5, knowledge: 5, discipline: 4}, remarks: 'Runs the floor well.', target: '',
     metrics: {}, score: null, grade: '', shared: false, shared_at: null, updated_by_name: 'Owner', updated_at: now()});
   // campaigns: Navaratri finished with results, Diwali running and half sent
-  const camp = (name, occasion, starts, ends, channels, offer, budget) => { const c = {id: uid(), name, occasion, starts, ends, channels, offer, message: '', budget, notes: '', created_by: owner.user_id, created_by_name: owner.name, created_at: starts + 'T09:00:00Z', updated_by_name: '', updated_at: null}; db.campaigns.push(c); return c; };
-  const contact = (c, cu, extra) => db.campaign_contacts.push(Object.assign({id: uid(), campaign_id: c.id, customer_id: cu ? cu.id : null, name: cu ? cu.name : '', phone: cu ? cu.phone : '', walk_in: false, sent_at: null, sent_by_name: '', came: false, came_on: null, bought: null, note: '',
+  const camp = (name, occasion, starts, ends, channels, offer, budget) => { const c = {id: uid(), name, occasion, starts, ends, channels, offer, message: '', budget, notes: '', plan: {}, competitors: '', created_by: owner.user_id, created_by_name: owner.name, created_at: starts + 'T09:00:00Z', updated_by_name: '', updated_at: null}; db.campaigns.push(c); return c; };
+  const contact = (c, cu, extra) => db.campaign_contacts.push(Object.assign({id: uid(), campaign_id: c.id, customer_id: cu ? cu.id : null, name: cu ? cu.name : '', phone: cu ? cu.phone : '', walk_in: false, sent_at: null, sent_by_name: '', came: false, came_on: null, bought: null, note: '', thanked_at: null, followup_at: null,
     created_by: manager.user_id, created_at: c.starts + 'T10:00:00Z', updated_by_name: '', updated_at: null}, extra || {}));
   const cost = (c, day, channel, what, amount) => db.campaign_costs.push({id: uid(), campaign_id: c.id, day, channel, what, amount, created_by: manager.user_id, created_by_name: manager.name, created_at: day + 'T12:00:00Z'});
   const nav = camp('Navaratri silver gifts', 'Navaratri', addDays(today, -40), addDays(today, -28), ['WhatsApp', 'Pamphlet'], 'Free silver kumkum box on purchases above ₹25,000', 15000);
@@ -284,10 +284,18 @@ function seed(){
     came: i < 3, came_on: i < 3 ? addDays(today, -36 + i) : null, bought: i === 0 ? 68000 : i === 2 ? 24500 : null, note: i === 0 ? 'Antique bangles' : i === 2 ? 'Silver pooja set' : ''}));
   contact(nav, null, {name: 'Walk-in Saranya', phone: '9876501234', walk_in: true, came: true, came_on: addDays(today, -33), bought: 31000, note: 'Heard via Pamphlet'});
   cost(nav, addDays(today, -41), 'Pamphlet', '3,000 pamphlets with the newspaper', 4500);
+  nav.plan = {WhatsApp: 0, Pamphlet: 5000, Instagram: 3000}; nav.competitors = 'Big chain on Kumaran Road: free silver coin above ₹30,000.';
+  // last year's Diwali, to compare with
+  const dip0 = camp('Diwali 2025 coin offer', 'Diwali', addDays(today, -368), addDays(today, -350), ['WhatsApp', 'Radio', 'Pamphlet'], 'Free 1 g silver coin with every gold coin', 35000);
+  dip0.competitors = 'GRT: 0% wastage on coins. Kumaran Road shop: 2% off making on necklaces.';
+  [C[0], C[1], C[3], C[5], C[6]].forEach((cu, i) => contact(dip0, cu, {sent_at: addDays(today, -367) + 'T11:00:00Z', sent_by_name: manager.name, came: i < 2, came_on: i < 2 ? addDays(today, -362) : null, bought: i === 0 ? 52000 : null}));
+  contact(dip0, null, {name: 'Walk-in Murugan', phone: '9876502345', walk_in: true, came: true, came_on: addDays(today, -358), bought: 41000, note: 'Heard via Radio'});
+  cost(dip0, addDays(today, -368), 'Radio', '15 radio spots', 15000); cost(dip0, addDays(today, -368), 'Pamphlet', '5,000 pamphlets', 7000);
   const dip = camp('Diwali gold coin offer', 'Diwali', addDays(today, -3), addDays(today, 18), ['WhatsApp', 'Instagram', 'Radio'], 'No wastage on gold coins, 50% off making on necklaces', 40000);
   [C[0], C[1], C[2], C[4]].forEach((cu, i) => contact(dip, cu, i < 2 ? {sent_at: addDays(today, -2) + 'T11:00:00Z', sent_by_name: manager.name} : {}));
   cost(dip, addDays(today, -3), 'Radio', '20 radio spots, Hello FM', 18000);
   cost(dip, addDays(today, -2), 'Instagram', 'Boosted post, 7 days', 3500);
+  dip.plan = {WhatsApp: 0, Instagram: 6000, Radio: 25000, Pamphlet: 6000}; dip.competitors = 'GRT: 0% wastage on gold coins till Diwali. Kumaran Road shop: free silver lamp above ₹50,000.';
   // the planner: key dates, and posts for the Diwali campaign and around it
   [['2026-01-15', 'Thai Pongal'], ['2026-04-14', 'Tamil New Year'], ['2026-04-20', 'Akshaya Tritiya'], ['2026-08-03', 'Aadi Perukku'], ['2026-08-28', 'Varalakshmi Vratham'],
    ['2026-10-20', 'Vijayadashami'], ['2026-11-06', 'Dhanteras'], ['2026-11-08', 'Deepavali'], ['2026-11-24', 'Karthigai Deepam'], ['2027-01-15', 'Thai Pongal'], ['2027-04-14', 'Tamil New Year'],
@@ -295,7 +303,7 @@ function seed(){
   [['2026-12-25', 'Christmas'], ['2027-01-01', 'New Year'], ['2027-02-14', 'Valentine’s Day'], ['2027-03-08', 'Women’s Day']].forEach(([day, name]) => db.marketing_dates.push({id: uid(), day, name, kind: 'day', note: ''}));
   db.marketing_dates.push({id: uid(), day: addDays(today, 26), name: 'Shop anniversary', kind: 'shop', note: '32 years in Tiruppur'});
   db.marketing_dates.sort((a, b) => a.day.localeCompare(b.day));
-  const post = (day, title, channel, status, extra) => { const r = Object.assign({id: uid(), day: addDays(today, day), title, channel, status, campaign_id: null, caption: '', design_url: '', photo: '', assigned_to: null, assigned_name: '', posted_at: null, posted_by_name: '',
+  const post = (day, title, channel, status, extra) => { const r = Object.assign({id: uid(), day: addDays(today, day), title, channel, status, kind: 'post', shoot_pieces: '', shoot_needs: '', campaign_id: null, caption: '', design_url: '', photo: '', assigned_to: null, assigned_name: '', posted_at: null, posted_by_name: '',
     created_by: owner.user_id, created_by_name: owner.name, created_at: addDays(today, -5) + 'T10:00:00Z', updated_by_name: '', updated_at: null}, extra || {});
     if(r.assigned_to) r.assigned_name = (db.profiles.find(p => p.user_id === r.assigned_to) || {}).name || '';
     if(status === 'posted'){ r.posted_at = r.day + 'T12:30:00Z'; r.posted_by_name = manager.name; } db.campaign_posts.push(r); };
@@ -306,6 +314,8 @@ function seed(){
   post(4, 'Radio spot reminder', 'Radio', 'idea', {campaign_id: dip.id});
   post(6, 'Necklace making-charge offer', 'WhatsApp', 'idea', {campaign_id: dip.id});
   post(9, 'Silver gift ideas for Diwali', 'Instagram', 'idea', {photo: 'sample/ring-silver-3-j6.svg'});
+  post(1, 'Deepavali bridal photo shoot', 'Photo shoot', 'making', {kind: 'shoot', campaign_id: dip.id, assigned_to: manager.user_id, shoot_pieces: 'Temple bridal set, 3 antique bangles, 8 g and 4 g gold coins',
+    shoot_needs: 'Model in a silk saree, brass lamps and marigolds. In the shop at 9 am before opening.'});
   post(-1, 'Navaratri thank-you post', 'Facebook', 'ready', {});
   // who is online: Sample Staff 2 is always on the tasks page on a phone, the manager on a store computer
   const ago = m => new Date(Date.now() - m * 60000).toISOString();
@@ -1173,9 +1183,9 @@ function campaignsRest(table, method, params, body, single, wantRows, me){
   let out = db[table].filter(r => matches(r, params));
   if(method === 'GET') sortBy(out, params.get('order'));
   else if(method === 'POST'){
-    const base = table === 'campaigns' ? {occasion: '', channels: [], offer: '', message: '', budget: null, notes: '', updated_by_name: '', updated_at: null, created_by_name: me.name}
-      : table === 'campaign_contacts' ? {customer_id: null, phone: '', walk_in: false, sent_at: null, sent_by_name: '', came: false, came_on: null, bought: null, note: '', updated_by_name: '', updated_at: null}
-      : table === 'campaign_posts' ? {campaign_id: null, channel: 'Instagram', caption: '', status: 'idea', design_url: '', photo: '', assigned_to: null, posted_at: null, posted_by_name: '', created_by_name: me.name, updated_by_name: '', updated_at: null}
+    const base = table === 'campaigns' ? {occasion: '', channels: [], offer: '', message: '', budget: null, notes: '', plan: {}, competitors: '', updated_by_name: '', updated_at: null, created_by_name: me.name}
+      : table === 'campaign_contacts' ? {customer_id: null, phone: '', walk_in: false, sent_at: null, sent_by_name: '', came: false, came_on: null, bought: null, note: '', thanked_at: null, followup_at: null, updated_by_name: '', updated_at: null}
+      : table === 'campaign_posts' ? {campaign_id: null, channel: 'Instagram', caption: '', kind: 'post', shoot_pieces: '', shoot_needs: '', status: 'idea', design_url: '', photo: '', assigned_to: null, posted_at: null, posted_by_name: '', created_by_name: me.name, updated_by_name: '', updated_at: null}
       : {channel: '', what: '', day: iso(new Date()), created_by_name: me.name};
     out = (Array.isArray(body) ? body : [body]).map(b => { const r = Object.assign({id: uid()}, base, b, {created_by: me.user_id, created_at: nowIso});
       if(table === 'campaign_contacts'){ if(r.sent_at){ r.sent_at = nowIso; r.sent_by_name = me.name; } if(!r.came) r.came_on = null; }
