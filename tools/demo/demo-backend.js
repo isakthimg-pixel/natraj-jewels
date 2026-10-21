@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v44';
+const KEY = 'natraj-demo-db-v45';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -205,7 +205,7 @@ function seed(){
       free_recent_buy: false, free_owner_friend: false, created_by: manager.user_id, created_by_name: manager.name, created_at: at(-ago, '10'), updated_by_name: '', updated_at: null,
       karigar_at: ['karigar', 'ready', 'delivered'].includes(status) && extra.karigar ? at(-ago + 1, '12') : null, ready_at: ['ready', 'delivered'].includes(status) ? at(-Math.max(ago - 3, 0), '15') : null,
       ready_by_name: ['ready', 'delivered'].includes(status) ? manager.name : '', delivered_at: status === 'delivered' ? at(-Math.max(ago - 4, 0), '17') : null,
-      delivered_by_name: status === 'delivered' ? owner.name : '', cancelled_at: null}, extra);
+      delivered_by_name: status === 'delivered' ? owner.name : '', cancelled_at: null, received_on: addDays(today, -ago)}, extra);
     if(r.karigar && !r.sent_on && r.karigar_at) r.sent_on = r.karigar_at.slice(0, 10);
     db.jobs.push(r); return r;
   };
@@ -1154,7 +1154,7 @@ function jobsRest(method, params, body, single, wantRows, me){
   let out = db.jobs.filter(r => matches(r, params));
   if(method === 'GET') sortBy(out, params.get('order'));
   else if(method === 'POST'){
-    const r = Object.assign({id: uid(), kind: 'repair', status: 'received', customer_id: null, customer_name: '', customer_phone: '', item: '', metal: 'Gold', work: '', weight_in: null, photos: [], due: null, estimate: null, advance: 0, advance_mode: 'Cash', karigar: '', sent_on: null, weight_out: null, final_amount: null, paid_mode: '', note: '', close_note: '', repair_no: '', service: '', karigar_cost: null, free_recent_buy: false, free_owner_friend: false},
+    const r = Object.assign({id: uid(), kind: 'repair', status: 'received', customer_id: null, customer_name: '', customer_phone: '', item: '', metal: 'Gold', work: '', weight_in: null, photos: [], due: null, estimate: null, advance: 0, advance_mode: 'Cash', karigar: '', sent_on: null, weight_out: null, final_amount: null, paid_mode: '', note: '', close_note: '', repair_no: '', service: '', karigar_cost: null, free_recent_buy: false, free_owner_friend: false, received_on: iso(new Date())},
       Array.isArray(body) ? body[0] : body, {job_no: db.jobs.reduce((m, j) => Math.max(m, j.job_no), 1000) + 1, created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null, karigar_at: null, ready_at: null, ready_by_name: '', delivered_at: null, delivered_by_name: '', cancelled_at: null});
     if(!stage(r, '')) return bad;
     db.jobs.push(r); out = [r];

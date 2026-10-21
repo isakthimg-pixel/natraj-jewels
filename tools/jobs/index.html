@@ -96,6 +96,8 @@
 .jform{max-width:820px}
 .jform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .jform .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:640px){.jform .three{grid-template-columns:1fr 1fr}.jform .three > :first-child{grid-column:1/-1}}
+.jform .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 @media (max-width:560px){.jform .two,.jform .three{grid-template-columns:1fr}}
 .jform .field > span{font-size:.8rem;font-weight:600;letter-spacing:.04em;color:var(--muted)}
 .unit{position:relative}
@@ -188,8 +190,9 @@
           <button type="button" class="bubble" data-k="repair" aria-pressed="true">Repair</button>
           <button type="button" class="bubble" data-k="order" aria-pressed="false">New order (to be made)</button>
         </div>
-        <div class="two">
+        <div class="three">
           <label><span id="jNoT">Repair number</span><input class="input" id="jNo" maxlength="30" placeholder="the number on the slip"></label>
+          <label><span id="jRecvT">Given to us on</span><input class="input" id="jRecv" type="date"></label>
           <label>Promised by<input class="input" id="jDue" type="date"></label>
         </div>
         <div class="cust">
@@ -360,7 +363,7 @@ async function renderList(){
       : bal != null ? '<span class="amt">' + inr(bal) + '<small>' + (j.final_amount != null ? 'to collect' : 'estimate, less advance') + '</small></span>' : '<span></span>';
     return '<button type="button" class="jrow" data-id="' + esc(j.id) + '"><span class="th">' + (j.photos[0] && src(j.photos[0]) ? '<img loading="lazy" src="' + esc(src(j.photos[0])) + '" alt="">' : 'No photo') + '</span>' +
       '<span><span class="t"><span class="no">' + esc(jno(j)) + '</span> · ' + esc(what(j)) + '</span>' +
-      '<span class="s" style="display:block">' + esc([j.customer_name, j.customer_phone, j.karigar && 'karigar ' + j.karigar].filter(Boolean).join(' · ')) + '</span>' +
+      '<span class="s" style="display:block">' + esc([j.customer_name, j.customer_phone, (j.kind === 'order' ? 'ordered ' : 'given ') + fmtD(j.received_on || j.created_at), j.karigar && 'karigar ' + j.karigar].filter(Boolean).join(' · ')) + '</span>' +
       '<span class="tags"><span class="tag s-' + j.status + '">' + STAGE[j.status] + '</span>' +
         (late(j) ? '<span class="tag late">Late · promised ' + fmtD(j.due) + '</span>' : j.due && OPEN.includes(j.status) && j.status !== 'ready' ? '<span class="tag">Promised ' + fmtD(j.due) + '</span>' : '') +
         (j.status === 'ready' && j.ready_at ? '<span class="tag">Ready since ' + fmtD(j.ready_at) + '</span>' : '') +
@@ -404,7 +407,7 @@ function renderJob(){
   const j = cur;
   $('oTitle').textContent = jno(j) + ' · ' + what(j);
   $('oEyebrow').textContent = (j.kind === 'order' ? 'New order' : 'Repair') + ' · ' + j.customer_name + (free(j) ? ' · free (' + freeWhy(j) + ')' : '');
-  const at = {received: j.created_at, karigar: j.karigar_at, ready: j.ready_at, delivered: j.delivered_at};
+  const at = {received: j.received_on || j.created_at, karigar: j.karigar_at, ready: j.ready_at, delivered: j.delivered_at};
   const order = ['received', 'karigar', 'ready', 'delivered'], reached = order.indexOf(j.status === 'cancelled' ? 'received' : j.status);
   $('oSteps').className = 'steps' + (j.status === 'cancelled' ? ' cancelled' : '');
   $('oSteps').innerHTML = order.map((s, i) => '<li class="' + (i <= reached ? 'on' : '') + '">' + STAGE[s] + (at[s] && i <= reached ? '<small>' + fmtD(at[s]) + '</small>' : '') + '</li>').join('');
@@ -415,6 +418,7 @@ function renderJob(){
     ['Phone', j.customer_phone ? '<a href="tel:' + esc(j.customer_phone.replace(/\s/g, '')) + '">' + esc(j.customer_phone) + '</a>' : ''],
     ['Item', esc(j.item + ' · ' + j.metal)], ['Service', esc(j.service)], [j.kind === 'order' ? 'What to make' : 'Work to do', esc(j.work)],
     [j.kind === 'order' ? 'Customer’s gold' : 'Weight received', esc(gm(j.weight_in))], ['Weight returned', esc(gm(j.weight_out))],
+    [j.kind === 'order' ? 'Ordered on' : 'Given to us on', esc(fmtDY(j.received_on || j.created_at))],
     ['Promised by', j.due ? esc(fmtDY(j.due)) + (late(j) ? ' <b style="color:var(--a)">· late</b>' : '') : ''],
     ['Karigar', esc(j.karigar) + (j.sent_on ? ' · given ' + esc(fmtD(j.sent_on)) : '')],
     ['Free', free(j) ? esc(freeWhy(j)) : ''],
@@ -559,6 +563,7 @@ function setKind(k){
   formKind = k;
   $('jKind').querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k));
   $('jNoT').textContent = k === 'repair' ? 'Repair number' : 'Order number';
+  $('jRecvT').textContent = k === 'repair' ? 'Given to us on' : 'Ordered on';
   $('jWorkT').textContent = k === 'repair' ? 'Work to do' : 'What to make';
   $('jWeightT').textContent = k === 'repair' ? 'Weight received' : 'Customer’s gold given';
   $('jWork').placeholder = k === 'repair' ? 'e.g. hook broken, solder near the clasp, polish' : 'e.g. 22K chain, 18 inches, about 16 g, like the photo';
@@ -623,6 +628,7 @@ async function openForm(j){
   fillServices(j ? j.service : '');
   linkedId = j ? j.customer_id : null;
   $('jNo').value = j ? j.repair_no : ''; $('jDue').value = j && j.due ? j.due : '';
+  $('jRecv').value = j ? j.received_on || NJ.iso(new Date(j.created_at)) : todayIso(); $('jRecv').max = todayIso();
   $('jCust').value = j ? j.customer_name : ''; $('jPhone').value = j ? j.customer_phone : ''; showLinked();
   $('jItem').value = j ? j.item : ''; $('jWork').value = j ? j.work : '';
   $('jWeight').value = j && j.weight_in != null ? Number(j.weight_in) : '';
@@ -639,6 +645,10 @@ $('jf').addEventListener('submit', async e => {
   const w = num($('jWeight').value), est = num($('jEst').value), adv = num($('jAdv').value), kc = num($('jKCost').value);
   let service = $('jService').value === NEW_SERVICE ? $('jServiceNew').value.trim().replace(/\s+/g, ' ') : $('jService').value;
   if(formKind === 'repair' && !$('jNo').value.trim()) return err('Type the repair number from the slip.');
+  const recv = $('jRecv').value;
+  if(!recv) return err(formKind === 'repair' ? 'Choose the day the customer gave it.' : 'Choose the day it was ordered.');
+  if(recv > todayIso()) return err('That day has not come yet. Choose today or an earlier day.');
+  if($('jDue').value && $('jDue').value < recv) return err('The promised day is before the day it was given.');
   if(!name) return err('Type the customer’s name.');
   if(phone && !/^[0-9+ ]{6,20}$/.test(phone)) return err('Type the phone number with digits only, e.g. 98430 12345.');
   if(!item) return err('Type the item, e.g. Gold chain.');
@@ -664,7 +674,7 @@ $('jf').addEventListener('submit', async e => {
       p.path = path; delete p.blob;
     }
     const data = {kind: formKind, repair_no: $('jNo').value.trim(), customer_id: linkedId, customer_name: name, customer_phone: phone, item, metal: formMetal,
-      service: formKind === 'repair' ? service : '', work: $('jWork').value.trim(), weight_in: w, due: $('jDue').value || null,
+      service: formKind === 'repair' ? service : '', work: $('jWork').value.trim(), weight_in: w, due: $('jDue').value || null, received_on: recv,
       free_recent_buy: formKind === 'repair' && $('jFreeBuy').checked, free_owner_friend: formKind === 'repair' && $('jFreeFriend').checked,
       estimate: isFree ? null : est, advance: isFree ? 0 : (adv || 0), advance_mode: $('jAdvMode').value,
       karigar: $('jKarigar').value.trim(), karigar_cost: kc, note: $('jNote').value.trim(), photos: photos.map(p => p.path)};
