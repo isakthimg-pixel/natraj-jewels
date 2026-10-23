@@ -280,6 +280,8 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
         <div class="icard"><h3>Forms by staff</h3><div class="hbars" id="iStaff"></div></div>
         <div class="icard"><h3>Came for</h3><div class="hbars" id="iFor"></div></div>
         <div class="icard"><h3>Service rating</h3><div class="hbars" id="iStars"></div></div>
+        <div class="icard"><h3>Age of visitors</h3><div class="hbars" id="iAge"></div><p class="axisnote" id="iAgeN"></p></div>
+        <div class="icard"><h3>All customers by age</h3><div class="hbars" id="iAgeAll"></div><p class="axisnote" id="iAgeAllN"></p></div>
         <div class="icard" style="grid-column:1/-1"><h3>Wanted, but we didn’t have</h3><div class="wants" id="iWants"></div></div>
         <div class="icard" style="grid-column:1/-1"><h3>Why they didn’t buy</h3><div class="hbars" id="iWhy"></div></div>
         <div class="icard" style="grid-column:1/-1"><h3>Just looking: still to win</h3><div class="wants" id="iLooking"></div></div>
@@ -1124,6 +1126,14 @@ function hbars(el, pairs, unit){
     : '<p class="axisnote">Nothing yet.</p>';
 }
 const tally = (list, key) => { const m = {}; list.forEach(x => { const k = key(x); (Array.isArray(k) ? k : [k]).forEach(v => { if(v) m[v] = (m[v] || 0) + 1; }); }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+// age from the birthday's year (birthdays saved without a year are left out)
+const AGES = [[0, 17, 'Under 18'], [18, 25, '18–25'], [26, 35, '26–35'], [36, 45, '36–45'], [46, 55, '46–55'], [56, 65, '56–65'], [66, 200, '66 and over']];
+function ageOf(c){
+  if(!c || !c.birthday || c.birthday.slice(0, 4) === NOYEAR) return null;
+  const t = todayIso(), a = Number(t.slice(0, 4)) - Number(c.birthday.slice(0, 4)) - (t.slice(5) < c.birthday.slice(5) ? 1 : 0);
+  return a >= 0 && a < 120 ? a : null;
+}
+const ageGroup = c => { const a = ageOf(c); return a == null ? null : AGES.find(([lo, hi]) => a >= lo && a <= hi)[2]; };
 async function loadInsights(){
   const from = addDays(todayIso(), -(insDays - 1));
   const visits = must(await sb.from('customer_activity').select('*').eq('kind', 'visit').gte('visit_day', from).order('visit_day', {ascending: false})) || [];
@@ -1138,6 +1148,17 @@ async function loadInsights(){
   hbars($('iStaff'), tally(visits, v => servedOf(v.served_by).length ? servedOf(v.served_by) : 'Not filled'));
   hbars($('iFor'), tally(visits, v => v.came_for));
   hbars($('iStars'), [5, 4, 3, 2, 1].map(n => ['★'.repeat(n), rated.filter(v => v.rating === n).length]));
+  // visitors in this period by age, with how many of each group bought
+  const aged = custs.filter(c => ageGroup(c));
+  hbars($('iAge'), AGES.map(([, , g]) => {
+    const cs = aged.filter(c => ageGroup(c) === g), vs = visits.filter(v => cs.some(c => c.id === v.customer_id) && v.bought !== null);
+    return [g + (vs.length ? ' · ' + Math.round(vs.filter(v => v.bought).length / vs.length * 100) + '% bought' : ''), cs.length];
+  }).filter(x => x[1]));
+  const ages = aged.map(ageOf).sort((a, b) => a - b);
+  $('iAgeN').textContent = custs.length ? (aged.length ? 'Middle age ' + ages[Math.floor(ages.length / 2)] + '. ' : '') + aged.length + ' of ' + custs.length + ' visitors have a birth year saved.' : '';
+  const allAged = customers.filter(c => ageGroup(c));
+  hbars($('iAgeAll'), AGES.map(([, , g]) => [g, allAged.filter(c => ageGroup(c) === g).length]).filter(x => x[1]));
+  $('iAgeAllN').textContent = allAged.length.toLocaleString('en-IN') + ' of ' + customers.length.toLocaleString('en-IN') + ' saved customers have a birth year. Ask the year on the form to fill the rest.';
   const line = (v, text) => { const c = custById(v.customer_id); return '<div>' + esc(text) + '<small>' + esc((c ? c.name + ' · ' : '') + fmtD(v.visit_day) + (v.served_by ? ' · ' + v.served_by : '')) + '</small></div>'; };
   const wants = visits.filter(v => v.missing);
   $('iWants').innerHTML = wants.length ? wants.map(v => line(v, v.missing)).join('') : '<p class="axisnote">Nothing noted. Ask every customer this question: it tells you what to stock.</p>';
