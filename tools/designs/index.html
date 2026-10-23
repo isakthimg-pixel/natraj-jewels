@@ -152,7 +152,7 @@
       </div>
     </div></div>
     <div class="wrap content" style="display:grid;gap:14px">
-      <div class="count-line"><span id="countLine"></span><button class="btn btn-wa" id="shareList" hidden>Send buying list on WhatsApp</button></div>
+      <div class="count-line"><span id="countLine"></span><span class="bar" style="gap:8px"><button class="btn" id="dlList" hidden>Download buying list</button><button class="btn btn-wa" id="shareList" hidden>Send buying list on WhatsApp</button></span></div>
       <div class="grid" id="grid"><div class="loading">Loading…</div></div>
       <div class="more"><button class="btn" id="moreBtn" hidden>Show more</button></div>
     </div>
@@ -350,6 +350,7 @@ async function renderGrid(){
   $('countLine').textContent = list.length ? list.length + ' ' + (list.length === 1 ? 'item' : 'items') + '.' : '';
   // a buying list to send to a supplier before ordering
   $('shareList').hidden = !['open', 'active'].includes(stageF) || !list.some(d => d.status === 'open');
+  $('dlList').hidden = $('shareList').hidden;
   const page = list.slice(0, shown);
   $('moreBtn').hidden = list.length <= shown;
   if(!list.length){ $('grid').innerHTML = '<div class="empty" style="grid-column:1/-1"><h3>' + (items.length ? 'Nothing here' : 'Nothing to buy yet') + '</h3><p>' +
@@ -384,6 +385,51 @@ $('shareList').onclick = () => {
     ...list.map((d, i) => (i + 1) + '. ' + spec(d) + (d.needed_by ? ' (by ' + fmtD(d.needed_by) + ')' : ''))].join('\n');
   window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
 };
+
+/* the buying list to download: what is still needed (with the filters on screen), dealer by dealer.
+   An Excel sheet, or a page with the photos to print or save as PDF. Who it is for is left out unless asked,
+   so the list can go straight to the dealer. */
+const forWhom = d => d.kind === 'enquiry' ? 'Customer: ' + d.customer_name : d.kind === 'rnd' ? 'R&D suggestion' : 'Restock';
+const bySupplier = list => { const g = {}; list.forEach(d => { const k = d.supplier || 'No dealer yet'; (g[k] = g[k] || []).push(d); }); return Object.entries(g).sort((a, b) => a[0] === 'No dealer yet' ? 1 : b[0] === 'No dealer yet' ? -1 : a[0].localeCompare(b[0])); };
+$('dlList').onclick = async () => {
+  const list = filtered().filter(d => d.status === 'open');
+  if(!list.length) return toast('Nothing still needed in this list.');
+  const sup = $('fSupplier').value;
+  const v = await dialog({title: 'Download buying list', msg: list.length + ' item' + (list.length > 1 ? 's' : '') + ' still needed' + (sup && sup !== '-' ? ' from ' + sup : '') + ', grouped by dealer.', ok: 'Download', fields: [
+    {id: 'fmt', label: 'As', type: 'select', value: 'xlsx', options: [['xlsx', 'Excel sheet'], ['print', 'Page with photos (print or save as PDF)']]},
+    {id: 'who', label: 'Show who each item is for (leave off when the list goes to the dealer)', type: 'checkbox'}]});
+  if(!v) return;
+  if(v.fmt === 'xlsx') return downloadSheet(list, v.who);
+  try{ await sign(list.map(d => d.photos[0]).filter(Boolean)); }catch(e){}
+  printList(list, v.who);
+};
+function downloadSheet(list, who){
+  const head = ['Dealer', 'Item', 'Metal', 'Purity', 'Weight (g)', 'Size', 'Pieces', 'Budget (₹)', 'Needed by', 'Notes', ...(who ? ['For'] : []), 'Added on'];
+  const rows = bySupplier(list).flatMap(([k, ds]) => ds.map(d => [k, d.category || 'Jewel', d.metal, d.purity || '', d.weight_g == null ? '' : Number(d.weight_g), d.size || '', d.qty || 1,
+    d.budget == null ? '' : Number(d.budget), d.needed_by ? fmtDY(d.needed_by) : '', d.notes || '', ...(who ? [forWhom(d)] : []), fmtDY(d.created_at)]));
+  NJ.writeXlsx('Natraj-buying-list-' + todayIso() + '.xlsx', 'Buying list', [head, ...rows]);
+  toast('Buying list downloaded');
+}
+function printList(list, who){
+  const groups = bySupplier(list);
+  const html = '<!doctype html><html><head><meta charset="utf-8"><title>Natraj Jewels buying list ' + todayIso() + '</title><style>' +
+    'body{font:13px/1.4 system-ui,sans-serif;color:#2A1E1B;margin:24px}h1{font-size:20px;margin:0;color:#8E2A2A}p.s{margin:2px 0 16px;color:#6B5C55}' +
+    'h2{font-size:15px;margin:22px 0 8px;padding-bottom:4px;border-bottom:2px solid #8E2A2A}table{width:100%;border-collapse:collapse}' +
+    'td,th{border-bottom:1px solid #DDD;padding:6px 8px;text-align:left;vertical-align:top}th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#845E22}' +
+    'img{width:90px;height:90px;object-fit:cover;border-radius:4px;border:1px solid #DDD}.np{width:90px;height:90px;display:grid;place-items:center;background:#F4EFE8;color:#999;font-size:11px;border-radius:4px}' +
+    'tr{page-break-inside:avoid}</style></head><body><h1>Natraj Jewels, Tiruppur: buying list</h1><p class="s">' + esc(fmtDY(todayIso())) + ' · ' + list.length + ' items</p>' +
+    groups.map(([k, ds]) => '<h2>' + esc(k) + ' · ' + ds.length + '</h2><table><thead><tr><th>Photo</th><th>Item</th><th>Weight · size · pieces</th><th>Needed by</th><th>Notes</th>' + (who ? '<th>For</th>' : '') + '</tr></thead><tbody>' +
+      ds.map((d, i) => '<tr><td>' + (d.photos[0] && src(d.photos[0]) ? '<img src="' + esc(src(d.photos[0])) + '">' : '<div class="np">No photo</div>') + '</td><td><b>' + (i + 1) + '. ' + esc(describe(d)) + '</b></td><td>' +
+        esc([fmtW(d.weight_g), d.size && 'size ' + d.size, (d.qty || 1) + (d.qty > 1 ? ' pieces' : ' piece')].filter(Boolean).join(' · ')) + '</td><td>' + esc(d.needed_by ? fmtDY(d.needed_by) : '') + '</td><td>' + esc(d.notes || '') + '</td>' +
+        (who ? '<td>' + esc(forWhom(d)) + '</td>' : '') + '</tr>').join('') + '</tbody></table>').join('') + '</body></html>';
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(f);
+  f.contentDocument.open(); f.contentDocument.write(html); f.contentDocument.close();
+  const go = () => { try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast('Printing is not available here.'); } setTimeout(() => f.remove(), 60000); };
+  const imgs = [...f.contentDocument.images];
+  Promise.all(imgs.map(im => im.complete ? 0 : new Promise(res => { im.onload = im.onerror = res; }))).then(go);
+}
 
 /* ---------- one item ---------- */
 async function openItem(id){
