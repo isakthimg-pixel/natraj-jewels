@@ -95,6 +95,11 @@
 /* form */
 .jform{max-width:820px}
 .jform .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.slipnote{border-left:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 9%,var(--card));padding:10px 14px;border-radius:0 4px 4px 0;font-size:.9rem}
+.sibs{display:grid;gap:6px}
+.sibs a{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:4px;color:var(--ink);text-decoration:none;font-size:.9rem}
+.sibs a:hover{border-color:var(--gold)}
+.sibs a.me{background:color-mix(in srgb,var(--gold) 9%,var(--card));font-weight:700}
 .jform .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 @media (max-width:640px){.jform .three{grid-template-columns:1fr 1fr}.jform .three > :first-child{grid-column:1/-1}}
 .jform .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
@@ -172,6 +177,7 @@
       <div class="side">
         <ol class="steps" id="oSteps" aria-label="Progress"></ol>
         <div class="next-step" id="oNext"></div>
+        <div class="form panel" id="oSlipBox" hidden><h3 id="oSlipT">Same slip</h3><div class="sibs" id="oSibs"></div><div class="bar"><button class="btn" id="oAddMore">Add another item to this slip</button></div></div>
         <div class="form panel"><h3>Money</h3><div class="money" id="oMoney"></div></div>
         <div class="form panel"><h3>Details</h3><dl class="info" id="oInfo"></dl>
           <div class="bar"><button class="btn" id="oEdit">Edit</button><button class="btn btn-wa" id="oSlip">Send receipt on WhatsApp</button><button class="btn" id="oCancel">Cancel job</button><button class="btn btn-danger owner-only" id="oDel">Delete</button></div></div>
@@ -186,6 +192,7 @@
     </div></div>
     <div class="wrap content">
       <form class="form jform" id="jf" autocomplete="off" novalidate>
+        <div class="slipnote" id="jSlip" hidden></div>
         <div class="bubbles" id="jKind" role="group" aria-label="Repair or new order">
           <button type="button" class="bubble" data-k="repair" aria-pressed="true">Repair</button>
           <button type="button" class="bubble" data-k="order" aria-pressed="false">New order (to be made)</button>
@@ -236,7 +243,8 @@
         </div>
         <label>Note<input class="input" id="jNote" maxlength="500" placeholder="optional, e.g. stone missing when received"></label>
         <p class="err" id="jErr" role="alert"></p>
-        <div class="actions"><button class="btn btn-maroon" type="submit" id="jSave">Save job</button><button class="btn" type="button" id="jCancelBtn">Cancel</button></div>
+        <div class="actions"><button class="btn btn-maroon" type="submit" id="jSave">Save job</button><button class="btn" type="button" id="jSaveMore">Save and add another item</button><button class="btn" type="button" id="jCancelBtn">Cancel</button></div>
+        <p class="hint" id="jMoreHint">Several pieces from one customer on the same slip? Save each one with “Save and add another item”: the repair number, dates and customer stay filled in.</p>
       </form>
     </div>
   </section>
@@ -281,6 +289,10 @@ const jno = j => j.repair_no ? (j.kind === 'order' ? 'Order ' : 'Repair ') + j.r
 const late = j => ['received', 'karigar'].includes(j.status) && j.due && j.due < todayIso();
 const due = j => j.final_amount != null ? Math.max(0, Number(j.final_amount) - Number(j.advance)) : j.estimate != null ? Math.max(0, Number(j.estimate) - Number(j.advance)) : null;
 const what = j => j.item + (j.service ? ' · ' + j.service : '');
+// the other pieces left on the same slip: same repair (or order) number and the same customer
+const last10 = p => String(p || '').replace(/\D/g, '').slice(-10);
+const sameCust = (a, b) => (a.customer_id && a.customer_id === b.customer_id) || (last10(a.customer_phone) && last10(a.customer_phone) === last10(b.customer_phone)) || a.customer_name.trim().toLowerCase() === b.customer_name.trim().toLowerCase();
+const slipOf = j => j.repair_no ? jobs.filter(x => x.repair_no === j.repair_no && x.kind === j.kind && sameCust(x, j)).sort((a, b) => a.job_no - b.job_no) : [j];
 
 /* ---------- photos (the same way as the design library) ---------- */
 const urls = {};
@@ -364,7 +376,7 @@ async function renderList(){
     return '<button type="button" class="jrow" data-id="' + esc(j.id) + '"><span class="th">' + (j.photos[0] && src(j.photos[0]) ? '<img loading="lazy" src="' + esc(src(j.photos[0])) + '" alt="">' : 'No photo') + '</span>' +
       '<span><span class="t"><span class="no">' + esc(jno(j)) + '</span> · ' + esc(what(j)) + '</span>' +
       '<span class="s" style="display:block">' + esc([j.customer_name, j.customer_phone, (j.kind === 'order' ? 'ordered ' : 'given ') + fmtD(j.received_on || j.created_at), j.karigar && 'karigar ' + j.karigar].filter(Boolean).join(' · ')) + '</span>' +
-      '<span class="tags"><span class="tag s-' + j.status + '">' + STAGE[j.status] + '</span>' +
+      '<span class="tags"><span class="tag s-' + j.status + '">' + STAGE[j.status] + '</span>' + (slipOf(j).length > 1 ? '<span class="tag">' + (slipOf(j).indexOf(j) + 1) + ' of ' + slipOf(j).length + ' on this slip</span>' : '') +
         (late(j) ? '<span class="tag late">Late · promised ' + fmtD(j.due) + '</span>' : j.due && OPEN.includes(j.status) && j.status !== 'ready' ? '<span class="tag">Promised ' + fmtD(j.due) + '</span>' : '') +
         (j.status === 'ready' && j.ready_at ? '<span class="tag">Ready since ' + fmtD(j.ready_at) + '</span>' : '') +
         (free(j) ? '<span class="tag free">Free</span>' : '') + '</span></span>' + right + '</button>';
@@ -426,6 +438,11 @@ function renderJob(){
     ['Taken by', esc((j.created_by_name ? j.created_by_name + ', ' : '') + fmtDY(j.created_at))],
     ['Delivered by', j.delivered_at ? esc((j.delivered_by_name ? j.delivered_by_name + ', ' : '') + fmtDY(j.delivered_at)) : '']].filter(r => r[1]);
   $('oInfo').innerHTML = rows.map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>').join('');
+  const slip = slipOf(j);
+  $('oSlipBox').hidden = !j.repair_no || !['received', 'karigar', 'ready'].includes(j.status) && slip.length < 2;
+  $('oSlipT').textContent = slip.length > 1 ? 'Same slip · ' + slip.length + ' items' : 'Same slip';
+  $('oSibs').innerHTML = slip.length > 1 ? slip.map(x => '<a href="#j=' + esc(x.id) + '"' + (x === j ? ' class="me"' : '') + '><span>' + esc(what(x)) + (x.weight_in != null ? ' · ' + esc(gm(x.weight_in)) : '') + '</span><span class="tag s-' + x.status + '">' + STAGE[x.status] + '</span></a>').join('')
+    : '<p class="hint" style="margin:0">Only this item is on ' + esc(jno(j)) + '.</p>';
   // money: from the customer, to the karigar, and what is left
   const got = j.final_amount != null ? Number(j.final_amount) : null, kc = j.karigar_cost != null ? Number(j.karigar_cost) : null;
   $('oMoney').innerHTML = free(j)
@@ -534,12 +551,24 @@ $('oDel').onclick = async () => {
 // WhatsApp: the receipt when the piece is left, and the message when it is ready
 const wa = (phone, text) => window.open('https://wa.me/' + digits(phone) + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
 $('oSlip').onclick = () => {
-  const j = cur;
+  const j = cur, slip = slipOf(j).filter(x => x.status !== 'cancelled');
+  if(slip.length > 1){
+    // one receipt for every piece on the slip
+    const adv = slip.reduce((s2, x) => s2 + Number(x.advance || 0), 0), est = slip.filter(x => x.estimate != null && !free(x)).reduce((s2, x) => s2 + Number(x.estimate), 0);
+    wa(j.customer_phone, ['Vanakkam ' + j.customer_name + ', Natraj Jewels, Tiruppur has received ' + slip.length + ' pieces from you (' + jno(j) + '):',
+      ...slip.map((x, i) => (i + 1) + '. ' + x.item + (x.service ? ' · ' + x.service.toLowerCase() : '') + (x.weight_in != null ? ' · ' + gm(x.weight_in) : '') + (free(x) ? ' · free' : x.estimate != null ? ' · estimate ' + inr(x.estimate) : '')),
+      j.due ? 'Ready by ' + fmtDY(j.due) + '.' : '', (adv ? 'Advance received: ' + inr(adv) + '.' : '') + (est ? ' Total estimate: ' + inr(est) + '.' : ''),
+      'Please bring this message when you collect them. Thank you.'].filter(Boolean).join('\n'));
+    return;
+  }
   wa(j.customer_phone, ['Vanakkam ' + j.customer_name + ', Natraj Jewels, Tiruppur has received your ' + j.item.toLowerCase() + (j.kind === 'order' ? ' order' : ' for ' + (j.service ? j.service.toLowerCase() : 'repair')) + '.',
     jno(j) + (j.weight_in != null ? ' · weight ' + gm(j.weight_in) : '') + (j.due ? ' · ready by ' + fmtDY(j.due) : ''),
     free(j) ? 'This repair is free of charge.' : (Number(j.advance) ? 'Advance received: ' + inr(j.advance) + '.' : '') + (j.estimate != null ? ' Estimate: ' + inr(j.estimate) + '.' : ''),
     'Please bring this message when you collect it. Thank you.'].filter(Boolean).join('\n'));
 };
+// start the next piece on the same slip: number, dates and customer filled in
+let slipNext = null;
+$('oAddMore').onclick = () => { slipNext = cur; location.hash = 'new'; };
 function tellReady(){
   const j = cur, bal = due(j);
   wa(j.customer_phone, ['Vanakkam ' + j.customer_name + ', your ' + j.item.toLowerCase() + ' (' + jno(j) + ') is ready at Natraj Jewels, Tiruppur.',
@@ -636,10 +665,26 @@ async function openForm(j){
   $('jKarigar').value = j ? j.karigar : ''; $('jKCost').value = j && j.karigar_cost != null ? Number(j.karigar_cost) : '';
   $('jServiceNew').value = ''; $('jNote').value = j ? j.note : '';
   $('jSave').textContent = j ? 'Save changes' : 'Save job';
+  $('jSaveMore').hidden = !!j; $('jMoreHint').hidden = !!j;
+  const from = !j && slipNext; slipNext = null;
+  $('jSlip').hidden = !from;
+  if(from){
+    setKind(from.kind); setMetal(from.metal);
+    $('jNo').value = from.repair_no; $('jRecv').value = from.received_on || NJ.iso(new Date(from.created_at)); $('jDue').value = from.due || '';
+    linkedId = from.customer_id; $('jCust').value = from.customer_name; $('jPhone').value = from.customer_phone; showLinked();
+    $('jKarigar').value = from.karigar || '';
+    const slip = slipOf(from);
+    $('fTitle').textContent = 'Next item on ' + jno(from);
+    $('jSlip').innerHTML = '<b>Same slip: ' + esc(jno(from)) + ' · ' + esc(from.customer_name) + '</b><br>Already saved: ' + esc(slip.map(x => x.item).join(', ')) + '. Now enter the next piece. The advance was taken on the first piece, so leave it empty unless more was paid.';
+    $('jItem').focus();
+  }
 }
+let saveMore = false;
+$('jSaveMore').onclick = () => { saveMore = true; $('jf').requestSubmit(); };
 $('jCancelBtn').onclick = () => { location.hash = editing ? 'j=' + editing.id : ''; };
 $('jf').addEventListener('submit', async e => {
   e.preventDefault(); const err = m => { $('jErr').textContent = m; }; err('');
+  const more = saveMore; saveMore = false;
   const name = $('jCust').value.trim().replace(/\s+/g, ' '), phone = $('jPhone').value.trim(), item = $('jItem').value.trim().replace(/\s+/g, ' ');
   const isFree = formKind === 'repair' && ($('jFreeBuy').checked || $('jFreeFriend').checked);
   const w = num($('jWeight').value), est = num($('jEst').value), adv = num($('jAdv').value), kc = num($('jKCost').value);
@@ -684,6 +729,13 @@ $('jf').addEventListener('submit', async e => {
     if(removed.length) sb.storage.from(BUCKET).remove(removed).catch(() => {});
     toast(editing ? 'Saved' : 'Job saved: ' + jno(row));
     const wasNew = !editing; editing = null;
+    if(wasNew && more){
+      slipNext = row;
+      toast('Saved ' + row.item + '. Now the next piece for ' + row.customer_name + '.');
+      await openForm(null); scrollTo(0, 0);
+      $('jSave').removeAttribute('aria-busy');
+      return;
+    }
     location.hash = 'j=' + row.id;
     if(wasNew && row.customer_phone && await ask('Send the receipt on WhatsApp?', row.customer_name + ' · ' + row.customer_phone, 'Send receipt')) $('oSlip').click();
   }catch(x){ err(x.message); }
