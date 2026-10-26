@@ -43,6 +43,10 @@
 .wrow .by{font-size:.82rem;color:var(--p);margin-top:3px}
 .wrow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .wrow.done{background:var(--paper)}
+.wnote{display:flex;gap:8px;margin-top:8px;align-items:center}
+.wnote .input{flex:1;min-width:0;padding-block:8px;font-size:.9rem}
+.wsaid{margin-top:6px;font-size:.88rem;color:var(--ink);background:color-mix(in srgb,var(--gold) 9%,var(--card));border-left:3px solid var(--gold);padding:6px 10px;border-radius:0 4px 4px 0;white-space:pre-line}
+.wsaid button{margin-left:6px}
 .wrow.done .ttl{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 60%,transparent)}
 .wprog{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px}
 .wprog .bar2{flex:1 1 220px;max-width:420px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
@@ -885,12 +889,42 @@ function renderWishes(){
       '<span class="dot" aria-hidden="true">' + w.icon + '</span>' +
       '<div><button type="button" class="cust-link ttl" data-cust="' + esc(w.c.id) + '">' + esc(w.c.name) + '</button>' +
       '<div class="sub">' + esc([w.label + (w.years > 0 ? ' · ' + w.years + (w.k === 'birthday' ? ' years old' : ' years') : ''), fmtPhone(w.c.phone)].filter(Boolean).join(' · ')) + '</div>' +
-      (t ? '<div class="by">✓ Done by ' + esc(t.done_by_name || 'someone') + ' at ' + esc(at(t.done_at)) + '</div>' : '') + '</div>' +
+      (t ? '<div class="by">✓ Done by ' + esc(t.done_by_name || 'someone') + ' at ' + esc(at(t.done_at)) + '</div>' : '') +
+      (t && t.note && wEdit !== id ? '<div class="wsaid"><b>On the call:</b> ' + esc(t.note) + '<button type="button" class="linkish" data-wedit="' + esc(id) + '">Change</button></div>'
+        : '<div class="wnote"><input class="input" data-wnote="' + esc(id) + '" maxlength="500" placeholder="What did they say on the call? e.g. daughter’s wedding in Jan, wants a light necklace" value="' + esc(t ? t.note || '' : '') + '" aria-label="Note from the call with ' + esc(w.c.name) + '">' +
+          '<button type="button" class="btn mini" data-wsave="' + esc(id) + '" data-c="' + esc(w.c.id) + '" data-k="' + w.k + '">Save note</button></div>') + '</div>' +
       '<div class="acts">' + (w.c.phone ? (w.c.whatsapp_ok ? '<a class="btn mini btn-wa" href="' + esc(waLink(w.c.phone, greet(w))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') +
         '<a class="btn mini" href="tel:' + esc(digits(w.c.phone)) + '">Call</a>' : '<span class="axisnote">No phone number</span>') + '</div></div>';
   }).join('') : '<div class="empty"><h3>No birthdays or anniversaries today</h3><p>The Birthdays &amp; anniversaries tab shows the next 30 days.</p></div>';
 }
-$('wList').addEventListener('click', e => { const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust); });
+let wEdit = null;     // the row whose saved note is being changed
+$('wList').addEventListener('click', e => {
+  const ed = e.target.closest('[data-wedit]');
+  if(ed){ wEdit = ed.dataset.wedit; renderWishes(); const i = document.querySelector('[data-wnote="' + CSS.escape(wEdit) + '"]'); if(i) i.focus(); return; }
+  const sv = e.target.closest('[data-wsave]');
+  if(sv) return saveWishNote(sv);
+  const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust);
+});
+$('wList').addEventListener('keydown', e => { const i = e.target.closest('[data-wnote]'); if(i && e.key === 'Enter'){ e.preventDefault(); const b = document.querySelector('[data-wsave="' + CSS.escape(i.dataset.wnote) + '"]'); if(b) saveWishNote(b); } });
+// a note from the call: kept on today's wish (which it ticks as done) and added to the customer's history
+async function saveWishNote(b){
+  const id = b.dataset.wsave, input = document.querySelector('[data-wnote="' + CSS.escape(id) + '"]'), note = input.value.trim().replace(/\s+/g, ' ');
+  const c = custById(b.dataset.c), k = b.dataset.k, t = tickOf(c, k), day = todayIso();
+  if(!note){ input.focus(); return toast('Type what they said first.'); }
+  if(t && t.note === note){ wEdit = null; return renderWishes(); }
+  b.setAttribute('aria-busy', 'true');
+  try{
+    if(t) must(await sb.from('occasion_done').update({note}).eq('customer_id', c.id).eq('kind', k).eq('day', day).select());
+    else {
+      const r = await sb.from('occasion_done').insert({customer_id: c.id, kind: k, day, note}).select();
+      if(r.error && r.error.code === '23505') must(await sb.from('occasion_done').update({note}).eq('customer_id', c.id).eq('kind', k).eq('day', day).select());
+      else if(r.error) throw new Error(NJ.friendly(r.error));
+    }
+    must(await sb.from('customer_activity').insert({customer_id: c.id, kind: 'note', body: ((k === 'birthday' ? 'Birthday call: ' : 'Anniversary call: ') + note).slice(0, 500)}).select('id'));
+    wEdit = null; toast('Note saved to ' + c.name + '’s history');
+    await loadWishes();
+  }catch(err){ toast(err.message); b.removeAttribute('aria-busy'); }
+}
 $('wList').addEventListener('change', async e => {
   const box = e.target.closest('.tick'); if(!box) return;
   const row = {customer_id: box.dataset.c, kind: box.dataset.k, day: todayIso()};

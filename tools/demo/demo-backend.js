@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v45';
+const KEY = 'natraj-demo-db-v46';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -170,7 +170,7 @@ function seed(){
   visit(C[5], 20, ['Gold', 'Investment'], true, 'Gold coins', 4, '', 'Sample Staff 3');
   visit(C[6], 26, ['Gold', 'Gift'], false, 'Kids’ chain', 3, '22K kids’ chain under 4 g', 'Sample Staff 2', 'Price above budget');
   act(C[5], 'followup', 'Old gold exchange rate check', addDays(today, -6), 'done', manager, {outcome: 'Came in, exchanged 18 g.'});
-  db.occasion_done = [{customer_id: C[7].id, kind: 'birthday', day: today, done_by: manager.user_id, done_by_name: manager.name, done_at: today + 'T04:15:00Z'}];
+  db.occasion_done = [{customer_id: C[7].id, kind: 'birthday', day: today, done_by: manager.user_id, done_by_name: manager.name, done_at: today + 'T04:15:00Z', note: 'Thanked us. Son’s wedding in February, will come with family to see bridal sets.'}];
   // design library: customer enquiries and restock at every stage, with drawn sample photos (see samplePhoto)
   const at = (n, h) => addDays(today, n) + 'T' + (h || '11') + ':00:00Z';
   const des = (kind, metal, category, purity, weight_g, extra, kinds, ago, status) => {
@@ -851,9 +851,10 @@ function rest(method, table, params, body, headers, me){
     if(method === 'POST'){
       const b = Array.isArray(body) ? body[0] : body;
       if(db.occasion_done.some(r => r.customer_id === b.customer_id && r.kind === b.kind && r.day === b.day)) return {status: 409, body: {code: '23505', message: 'duplicate key'}};
-      const row = Object.assign({}, b, {done_by: me.user_id, done_by_name: me.name, done_at: new Date().toISOString()});
+      const row = Object.assign({note: ''}, b, {done_by: me.user_id, done_by_name: me.name, done_at: new Date().toISOString()});
       db.occasion_done.push(row); out = [row];
-    } else if(method === 'DELETE') db.occasion_done = db.occasion_done.filter(r => !out.includes(r));
+    } else if(method === 'PATCH') out.forEach(r => { if('note' in body) r.note = body.note; });
+    else if(method === 'DELETE') db.occasion_done = db.occasion_done.filter(r => !out.includes(r));
     if(method !== 'GET' && !wantRows) return {status: 204, body: null};
     return {status: 200, body: out.map(r => Object.assign({}, r))};
   }
