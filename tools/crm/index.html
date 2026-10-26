@@ -225,6 +225,9 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
         <div class="field"><span>Sales staff who handled this customer (tap everyone who helped)</span><div class="bubbles" id="cfServed" role="group" aria-label="Sales staff"></div></div>
         <label>Mobile number<input class="input" id="cfPhone" type="tel" inputmode="numeric" maxlength="20" placeholder="10 digits"></label>
         <p class="match" id="cfMatch" hidden></p>
+        <div class="field"><span>Customer is</span><div class="bubbles" id="cfNew" role="group" aria-label="New or returning customer">
+          <button type="button" class="bubble" data-n="new" aria-pressed="false">New customer (first time)</button>
+          <button type="button" class="bubble" data-n="old" aria-pressed="false">Returning customer</button></div></div>
         <label class="check"><input type="checkbox" id="cfWaOn" checked> WhatsApp on this number</label>
         <label>Name<input class="input" id="cfName" maxlength="80"></label>
         <div class="two">
@@ -285,6 +288,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
         <div class="icard"><h3>Forms by staff</h3><div class="hbars" id="iStaff"></div></div>
         <div class="icard"><h3>Came for</h3><div class="hbars" id="iFor"></div></div>
         <div class="icard"><h3>Service rating</h3><div class="hbars" id="iStars"></div></div>
+        <div class="icard"><h3>New or returning</h3><div class="hbars" id="iNew"></div><p class="axisnote" id="iNewN"></p></div>
         <div class="icard"><h3>Age of visitors</h3><div class="hbars" id="iAge"></div><p class="axisnote" id="iAgeN"></p></div>
         <div class="icard"><h3>All customers by age</h3><div class="hbars" id="iAgeAll"></div><p class="axisnote" id="iAgeAllN"></p></div>
         <div class="icard" style="grid-column:1/-1"><h3>Wanted, but we didn’t have</h3><div class="wants" id="iWants"></div></div>
@@ -708,7 +712,7 @@ function renderActivity(){
     const canDel = NJ.me.is_owner || a.created_by === NJ.me.user_id;
     if(a.kind === 'visit') return '<div class="arow" data-id="' + esc(a.id) + '"><span class="dot" aria-hidden="true">✦</span><div>' +
       '<div class="ttl">Visit · customer form</div>' +
-      '<div class="sub">' + esc(fmtD(a.visit_day) + (a.served_by ? ' · served by ' + a.served_by : '') + ' · entered by ' + (a.created_by_name || 'someone')) + '</div>' +
+      '<div class="sub">' + esc(fmtD(a.visit_day) + (a.new_customer === true ? ' · new customer' : a.new_customer === false ? ' · returning' : '') + (a.served_by ? ' · served by ' + a.served_by : '') + ' · entered by ' + (a.created_by_name || 'someone')) + '</div>' +
       '<div class="vis">' + visitLines(a).map(l => '<span>' + l + '</span>').join('') + '</div></div>' +
       '<div class="acts">' + (canDel ? '<button class="btn mini btn-danger" data-aact="del">Delete</button>' : '') + '</div></div>';
     return '<div class="arow' + (done ? ' done' : '') + '" data-id="' + esc(a.id) + '">' +
@@ -946,7 +950,9 @@ $('wList').addEventListener('change', async e => {
 $('occList').addEventListener('click', e => { const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust); });
 
 /* ---------- enter a form ---------- */
-let staffNames = [], cfMatch = null, cfBought = null, cfRating = 0;
+let staffNames = [], cfMatch = null, cfBought = null, cfRating = 0, cfNew = null, cfNewTouched = false;
+const paintNew = () => $('cfNew').querySelectorAll('[data-n]').forEach(b => b.setAttribute('aria-pressed', b.dataset.n === cfNew));
+$('cfNew').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if(!b) return; cfNew = cfNew === b.dataset.n ? null : b.dataset.n; cfNewTouched = true; paintNew(); });
 function dmyHtml(id){
   return '<select class="input" id="' + id + 'D" aria-label="Day"><option value="">Day</option>' + Array.from({length: 31}, (_, i) => '<option>' + (i + 1) + '</option>').join('') + '</select>' +
     '<select class="input" id="' + id + 'M" aria-label="Month"><option value="">Month</option>' + MONTHS.map((m, i) => '<option value="' + (i + 1) + '">' + m + '</option>').join('') + '</select>' +
@@ -1006,6 +1012,8 @@ $('cfPhone').addEventListener('input', () => {
   const c = d.length >= 10 ? customers.find(x => digits(x.phone).slice(-10) === d.slice(-10)) : null;
   if(c === cfMatch) return;
   cfMatch = c;
+  // suggest new or returning from the number, until staff choose themselves
+  if(!cfNewTouched){ cfNew = d.length < 10 ? null : c ? 'old' : 'new'; paintNew(); }
   $('cfMatch').hidden = d.length < 10;
   $('cfMatch').className = 'match' + (c ? '' : ' new');
   $('cfMatch').textContent = c ? 'Returning customer: ' + c.name + (c.area ? ', ' + c.area : '') + '. This form is added to their history.' : 'New customer.';
@@ -1024,7 +1032,8 @@ $('cfPhone').addEventListener('input', () => {
 function clearForm(){
   ['cfPhone', 'cfName', 'cfArea', 'cfPin', 'cfLook', 'cfFnMonth', 'cfFnNote', 'cfMissing', 'cfAlt', 'cfAddr', 'cfNotes', 'cfWhy'].forEach(id => $(id).value = ''); $('cfWhyL').hidden = true;
   setDMY('cfB', ''); setDMY('cfA', '');
-  ['cfFor', 'cfHeard', 'cfBought', 'cfTags'].forEach(id => $(id).querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')));
+  ['cfFor', 'cfHeard', 'cfBought', 'cfTags', 'cfNew'].forEach(id => $(id).querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')));
+  cfNew = null; cfNewTouched = false;
   $('cfWaOn').checked = true; $('cfWaOk').checked = false; $('cfFu').checked = true;
   $('cfWant').checked = true; $('cfWantL').hidden = true;
   cfMatch = null; cfBought = null; cfRating = 0; paintStars(); $('cfMatch').hidden = true; $('cfErr').textContent = '';
@@ -1058,6 +1067,7 @@ async function openEdit(id){
   $('cfName').value = c.name || ''; $('cfArea').value = c.area || ''; $('cfPin').value = c.pincode || '';
   setDMY('cfB', c.birthday || ''); setDMY('cfA', c.anniversary || '');
   press('cfFor', v.came_for || []);
+  cfNew = v.new_customer === true ? 'new' : v.new_customer === false ? 'old' : null; cfNewTouched = true; paintNew();
   cfBought = v.bought === true ? 'yes' : v.bought === false ? 'no' : null;
   $('cfBought').querySelectorAll('[data-b]').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === cfBought));
   $('cfWhy').value = v.why_not || ''; $('cfWhyL').hidden = cfBought !== 'no';
@@ -1115,7 +1125,7 @@ $('cf').addEventListener('submit', async e => {
     const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
     const summary = ['Form' + (came.length ? ': came for ' + came.join(', ') : ''), cfBought === 'yes' ? 'bought' : cfBought === 'no' ? 'just looking' : '', look].filter(Boolean).join(' · ');
     must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'visit', body: summary.slice(0, 500), visit_day: day, came_for: came,
-      bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: servedNow()}).select());
+      bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: servedNow(), new_customer: cfNew === 'new' ? true : cfNew === 'old' ? false : null}).select());
     if(cfBought === 'no' && $('cfFu').checked){
       const f = must(await sb.from('customer_activity').insert({customer_id: row.id, kind: 'followup', body: 'Call back' + (look ? ' about ' + look : ' after their visit'), due: addDays(todayIso(), 7), assigned_to: NJ.me.user_id}).select().single());
       follows.push(f); follows.sort((a, b) => a.due.localeCompare(b.due)); badge();
@@ -1142,7 +1152,7 @@ async function saveEdit(f){
   const row = must(await sb.from('customers').update(data).eq('id', c.id).select().single());
   Object.assign(c, row); customers.sort((a, b) => a.name.localeCompare(b.name));
   const look = $('cfLook').value.trim(), missing = $('cfMissing').value.trim();
-  const visit = {visit_day: f.day, came_for: f.came, bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: servedNow(),
+  const visit = {visit_day: f.day, came_for: f.came, bought: cfBought === 'yes' ? true : cfBought === 'no' ? false : null, looking_for: look, why_not: cfBought === 'no' ? $('cfWhy').value.trim() : '', rating: cfRating || null, missing, served_by: servedNow(), new_customer: cfNew === 'new' ? true : cfNew === 'old' ? false : null,
     body: ['Form' + (f.came.length ? ': came for ' + f.came.join(', ') : ''), cfBought === 'yes' ? 'bought' : cfBought === 'no' ? 'just looking' : '', look].filter(Boolean).join(' · ').slice(0, 500)};
   if(cfVisit) must(await sb.from('customer_activity').update(visit).eq('id', cfVisit.id).select());
   else if(f.came.length || cfBought || look || cfRating || missing) must(await sb.from('customer_activity').insert(Object.assign({customer_id: c.id, kind: 'visit'}, visit)).select());
@@ -1187,6 +1197,10 @@ async function loadInsights(){
   hbars($('iStaff'), tally(visits, v => servedOf(v.served_by).length ? servedOf(v.served_by) : 'Not filled'));
   hbars($('iFor'), tally(visits, v => v.came_for));
   hbars($('iStars'), [5, 4, 3, 2, 1].map(n => ['★'.repeat(n), rated.filter(v => v.rating === n).length]));
+  const nb = (list, l) => { const k = list.filter(v => v.bought !== null); return l + (k.length ? ' · ' + Math.round(k.filter(v => v.bought).length / k.length * 100) + '% bought' : ''); };
+  const nw = visits.filter(v => v.new_customer === true), ol = visits.filter(v => v.new_customer === false), nm = visits.filter(v => v.new_customer == null);
+  hbars($('iNew'), [[nb(nw, 'New customers'), nw.length], [nb(ol, 'Returning'), ol.length], ['Not marked', nm.length]].filter(x => x[1]));
+  $('iNewN').textContent = nw.length + ol.length ? Math.round(nw.length / (nw.length + ol.length) * 100) + '% of marked forms were first-time customers.' : 'Mark new or returning on each form to see this.';
   // visitors in this period by age, with how many of each group bought
   const aged = custs.filter(c => ageGroup(c));
   hbars($('iAge'), AGES.map(([, , g]) => {
