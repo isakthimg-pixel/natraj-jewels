@@ -1073,7 +1073,7 @@ function crmRest(table, method, params, body, single, wantRows, me){
   if(method === 'GET') sortBy(out, params.get('order'));
   else if(method === 'POST'){
     const base = table === 'customers'
-      ? {phone: '', alt_phone: '', area: '', address: '', birthday: null, anniversary: null, tags: [], source: '', notes: '', pincode: '', whatsapp_on_phone: true, whatsapp_ok: false, function_month: '', function_note: '', updated_by_name: '', updated_at: null}
+      ? {added_via: 'form', phone: '', alt_phone: '', area: '', address: '', birthday: null, anniversary: null, tags: [], source: '', notes: '', pincode: '', whatsapp_on_phone: true, whatsapp_ok: false, function_month: '', function_note: '', updated_by_name: '', updated_at: null}
       : {due: null, status: 'open', outcome: '', assigned_to: null, assigned_name: '', done_at: null, done_by_name: '', came_for: [], bought: null, looking_for: '', rating: null, missing: '', why_not: '', served_by: '', visit_day: null};
     out = (Array.isArray(body) ? body : [body]).map(b => fix(Object.assign({id: uid()}, base, b, {created_by: me.user_id, created_by_name: me.name, created_at: nowIso})));
     db[table].push(...out);

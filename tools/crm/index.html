@@ -164,6 +164,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
         <button class="btn owner-only" id="imPick" type="button">Bring in a list</button>
         <input type="file" id="imFile" accept=".xlsx,.numbers,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
       </div>
+      <div class="bubbles" id="viaFilter" role="group" aria-label="How they were added" style="margin-bottom:10px"></div>
       <div class="bubbles" id="tagFilter" role="group" aria-label="Filter by tag"></div>
     </div></div>
     <div class="wrap content" id="imBox" hidden>
@@ -358,6 +359,7 @@ const CAME = ['Gold', 'Silver', 'Diamond', 'Wedding', 'Gift', 'Investment', 'Dai
 const NOYEAR = '1904';   // birthdays and anniversaries saved without a year use this (a leap year)
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const SHOW = 200;     // rows shown before asking to search
+let viaF = '';    // '', 'form' or 'list': how the customer was first saved
 let customers = [], follows = [], people = [], curTab = 'list', tagF = '', fuWho = 'all', cur = null, activity = [];
 
 const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
@@ -440,7 +442,9 @@ function renderList(){
   const used = TAGS.filter(t => customers.some(c => (c.tags || []).includes(t)));
   $('tagFilter').innerHTML = used.length ? ['', ...used].map(t => '<button type="button" class="bubble" data-tag="' + esc(t) + '" aria-pressed="' + (tagF === t) + '">' + esc(t || 'All') + '</button>').join('') : '';
   const q = $('q').value.trim().toLowerCase(), qd = digits(q);
-  const list = customers.filter(c => (!tagF || (c.tags || []).includes(tagF)) && (!q ||
+  const nVia = v => customers.filter(c => (c.added_via || 'form') === v).length;
+  $('viaFilter').innerHTML = customers.length ? [['form', 'Entered on a form'], ['list', 'Brought in from a list']].map(([v, l]) => '<button type="button" class="bubble" data-via="' + v + '" aria-pressed="' + (viaF === v) + '">' + l + ' · ' + nVia(v).toLocaleString('en-IN') + '</button>').join('') : '';
+  const list = customers.filter(c => (!viaF || (c.added_via || 'form') === viaF) && (!tagF || (c.tags || []).includes(tagF)) && (!q ||
     c.name.toLowerCase().includes(q) || (c.area || '').toLowerCase().includes(q) || (qd.length >= 3 && (digits(c.phone).includes(qd) || digits(c.alt_phone).includes(qd)))));
   $('lTitle').textContent = customers.length ? customers.length.toLocaleString('en-IN') + ' customer' + (customers.length === 1 ? '' : 's') : 'All customers';
   const nextFu = id => follows.filter(f => f.customer_id === id)[0];
@@ -455,6 +459,7 @@ function renderList(){
 }
 $('q').addEventListener('input', renderList);
 $('tagFilter').addEventListener('click', e => { const b = e.target.closest('[data-tag]'); if(!b) return; tagF = b.dataset.tag; renderList(); });
+$('viaFilter').addEventListener('click', e => { const b = e.target.closest('[data-via]'); if(!b) return; viaF = viaF === b.dataset.via ? '' : b.dataset.via; renderList(); });
 $('custList').addEventListener('click', e => {
   if(e.target.closest('a')) return;
   const r = e.target.closest('.crow'); if(r) location.hash = 'c=' + encodeURIComponent(r.dataset.id);
@@ -611,7 +616,7 @@ $('imSave').onclick = async () => {
   const step = () => { btn.textContent = 'Saving… ' + Math.round(done / total * 100) + '%'; };
   try{
     while(im.add.length){
-      const part = im.add.slice(0, 500);
+      const part = im.add.slice(0, 500).map(x => Object.assign({added_via: 'list'}, x));
       const rows = must(await sb.from('customers').insert(part).select('*')) || [];
       customers.push(...rows); im.add.splice(0, part.length); done += part.length; step();
     }

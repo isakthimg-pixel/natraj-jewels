@@ -63,4 +63,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `050_campaign_tools.sql` — `campaigns.plan` (budget by channel), `campaigns.competitors`, `campaign_contacts.thanked_at` / `followup_at` (after the campaign), `campaign_posts.kind` (post or photo shoot, with `shoot_pieces` / `shoot_needs`), `settings.review_link` (Google review link in the thank-you). Applied.
 - `051_jobs_received_on.sql` — `jobs.received_on`: the day the customer gave the piece (or ordered), default today; existing jobs filled from the day they were entered. Applied.
 - `052_occasion_note.sql` — `occasion_done.note`: what the customer said on the birthday / anniversary call (Today's wishes); Customers users may update it. Applied.
+- `053_customers_added_via.sql` — `customers.added_via` (form or list); the 9,001 customers from the 19 Oct 2026 import marked list. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.
