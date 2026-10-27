@@ -342,7 +342,7 @@ async function climb3d(el, mini){
       const r = R * Math.pow(i / rings, 1.15), a = j / segs * Math.PI * 2, y = Math.max(0, hill(r, a)), t = y / H;
       pos.push(Math.cos(a) * r, y, Math.sin(a) * r);
       const n = Math.sin(a * 11 + r * 3) * .06;
-      if(t > .8 + n) c.copy(snow); else if(t > .6 + n) c.copy(rock).lerp(snow, Math.max(0, (t - .72) * 3)); else c.copy(grass).lerp(dry, Math.max(0, t * 1.6 + n * 3)).lerp(rock, Math.min(1, Math.max(0, (t - .48) * 6)));
+      if(t > .76 + n) c.copy(snow); else if(t > .6 + n) c.copy(rock).lerp(snow, Math.max(0, (t - .68) * 3)); else c.copy(grass).lerp(dry, Math.max(0, t * 1.6 + n * 3)).lerp(rock, Math.min(1, Math.max(0, (t - .48) * 6)));
       col.push(c.r, c.g, c.b);
     }
     for(let i = 0; i < rings; i++) for(let j = 0; j < segs; j++){
@@ -387,54 +387,123 @@ async function climb3d(el, mini){
   const clouds = [];
   {
     const mat = new T.MeshStandardMaterial({color: '#FFFFFF', roughness: 1, flatShading: true, transparent: true, opacity: .92});
-    [[-14, 11, -12], [12, 12.5, -16], [-4, 13.5, -22], [18, 10, 2]].forEach(([x, y, z], i) => {
+    [[0, 12], [1.3, 13.5], [2.5, 11.5], [3.6, 14], [4.7, 12.5], [5.6, 13]].forEach(([a, y], i) => {
       const g = new T.Group();
       [[0, 0, 0, 1.6], [1.5, -.2, .2, 1.2], [-1.5, -.3, 0, 1.1], [.6, .6, -.2, 1.1]].forEach(([a, b, c, s]) => { const m = new T.Mesh(new T.IcosahedronGeometry(s, 1), mat); m.position.set(a, b, c); g.add(m); });
-      g.position.set(x, y, z); g.scale.set(1.2, .7, .9); g.userData.speed = .25 + i * .07; scene.add(g); clouds.push(g);
+      g.position.set(Math.cos(a) * 32, y, Math.sin(a) * 32); g.scale.set(1.6, .9, 1.2); g.userData = {a, y, speed: .006 + i * .0015}; scene.add(g); clouds.push(g);
     });
   }
 
-  // the climber: red jacket, blue trousers, a yellow backpack and a walking stick; legs and arms swing from the hips and shoulders
+  // birds that glide in slow circles, flapping now and then
+  const birds = [];
+  {
+    const wingG = new T.BufferGeometry();
+    wingG.setAttribute('position', new T.Float32BufferAttribute([0, 0, -.08, 0, 0, .1, .42, .02, -.04], 3)); wingG.computeVertexNormals();
+    const wm = new T.MeshBasicMaterial({color: '#3D3A36', side: T.DoubleSide});
+    for(let i = 0; i < 3; i++){
+      const b = new T.Group(), l = new T.Mesh(wingG, wm), r = new T.Mesh(wingG, wm);
+      r.scale.x = -1; b.add(l, r); b.scale.setScalar(2.4); b.userData = {l, r, a: i * 2.1, rad: 30 + i * 3, y: 15 + i * 1.2, sp: .05 + i * .012};
+      scene.add(b); birds.push(b);
+    }
+  }
+
+  // the climber: red jacket, blue trousers, boots, a yellow backpack and a walking stick
+  // hips, knees and shoulders are joints, so the legs bend and the arms swing against the legs like a real walk
   const mat = c => new T.MeshStandardMaterial({color: c, roughness: .8});
+  const part = (geo, c, parent, x, y, z) => { const m = new T.Mesh(geo, mat(c)); m.position.set(x || 0, y || 0, z || 0); m.castShadow = true; parent.add(m); return m; };
+  const joint = (parent, x, y, z) => { const g = new T.Group(); g.position.set(x, y, z || 0); parent.add(g); return g; };
   const man = new T.Group(), body = new T.Group(); man.add(body);
-  const limb = (w, h, c, x, y) => { const p = new T.Group(), m = new T.Mesh(new T.CapsuleGeometry(w, h, 4, 8), mat(c)); m.position.y = -h / 2 - w * .4; m.castShadow = true; p.add(m); p.position.set(x, y, 0); body.add(p); return p; };
-  const legL = limb(.07, .34, '#2E4A7A', -.09, .5), legR = limb(.07, .34, '#2E4A7A', .09, .5);
-  const torso = new T.Mesh(new T.CapsuleGeometry(.15, .3, 4, 10), mat('#C8342B')); torso.position.y = .74; torso.castShadow = true; body.add(torso);
-  const head = new T.Mesh(new T.SphereGeometry(.13, 16, 12), mat('#C68E62')); head.position.y = 1.1; head.castShadow = true; body.add(head);
-  const hat = new T.Mesh(new T.SphereGeometry(.135, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat('#2B6E8F')); hat.position.y = 1.12; body.add(hat);
-  const pack = new T.Mesh(new T.BoxGeometry(.28, .36, .18), mat('#E0A526')); pack.position.set(0, .78, -.17); pack.castShadow = true; body.add(pack);
-  const roll = new T.Mesh(new T.CylinderGeometry(.06, .06, .3, 10), mat('#5A7D3A')); roll.rotation.z = Math.PI / 2; roll.position.set(0, 1, -.17); body.add(roll);
-  const armL = limb(.05, .3, '#C8342B', -.2, .88), armR = limb(.05, .3, '#C8342B', .2, .88);
-  const stick = new T.Mesh(new T.CylinderGeometry(.018, .018, .95, 6), mat('#7A5A33')); stick.position.set(0, -.36, .12); stick.rotation.x = .25; armR.add(stick);
+  const leg = side => {
+    const hip = joint(body, side * .08, .52);
+    part(new T.CapsuleGeometry(.068, .17, 4, 8), '#2E4A7A', hip, 0, -.13);
+    const knee = joint(hip, 0, -.27);
+    part(new T.CapsuleGeometry(.06, .17, 4, 8), '#2E4A7A', knee, 0, -.12);
+    part(new T.BoxGeometry(.1, .07, .18), '#4A3426', knee, 0, -.24, .03);
+    return {hip, knee};
+  };
+  const L = leg(-1), Rg = leg(1);
+  const chest = joint(body, 0, .74);
+  const torso = part(new T.CapsuleGeometry(.15, .26, 4, 10), '#C8342B', chest);
+  const neck = joint(body, 0, 1.0);
+  const head = part(new T.SphereGeometry(.13, 18, 14), '#C68E62', neck, 0, .1);
+  part(new T.SphereGeometry(.137, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), '#2B6E8F', neck, 0, .12);
+  part(new T.CylinderGeometry(.15, .15, .015, 18), '#2B6E8F', neck, 0, .12, .03);     // cap brim
+  part(new T.BoxGeometry(.28, .36, .18), '#E0A526', body, 0, .78, -.18);
+  part(new T.CylinderGeometry(.06, .06, .32, 10), '#5A7D3A', body, 0, 1, -.18).rotation.z = Math.PI / 2;
+  const arm = side => {
+    const sh = joint(body, side * .21, .88);
+    part(new T.CapsuleGeometry(.05, .26, 4, 8), '#C8342B', sh, 0, -.17);
+    part(new T.SphereGeometry(.05, 10, 8), '#C68E62', sh, 0, -.36);
+    return sh;
+  };
+  const armL = arm(-1), armR = arm(1);
+  part(new T.CylinderGeometry(.018, .018, 1, 6), '#7A5A33', armR, 0, -.42, .1).rotation.x = .2;
   man.scale.setScalar(mini ? 1.25 : 1.1);
   scene.add(man);
+
+  // little puffs of dust where the boots land
+  const puffTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(200,180,140,.9)'); g.addColorStop(1, 'rgba(200,180,140,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return new T.CanvasTexture(c); })();
+  const puffs = Array.from({length: 10}, () => { const s = new T.Sprite(new T.SpriteMaterial({map: puffTex, transparent: true, opacity: 0, depthWrite: false})); s.userData.life = 1; scene.add(s); return s; });
+  let puffN = 0;
+  const puff = p => { const s = puffs[puffN++ % puffs.length]; s.position.copy(p).y += .05; s.userData.life = 0; };
 
   // the flag on the peak, a glow and sparkles for reaching the top
   const top = trail(1), flagG = new T.Group();
   flagG.position.copy(top).add(new T.Vector3(.35, 0, .25));
   const pole = new T.Mesh(new T.CylinderGeometry(.03, .03, 1.5, 8), mat('#5B4630')); pole.position.y = .75; pole.castShadow = true; flagG.add(pole);
-  const clothG = new T.PlaneGeometry(.8, .5, 10, 4); clothG.translate(.4, 0, 0);
+  const clothG = new T.PlaneGeometry(.8, .5, 12, 4); clothG.translate(.4, 0, 0);
   const cloth = new T.Mesh(clothG, new T.MeshStandardMaterial({color: '#E53935', side: T.DoubleSide, roughness: .7}));
   cloth.position.y = 1.25; cloth.castShadow = true; flagG.add(cloth);
   const clothBase = clothG.attributes.position.array.slice();
-  flagG.scale.set(1, 0.001, 1); scene.add(flagG);
+  flagG.scale.set(1, .001, 1); scene.add(flagG);
   const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,240,180,1)'); g.addColorStop(1, 'rgba(255,240,180,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
   const glow = new T.Sprite(new T.SpriteMaterial({map: glowTex, transparent: true, opacity: 0, depthWrite: false, fog: false}));
   glow.position.copy(top).y += 1; glow.scale.setScalar(4); scene.add(glow);
   const sparks = new T.Group();
-  for(let i = 0; i < 14; i++){ const s = new T.Mesh(new T.OctahedronGeometry(.08), new T.MeshBasicMaterial({color: i % 2 ? '#FFD54F' : '#FFFFFF', transparent: true})); s.userData = {a: i / 14 * Math.PI * 2, r: .6 + (i % 3) * .3, h: (i % 4) * .3}; sparks.add(s); }
+  for(let i = 0; i < 16; i++){ const s = new T.Mesh(new T.OctahedronGeometry(.07), new T.MeshBasicMaterial({color: i % 2 ? '#FFD54F' : '#FFFFFF', transparent: true})); s.userData = {a: i / 16 * Math.PI * 2, r: .6 + (i % 3) * .3, h: (i % 4) * .25}; sparks.add(s); }
   sparks.position.copy(top); sparks.visible = false; scene.add(sparks);
 
-  // where everything is
-  let at = 0, walking = false, stride = 0, flagOn = 0, flagTo = 0, flagT = 0, camA = null, alive = true;
-  function place(f){
-    const p = trail(Math.min(f, .995)), q = trail(Math.min(1, f + .01));
+  // everything below moves with the clock, so it looks the same on slow and fast screens
+  let at = 0, stride = 0, walk = 0, lean = 0, faceY = null, flagOn = 0, flagTo = 0, flagT = 1, cheer = -1, snap = true, alive = true, seen = true, last = 0, lastFoot = 0;
+  const camAt = new T.Vector3(), lookAt = new T.Vector3(), prev = trail(0);
+  const ease = (from, to, dt, rate) => from + (to - from) * (1 - Math.exp(-dt * rate));
+  const turn = (from, to, dt, rate) => from + Math.atan2(Math.sin(to - from), Math.cos(to - from)) * (1 - Math.exp(-dt * rate));
+  function pose(dt, t){
+    const p = trail(Math.min(at, .995)), q = trail(Math.min(1, at + .01)), moved = p.distanceTo(prev);
+    prev.copy(p);
     man.position.copy(p);
-    man.rotation.y = Math.atan2(q.x - p.x, q.z - p.z);
-    body.rotation.x = walking ? .14 : 0;     // leans into the slope while walking
-    const s = walking ? Math.sin(stride) * .6 : 0;
-    legL.rotation.x = s; legR.rotation.x = -s; armL.rotation.x = -s * .8; armR.rotation.x = s * .5 - .2;
-    body.position.y = walking ? Math.abs(Math.cos(stride)) * .04 : 0;
+    // walking blends in and out, so the legs settle instead of freezing mid-step
+    walk = ease(walk, moved / Math.max(dt, .001) > .15 ? 1 : 0, dt, 6);
+    stride += moved * (mini ? 8 : 9);
+    const foot = Math.floor(stride / Math.PI);
+    if(foot !== lastFoot && walk > .5 && !still) puff(p);
+    lastFoot = foot;
+    // face the way the trail goes, or turn to the viewer to celebrate at the top
+    const ahead = Math.atan2(q.x - p.x, q.z - p.z), toCam = Math.atan2(cam.position.x - p.x, cam.position.z - p.z);
+    faceY = faceY === null ? ahead : turn(faceY, cheer >= 0 ? toCam : ahead, dt, cheer >= 0 ? 4 : 7);
+    man.rotation.y = faceY;
+    const slope = Math.max(0, (q.y - p.y) / Math.max(.01, Math.hypot(q.x - p.x, q.z - p.z)));
+    lean = ease(lean, walk * (.08 + Math.min(.3, slope * .35)), dt, 5);
+    body.rotation.x = cheer >= 0 ? 0 : lean;
+    const s = stride, w = walk;
+    L.hip.rotation.x = -Math.sin(s) * .55 * w - .08 * w;  L.knee.rotation.x = (.9 * Math.max(0, -Math.cos(s)) + .12) * w;
+    Rg.hip.rotation.x = Math.sin(s) * .55 * w - .08 * w;  Rg.knee.rotation.x = (.9 * Math.max(0, Math.cos(s)) + .12) * w;
+    const rest = 1 - w, breathe = Math.sin(t * 2.4);
+    chest.scale.set(1 + breathe * .015 * (1 + rest), 1 + breathe * .02 * (1 + rest), 1);
+    let y = -.035 * Math.abs(Math.sin(s)) * w;
+    if(cheer >= 0){
+      // at the top: arms up, two happy hops, then a wave
+      const c = cheer, up = Math.min(1, c * 3);
+      armL.rotation.set(-2.7 * up, 0, -.35 * up); armR.rotation.set(-2.7 * up, 0, .35 * up + (c > 1.4 ? Math.sin(c * 9) * .25 : 0));
+      y += c < 1.3 ? Math.max(0, Math.sin(c * Math.PI * 2 / 1.3 * 2)) * .2 : 0;
+      neck.rotation.set(-.15 * up, 0, 0);
+    } else {
+      armL.rotation.set(Math.sin(s) * .5 * w + .05 * rest * breathe, 0, -.06);
+      armR.rotation.set(-Math.sin(s) * .35 * w - .25, 0, .06);
+      // while resting, a look round at the view
+      neck.rotation.set(-.05 * rest, Math.sin(t * .8) * .6 * rest * rest, 0);
+    }
+    body.position.y = y;
   }
   function size(){
     const w = el.clientWidth || 480, h = mini ? 110 : Math.round(w * 250 / 480);
@@ -442,50 +511,69 @@ async function climb3d(el, mini){
   }
   size();
   const ro = window.ResizeObserver ? new ResizeObserver(size) : null; if(ro) ro.observe(el);
+  const io = window.IntersectionObserver ? new IntersectionObserver(e => { seen = e[e.length - 1].isIntersecting; }) : null; if(io) io.observe(cv);
   function frame(now){
     if(!alive) return;
-    if(!document.body.contains(cv)){ alive = false; if(ro) ro.disconnect(); gl.dispose(); return; }     // the dialog closed or the page moved on
-    const t = now / 1000;
-    // the camera circles slowly, keeping the climber in front
-    const p = man.position, want = Math.atan2(p.z, p.x) + (mini ? .35 : .55);
-    camA = camA === null ? want : camA + Math.atan2(Math.sin(want - camA), Math.cos(want - camA)) * .03;
-    const dist = mini ? 15 : 19.5, look = mini ? p.clone().lerp(new T.Vector3(0, p.y, 0), .3) : new T.Vector3(0, 3.8 + p.y * .3, 0);
-    cam.position.set(Math.cos(camA) * dist, (mini ? p.y + 3.2 : 7.5 + p.y * .35), Math.sin(camA) * dist);
-    sun.position.set(Math.cos(camA - .9) * 20, 24, Math.sin(camA - .9) * 20);     // the sun stays over the viewer's shoulder so the near slopes are lit
-    cam.lookAt(look);
-    clouds.forEach(c => { c.position.x += c.userData.speed * .01; if(c.position.x > 30) c.position.x = -30; });
-    // the flag rises with a little bounce and flutters
-    if(flagOn !== flagTo){ flagT = Math.min(1, flagT + .035); const k = flagTo ? 1 + Math.sin(flagT * Math.PI * 1.3) * (1 - flagT) * .6 : 1 - flagT; flagG.scale.y = Math.max(.001, flagTo ? Math.min(k, 1.25) * Math.min(1, flagT * 3) : k); if(flagT >= 1){ flagOn = flagTo; flagG.scale.y = flagOn ? 1 : .001; } }
-    const a = cloth.geometry.attributes.position;
-    for(let i = 0; i < a.count; i++){ const x = clothBase[i * 3]; a.array[i * 3 + 2] = Math.sin(x * 6 - t * 7) * .07 * x; }
-    a.needsUpdate = true;
-    glow.material.opacity += ((flagTo ? .9 : 0) - glow.material.opacity) * .06;
+    if(!document.body.contains(cv)){ alive = false; if(ro) ro.disconnect(); if(io) io.disconnect(); gl.dispose(); return; }     // the dialog closed or the page moved on
+    requestAnimationFrame(frame);
+    const dt = Math.min(.05, last ? (now - last) / 1000 : .016), t = now / 1000; last = now;
+    if((!seen || document.hidden) && !snap) return;     // nothing to draw while it is off screen
+    pose(dt, t);
+    if(cheer >= 0) cheer += dt;
+    // the camera drifts round to keep the climber in front, and moves in a little for the celebration
+    const p = man.position, done = cheer >= 0 ? 1 : 0;
+    const a = Math.atan2(p.z, p.x) - (mini ? .4 : .6) + Math.sin(t * .15) * .05;
+    const dist = (mini ? 15 : 19.5) * (1 - done * (mini ? .12 : .1));
+    const want = new T.Vector3(Math.cos(a) * dist, mini ? p.y + 3.2 : 7.5 + p.y * .35, Math.sin(a) * dist);
+    const look = mini ? p.clone().lerp(new T.Vector3(0, p.y, 0), .3) : new T.Vector3(0, 3.8 + p.y * .3, 0);
+    if(snap){ camAt.copy(want); lookAt.copy(look); snap = false; }
+    else {
+      const r0 = Math.hypot(camAt.x, camAt.z), a0 = Math.atan2(camAt.z, camAt.x), a1 = turn(a0, a, dt, 1.6), r1 = ease(r0, dist, dt, 1.2);
+      camAt.set(Math.cos(a1) * r1, ease(camAt.y, want.y, dt, 1.6), Math.sin(a1) * r1);
+      lookAt.lerp(look, 1 - Math.exp(-dt * 2.5));
+    }
+    cam.position.copy(camAt); cam.lookAt(lookAt);
+    const ca = Math.atan2(camAt.z, camAt.x);
+    sun.position.set(Math.cos(ca - .9) * 20, 24, Math.sin(ca - .9) * 20);     // the sun stays over the viewer's shoulder so the near slopes are lit
+    clouds.forEach((c, i) => { const u = c.userData; u.a += u.speed * dt; c.position.set(Math.cos(u.a) * 32, u.y + Math.sin(t * .4 + i) * .3, Math.sin(u.a) * 32); });
+    birds.forEach(b => { const u = b.userData; u.a += u.sp * dt; b.position.set(Math.cos(u.a) * u.rad, u.y + Math.sin(t * .6 + u.a) * .4, Math.sin(u.a) * u.rad); b.rotation.set(0, -u.a, .25); const f = Math.sin(t * 9 + u.rad) * (Math.sin(t * .7 + u.rad) > -.2 ? .6 : .08); u.l.rotation.z = f; u.r.rotation.z = -f; });
+    puffs.forEach(s => { const u = s.userData; if(u.life >= 1) return; u.life = Math.min(1, u.life + dt * 1.4); s.material.opacity = .45 * (1 - u.life); s.scale.setScalar(.15 + u.life * .45); s.position.y += dt * .12; });
+    // the flag springs up from the ground and flutters
+    if(flagT < 1){ flagT = Math.min(1, flagT + dt * (flagTo ? 1.1 : 2.5)); const k = flagTo ? 1 - Math.cos(flagT * Math.PI * 2.5) * Math.exp(-flagT * 4) : 1 - flagT; flagG.scale.y = Math.max(.001, k); if(flagT >= 1){ flagOn = flagTo; flagG.scale.y = flagOn ? 1 : .001; } }
+    const ca2 = cloth.geometry.attributes.position;
+    for(let i = 0; i < ca2.count; i++){ const x = clothBase[i * 3], y = clothBase[i * 3 + 1]; ca2.array[i * 3 + 2] = (Math.sin(x * 6 - t * 7 + y * 2) * .07 + Math.sin(x * 11 - t * 11) * .02) * x; ca2.array[i * 3 + 1] = y - x * x * .06; }
+    ca2.needsUpdate = true; cloth.geometry.computeVertexNormals();
+    glow.material.opacity = ease(glow.material.opacity, flagTo ? .9 : 0, dt, 3);
+    glow.scale.setScalar(4 + Math.sin(t * 2) * .25);
     sparks.visible = flagTo === 1 && !still;
     if(sparks.visible) sparks.children.forEach(s => { const u = s.userData, b = (t * .5 + u.h) % 1; s.position.set(Math.cos(u.a + t * .8) * u.r, .4 + b * 2, Math.sin(u.a + t * .8) * u.r); s.rotation.y = t * 3; s.material.opacity = 1 - b; });
     gl.render(scene, cam);
-    requestAnimationFrame(frame);
   }
-  place(0);
   requestAnimationFrame(frame);
 
   let job = 0;
-  const flag = on => { if((on ? 1 : 0) !== flagTo){ flagTo = on ? 1 : 0; flagT = 0; } };
+  const flag = on => { const v = on ? 1 : 0; if(v !== flagTo){ flagTo = v; flagT = 0; } cheer = v && !still ? Math.max(0, cheer) : -1; };
+  if(still){ at = 1; flagTo = flagOn = 1; flagG.scale.y = 1; }
   return {
     go(f, ms){
       const my = ++job, from = at, to = Math.max(0, Math.min(1, f)), t0 = performance.now(), dur = still ? 0 : ms || 600;
+      if(to < .999 && cheer >= 0) cheer = -1;
       return new Promise(res => {
         const tick = now => {
           if(my !== job || !alive) return res();
           const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-          const was = at; at = from + (to - from) * e;
-          walking = k < 1 && Math.abs(to - from) > .001; stride += Math.abs(at - was) * 260;
-          place(at);
-          if(k < 1) requestAnimationFrame(tick); else { walking = false; place(at); if(at >= .999) flag(true); res(); }
+          at = from + (to - from) * e;
+          if(k < 1) requestAnimationFrame(tick); else { if(at >= .999) flag(true); res(); }
         };
         requestAnimationFrame(tick);
       });
     },
-    reset(){ job++; at = 0; walking = false; flag(false); flagOn = 0; flagG.scale.y = .001; place(0); },
+    // back to the meadow for the next climb, with a soft fade so the jump is not seen
+    reset(){
+      job++; at = 0; cheer = -1; flagTo = flagOn = 0; flagT = 1; flagG.scale.y = .001; walk = 0; faceY = null; prev.copy(trail(0)); snap = true;
+      cv.style.transition = 'none'; cv.style.opacity = '0';
+      requestAnimationFrame(() => requestAnimationFrame(() => { cv.style.transition = 'opacity .9s ease'; cv.style.opacity = '1'; }));
+    },
     flag, still
   };
 }

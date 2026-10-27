@@ -107,7 +107,7 @@ async function climbLoop(){
   while(climbing === c && document.body.contains(box) && !box.hidden){
     await wait(700);
     for(const stop of [.3, .55, .8, 1]) { await c.go(stop, 2400); await wait(250); }     // little rests on the way up
-    await wait(3200);
+    await wait(4200);     // time to celebrate at the top
     q.classList.add('fade'); await wait(600); i++; c.reset(); show(); q.classList.remove('fade');
   }
 }
