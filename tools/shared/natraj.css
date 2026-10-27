@@ -414,11 +414,3 @@ header.top.sticky.stuck{box-shadow:0 6px 18px rgba(28,18,22,.18)}
 }
 .input[aria-invalid]{border-color:var(--err)}
 
-/* the climb: a walker going up the hill to the summit flag (sign-in) */
-.climb{display:block;width:100%;height:auto;border-radius:6px;border:1px solid var(--line)}
-dialog .climb.mini{height:110px;margin:2px 0 4px}
-.climbbox{display:grid;gap:10px;width:min(100%,480px)}
-.climbbox .quote{min-height:3.2em;font-size:.95rem;line-height:1.45;color:var(--ink);transition:opacity .6s ease}
-.climbbox .quote b{display:block;color:var(--maroon);font-size:1.02rem}
-.climbbox .quote span{display:block;color:var(--muted);font-size:.88rem}
-.climbbox .quote.fade{opacity:0}
