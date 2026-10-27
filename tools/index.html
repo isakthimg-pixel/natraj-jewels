@@ -11,7 +11,7 @@
 <title>Natraj Jewels</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Manrope:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="shared/natraj.css">
 <style>
 .taskmeter{display:grid;gap:10px;background:var(--card);border-color:var(--line);max-width:560px}
@@ -32,6 +32,9 @@
 .todayrate .when{font-size:.78rem;color:var(--muted)}
 .todayrate.old .vals{opacity:.55}
 @media (max-width:640px){.todayrate{width:100%}}
+/* the pen sketch of the shop on the sign-in page */
+.storesketch{width:min(100%,600px)}
+.storesketch svg{display:block;width:100%;height:auto;transform:rotate(-.8deg);filter:drop-shadow(0 3px 8px rgba(59,36,32,.14))}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -48,7 +51,8 @@
   <section>
     <div class="band"><div class="wrap">
       <div class="hrow"><div class="heading"><span class="eyebrow" id="hEyebrow">Welcome</span><h2 id="hTitle">Natraj Jewels tools</h2></div>
-      <a class="todayrate" id="todayRate" href="rates/" hidden></a></div>
+      <a class="todayrate" id="todayRate" href="rates/" hidden></a>
+      <div class="storesketch" id="sketch" hidden></div></div>
     </div></div>
     <div class="wrap content">
       <div id="home" class="loading">Loading…</div>
@@ -76,9 +80,18 @@ function tile(href, name, desc, cls, ic){
   return '<a class="tile' + (cls ? ' ' + cls : '') + '" href="' + href + '"><span class="tile-top"><span class="tile-ic">' + NJ.icon(ic) + '</span><span class="eyebrow">' + (cls === 'owner' ? 'Owner' : 'App') + '</span></span><h3>' + esc(name) + '</h3><p>' + esc(desc) + '</p><span class="go">Open ›</span></a>';
 }
 
+// the sign-in page shows a pen sketch of the shop (drawn by art/make-store-sketch.js); put inline so its handwriting font loads
+async function showSketch(on){
+  const b = document.getElementById('sketch');
+  b.hidden = !on;
+  if(!on || b.firstChild) return;
+  try { const r = await fetch('img/store-sketch.svg'); if(r.ok) b.innerHTML = await r.text(); } catch(e){ b.hidden = true; }
+}
+
 async function render(me){
   if(!me){
     document.getElementById('todayRate').hidden = true;
+    showSketch(true);
     const setup = (await NJ.sb.rpc('setup_needed')).data === true;
     document.getElementById('hEyebrow').textContent = setup ? 'First time' : 'Welcome';
     document.getElementById('hTitle').textContent = setup ? 'Set up the owner' : 'Sign in to continue';
@@ -92,6 +105,7 @@ async function render(me){
     document.getElementById('go').onclick = () => setup ? NJ.setupFlow() : NJ.signInFlow();
     return;
   }
+  showSketch(false);
   document.getElementById('hEyebrow').textContent = me.is_owner ? 'Owner' : 'Welcome';
   document.getElementById('hTitle').textContent = 'Hello, ' + me.name.split(' ')[0];
   const apps = Object.entries(APPS).filter(([k, a]) => NJ.canUse(k) || a.everyone);
