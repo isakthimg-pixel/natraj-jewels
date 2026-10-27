@@ -282,6 +282,214 @@ function climber(svg){
   return api;
 }
 
+/* ---------- the climb in 3D: a mountain with a winding trail, pines, clouds and a snowy peak (falls back to the drawing above) ---------- */
+let threeLoad = null;
+function loadThree(){
+  if(window.THREE) return Promise.resolve(true);
+  return threeLoad = threeLoad || new Promise(res => {
+    const s = document.createElement('script');
+    s.src = ROOT + 'shared/three.min.js'; s.onload = () => res(!!window.THREE); s.onerror = () => res(false);
+    document.head.appendChild(s);
+  });
+}
+// puts a 3D climb into el and gives back the same controls as climber(): go(fraction, ms), reset(), flag(on), still
+// gives back null when the phone or computer cannot draw 3D, so the caller can use the flat drawing instead
+async function climb3d(el, mini){
+  if(!(await loadThree())) return null;
+  const T = window.THREE, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let gl;
+  try { gl = new T.WebGLRenderer({antialias: true}); } catch(e){ return null; }
+  gl.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  gl.shadowMap.enabled = true; gl.shadowMap.type = T.PCFSoftShadowMap;
+  gl.outputColorSpace = T.SRGBColorSpace;
+  const cv = gl.domElement;
+  cv.className = 'climb' + (mini ? ' mini' : ''); cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'A climber walking up the mountain to the summit flag');
+  el.appendChild(cv);
+
+  const scene = new T.Scene();
+  scene.background = new T.Color('#9FCBEA');
+  scene.fog = new T.Fog('#CFE5F3', 30, 70);
+  const cam = new T.PerspectiveCamera(mini ? 34 : 38, 2, .1, 200);
+
+  // light: soft sky light and a warm morning sun that casts shadows
+  scene.add(new T.HemisphereLight('#E4F1FF', '#6F7F48', 1.5));
+  const sun = new T.DirectionalLight('#FFF1D6', 2.2);
+  sun.position.set(14, 22, 10); sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, {left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60});
+  scene.add(sun);
+
+  // a gradient sky dome with a soft sun disc
+  const sky = new T.Mesh(new T.SphereGeometry(90, 24, 12), new T.ShaderMaterial({side: T.BackSide, depthWrite: false, fog: false,
+    vertexShader: 'varying vec3 p; void main(){ p = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+    fragmentShader: 'varying vec3 p; void main(){ float h = clamp(p.y * 1.6, 0., 1.); vec3 c = mix(vec3(.84,.92,.97), vec3(.36,.62,.88), h); float s = pow(max(dot(p, normalize(vec3(.55,.42,-.72))), 0.), 220.); c += vec3(1., .93, .75) * (s * 1.4 + pow(max(dot(p, normalize(vec3(.55,.42,-.72))), 0.), 8.) * .25); gl_FragColor = vec4(c, 1.); }'}));
+  scene.add(sky);
+
+  // the mountain: one height rule used for the ground, the trail and the climber's feet
+  const R = 11, H = 8.2;
+  const hill = (r, a) => {
+    const k = Math.min(1, r / R), base = H * Math.pow(Math.cos(k * Math.PI / 2), 1.7);
+    return base + .45 * Math.sin(a * 3 + r * .9) * Math.sin(k * Math.PI) + .25 * Math.sin(a * 7 - r * 1.7) * k * (1 - k);
+  };
+  const ground = new T.CircleGeometry(60, 48); ground.rotateX(-Math.PI / 2);
+  ground.translate(0, -.02, 0);
+  const field = new T.Mesh(ground, new T.MeshStandardMaterial({color: '#7FA654', roughness: 1}));
+  field.receiveShadow = true; scene.add(field);
+  {
+    const rings = 34, segs = 72, pos = [], col = [], idx = [];
+    const grass = new T.Color('#7DAF4E'), dry = new T.Color('#B0AA66'), rock = new T.Color('#A39C90'), snow = new T.Color('#F4F7FA'), c = new T.Color();
+    for(let i = 0; i <= rings; i++) for(let j = 0; j < segs; j++){
+      const r = R * Math.pow(i / rings, 1.15), a = j / segs * Math.PI * 2, y = Math.max(0, hill(r, a)), t = y / H;
+      pos.push(Math.cos(a) * r, y, Math.sin(a) * r);
+      const n = Math.sin(a * 11 + r * 3) * .06;
+      if(t > .8 + n) c.copy(snow); else if(t > .6 + n) c.copy(rock).lerp(snow, Math.max(0, (t - .72) * 3)); else c.copy(grass).lerp(dry, Math.max(0, t * 1.6 + n * 3)).lerp(rock, Math.min(1, Math.max(0, (t - .48) * 6)));
+      col.push(c.r, c.g, c.b);
+    }
+    for(let i = 0; i < rings; i++) for(let j = 0; j < segs; j++){
+      const a = i * segs + j, b = i * segs + (j + 1) % segs, d = a + segs, e = b + segs;
+      idx.push(a, d, b, b, d, e);
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
+    g.setIndex(idx); g.computeVertexNormals();
+    const m = new T.Mesh(g, new T.MeshStandardMaterial({vertexColors: true, flatShading: true, roughness: .95}));
+    m.receiveShadow = m.castShadow = true; scene.add(m);
+  }
+
+  // the trail winds twice round the mountain from the meadow to the peak
+  const A0 = 2.2, TURNS = 2.15 * Math.PI;
+  const trail = f => { const r = R * .84 * Math.pow(1 - f, .85) + .02, a = A0 - f * TURNS; return new T.Vector3(Math.cos(a) * r, hill(r, a), Math.sin(a) * r); };
+  {
+    const dots = new T.InstancedMesh(new T.CylinderGeometry(.11, .11, .04, 8), new T.MeshStandardMaterial({color: '#D8C7A2', roughness: 1}), 150), o = new T.Object3D();
+    for(let i = 0; i < 150; i++){ o.position.copy(trail(i / 150)).y += .03; o.updateMatrix(); dots.setMatrixAt(i, o.matrix); }
+    dots.receiveShadow = true; scene.add(dots);
+  }
+
+  // pines on the lower slopes and the meadow, kept off the trail
+  {
+    const n = 70, cone = new T.ConeGeometry(.55, 1.6, 7), trunk = new T.CylinderGeometry(.09, .12, .5, 6);
+    const leaves = new T.InstancedMesh(cone, new T.MeshStandardMaterial({color: '#2F5D34', flatShading: true, roughness: 1}), n);
+    const wood = new T.InstancedMesh(trunk, new T.MeshStandardMaterial({color: '#6B4A2E', roughness: 1}), n);
+    const o = new T.Object3D(); let k = 0, seed = 7;
+    const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    const path = Array.from({length: 120}, (_, i) => trail(i / 120));
+    while(k < n){
+      const r = R * (.45 + rnd() * .95), a = rnd() * Math.PI * 2, y = r > R ? 0 : hill(r, a), x = Math.cos(a) * r, z = Math.sin(a) * r;
+      if(y > H * .42 || path.some(p => Math.hypot(p.x - x, p.z - z) < 1)) continue;
+      const s = .7 + rnd() * .7;
+      o.position.set(x, y + .25 * s, z); o.scale.setScalar(s); o.rotation.set(0, rnd() * 6, 0); o.updateMatrix(); wood.setMatrixAt(k, o.matrix);
+      o.position.y = y + (.5 + .8) * s; o.updateMatrix(); leaves.setMatrixAt(k, o.matrix); k++;
+    }
+    leaves.castShadow = wood.castShadow = true; scene.add(leaves, wood);
+  }
+
+  // a few puffy clouds that drift
+  const clouds = [];
+  {
+    const mat = new T.MeshStandardMaterial({color: '#FFFFFF', roughness: 1, flatShading: true, transparent: true, opacity: .92});
+    [[-14, 11, -12], [12, 12.5, -16], [-4, 13.5, -22], [18, 10, 2]].forEach(([x, y, z], i) => {
+      const g = new T.Group();
+      [[0, 0, 0, 1.6], [1.5, -.2, .2, 1.2], [-1.5, -.3, 0, 1.1], [.6, .6, -.2, 1.1]].forEach(([a, b, c, s]) => { const m = new T.Mesh(new T.IcosahedronGeometry(s, 1), mat); m.position.set(a, b, c); g.add(m); });
+      g.position.set(x, y, z); g.scale.set(1.2, .7, .9); g.userData.speed = .25 + i * .07; scene.add(g); clouds.push(g);
+    });
+  }
+
+  // the climber: red jacket, blue trousers, a yellow backpack and a walking stick; legs and arms swing from the hips and shoulders
+  const mat = c => new T.MeshStandardMaterial({color: c, roughness: .8});
+  const man = new T.Group(), body = new T.Group(); man.add(body);
+  const limb = (w, h, c, x, y) => { const p = new T.Group(), m = new T.Mesh(new T.CapsuleGeometry(w, h, 4, 8), mat(c)); m.position.y = -h / 2 - w * .4; m.castShadow = true; p.add(m); p.position.set(x, y, 0); body.add(p); return p; };
+  const legL = limb(.07, .34, '#2E4A7A', -.09, .5), legR = limb(.07, .34, '#2E4A7A', .09, .5);
+  const torso = new T.Mesh(new T.CapsuleGeometry(.15, .3, 4, 10), mat('#C8342B')); torso.position.y = .74; torso.castShadow = true; body.add(torso);
+  const head = new T.Mesh(new T.SphereGeometry(.13, 16, 12), mat('#C68E62')); head.position.y = 1.1; head.castShadow = true; body.add(head);
+  const hat = new T.Mesh(new T.SphereGeometry(.135, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat('#2B6E8F')); hat.position.y = 1.12; body.add(hat);
+  const pack = new T.Mesh(new T.BoxGeometry(.28, .36, .18), mat('#E0A526')); pack.position.set(0, .78, -.17); pack.castShadow = true; body.add(pack);
+  const roll = new T.Mesh(new T.CylinderGeometry(.06, .06, .3, 10), mat('#5A7D3A')); roll.rotation.z = Math.PI / 2; roll.position.set(0, 1, -.17); body.add(roll);
+  const armL = limb(.05, .3, '#C8342B', -.2, .88), armR = limb(.05, .3, '#C8342B', .2, .88);
+  const stick = new T.Mesh(new T.CylinderGeometry(.018, .018, .95, 6), mat('#7A5A33')); stick.position.set(0, -.36, .12); stick.rotation.x = .25; armR.add(stick);
+  man.scale.setScalar(mini ? 1.25 : 1.1);
+  scene.add(man);
+
+  // the flag on the peak, a glow and sparkles for reaching the top
+  const top = trail(1), flagG = new T.Group();
+  flagG.position.copy(top).add(new T.Vector3(.35, 0, .25));
+  const pole = new T.Mesh(new T.CylinderGeometry(.03, .03, 1.5, 8), mat('#5B4630')); pole.position.y = .75; pole.castShadow = true; flagG.add(pole);
+  const clothG = new T.PlaneGeometry(.8, .5, 10, 4); clothG.translate(.4, 0, 0);
+  const cloth = new T.Mesh(clothG, new T.MeshStandardMaterial({color: '#E53935', side: T.DoubleSide, roughness: .7}));
+  cloth.position.y = 1.25; cloth.castShadow = true; flagG.add(cloth);
+  const clothBase = clothG.attributes.position.array.slice();
+  flagG.scale.set(1, 0.001, 1); scene.add(flagG);
+  const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,240,180,1)'); g.addColorStop(1, 'rgba(255,240,180,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
+  const glow = new T.Sprite(new T.SpriteMaterial({map: glowTex, transparent: true, opacity: 0, depthWrite: false, fog: false}));
+  glow.position.copy(top).y += 1; glow.scale.setScalar(4); scene.add(glow);
+  const sparks = new T.Group();
+  for(let i = 0; i < 14; i++){ const s = new T.Mesh(new T.OctahedronGeometry(.08), new T.MeshBasicMaterial({color: i % 2 ? '#FFD54F' : '#FFFFFF', transparent: true})); s.userData = {a: i / 14 * Math.PI * 2, r: .6 + (i % 3) * .3, h: (i % 4) * .3}; sparks.add(s); }
+  sparks.position.copy(top); sparks.visible = false; scene.add(sparks);
+
+  // where everything is
+  let at = 0, walking = false, stride = 0, flagOn = 0, flagTo = 0, flagT = 0, camA = null, alive = true;
+  function place(f){
+    const p = trail(Math.min(f, .995)), q = trail(Math.min(1, f + .01));
+    man.position.copy(p);
+    man.rotation.y = Math.atan2(q.x - p.x, q.z - p.z);
+    body.rotation.x = walking ? .14 : 0;     // leans into the slope while walking
+    const s = walking ? Math.sin(stride) * .6 : 0;
+    legL.rotation.x = s; legR.rotation.x = -s; armL.rotation.x = -s * .8; armR.rotation.x = s * .5 - .2;
+    body.position.y = walking ? Math.abs(Math.cos(stride)) * .04 : 0;
+  }
+  function size(){
+    const w = el.clientWidth || 480, h = mini ? 110 : Math.round(w * 250 / 480);
+    gl.setSize(w, h, false); cv.style.height = h + 'px'; cam.aspect = w / h; cam.updateProjectionMatrix();
+  }
+  size();
+  const ro = window.ResizeObserver ? new ResizeObserver(size) : null; if(ro) ro.observe(el);
+  function frame(now){
+    if(!alive) return;
+    if(!document.body.contains(cv)){ alive = false; if(ro) ro.disconnect(); gl.dispose(); return; }     // the dialog closed or the page moved on
+    const t = now / 1000;
+    // the camera circles slowly, keeping the climber in front
+    const p = man.position, want = Math.atan2(p.z, p.x) + (mini ? .35 : .55);
+    camA = camA === null ? want : camA + Math.atan2(Math.sin(want - camA), Math.cos(want - camA)) * .03;
+    const dist = mini ? 15 : 19.5, look = mini ? p.clone().lerp(new T.Vector3(0, p.y, 0), .3) : new T.Vector3(0, 3.8 + p.y * .3, 0);
+    cam.position.set(Math.cos(camA) * dist, (mini ? p.y + 3.2 : 7.5 + p.y * .35), Math.sin(camA) * dist);
+    sun.position.set(Math.cos(camA - .9) * 20, 24, Math.sin(camA - .9) * 20);     // the sun stays over the viewer's shoulder so the near slopes are lit
+    cam.lookAt(look);
+    clouds.forEach(c => { c.position.x += c.userData.speed * .01; if(c.position.x > 30) c.position.x = -30; });
+    // the flag rises with a little bounce and flutters
+    if(flagOn !== flagTo){ flagT = Math.min(1, flagT + .035); const k = flagTo ? 1 + Math.sin(flagT * Math.PI * 1.3) * (1 - flagT) * .6 : 1 - flagT; flagG.scale.y = Math.max(.001, flagTo ? Math.min(k, 1.25) * Math.min(1, flagT * 3) : k); if(flagT >= 1){ flagOn = flagTo; flagG.scale.y = flagOn ? 1 : .001; } }
+    const a = cloth.geometry.attributes.position;
+    for(let i = 0; i < a.count; i++){ const x = clothBase[i * 3]; a.array[i * 3 + 2] = Math.sin(x * 6 - t * 7) * .07 * x; }
+    a.needsUpdate = true;
+    glow.material.opacity += ((flagTo ? .9 : 0) - glow.material.opacity) * .06;
+    sparks.visible = flagTo === 1 && !still;
+    if(sparks.visible) sparks.children.forEach(s => { const u = s.userData, b = (t * .5 + u.h) % 1; s.position.set(Math.cos(u.a + t * .8) * u.r, .4 + b * 2, Math.sin(u.a + t * .8) * u.r); s.rotation.y = t * 3; s.material.opacity = 1 - b; });
+    gl.render(scene, cam);
+    requestAnimationFrame(frame);
+  }
+  place(0);
+  requestAnimationFrame(frame);
+
+  let job = 0;
+  const flag = on => { if((on ? 1 : 0) !== flagTo){ flagTo = on ? 1 : 0; flagT = 0; } };
+  return {
+    go(f, ms){
+      const my = ++job, from = at, to = Math.max(0, Math.min(1, f)), t0 = performance.now(), dur = still ? 0 : ms || 600;
+      return new Promise(res => {
+        const tick = now => {
+          if(my !== job || !alive) return res();
+          const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+          const was = at; at = from + (to - from) * e;
+          walking = k < 1 && Math.abs(to - from) > .001; stride += Math.abs(at - was) * 260;
+          place(at);
+          if(k < 1) requestAnimationFrame(tick); else { walking = false; place(at); if(at >= .999) flag(true); res(); }
+        };
+        requestAnimationFrame(tick);
+      });
+    },
+    reset(){ job++; at = 0; walking = false; flag(false); flagOn = 0; flagG.scale.y = .001; place(0); },
+    flag, still
+  };
+}
+
 async function signInFlow(){
   const r = await sb.rpc('setup_needed');
   if(r.data === true) return setupFlow();
@@ -306,10 +514,13 @@ async function signInFlow(){
     }
   });
   // every digit of the PIN is one more step up the hill; all six reach the summit
-  setTimeout(() => {
+  setTimeout(async () => {
     const svg = document.querySelector('dialog[open] svg.climb'), pin = document.getElementById('nj-f-pin');
     if(!svg || !pin) return;
-    const c = climber(svg);
+    const holder = document.createElement('div');
+    const c3 = await climb3d(holder, true);
+    if(c3 && document.body.contains(svg)) svg.replaceWith(holder);
+    const c = c3 || climber(svg);
     pin.addEventListener('input', () => { const n = pin.value.replace(/\D/g, '').length; if(n < 6) c.flag(false); c.go(n / 6, 520); });
   }, 0);
   const v = await box;
@@ -1045,7 +1256,7 @@ function writeXlsx(fileName, sheetName, rows){
   download(fileName, zipStore(files), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
-window.NJ = {climbSvg, climber, exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
+window.NJ = {climbSvg, climber, climb3d, exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
   pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
   liveCheck, deviceCode, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick,
   loadQueries, queryMap, queryChip, askQuery, openQuery, queriesBar, queryListen, readXlsx, writeXlsx, selectAll, get me(){ return me; }};

@@ -92,8 +92,12 @@ async function climbLoop(){
   const box = document.getElementById('climb');
   if(climbing) return;
   box.hidden = false;
-  box.innerHTML = NJ.climbSvg() + '<p class="quote" id="climbQ"></p>';
-  const c = NJ.climber(box.querySelector('svg')), q = document.getElementById('climbQ');
+  box.innerHTML = '<div id="climbScene"></div><p class="quote" id="climbQ"></p>';
+  const scene = document.getElementById('climbScene'), q = document.getElementById('climbQ');
+  climbing = true;
+  let c = await NJ.climb3d(scene);     // 3D where the device can draw it, else the flat drawing
+  if(climbing !== true) return;
+  if(!c){ scene.innerHTML = NJ.climbSvg(); c = NJ.climber(scene.querySelector('svg')); }
   climbing = c;
   let i = new Date().getDate() % LINES.length;     // a different first line each day
   const show = () => { const [en, ta] = LINES[i % LINES.length]; q.innerHTML = '<b>' + esc(en) + '</b><span>' + esc(ta) + '</span>'; };
