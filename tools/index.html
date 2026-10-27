@@ -32,9 +32,23 @@
 .todayrate .when{font-size:.78rem;color:var(--muted)}
 .todayrate.old .vals{opacity:.55}
 @media (max-width:640px){.todayrate{width:100%}}
-/* the pen sketch of the shop on the sign-in page */
-.storesketch{width:min(100%,720px)}
-.storesketch svg{display:block;width:100%;height:auto;transform:rotate(-.8deg);filter:drop-shadow(0 3px 8px rgba(59,36,32,.14))}
+/* the sign-in page: the pen sketch of the shop with the sign-in card resting on its edge */
+.stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);align-items:center;padding-block:clamp(8px,2vw,20px) clamp(16px,3vw,32px)}
+.stage-art{grid-area:1/1/2/2;min-width:0}
+.stage-art svg{display:block;width:100%;height:auto;transform:rotate(-.8deg);filter:drop-shadow(0 3px 8px rgba(59,36,32,.14))}
+.stage-card{grid-area:1/2/2/3;position:relative;z-index:1;margin-left:clamp(-44px,-3vw,-20px);display:grid;gap:14px;box-shadow:0 10px 30px rgba(59,36,32,.14)}
+.stage-card .eyebrow{margin:0}
+.stage-card h2{font-size:clamp(1.6rem,3vw,2rem);color:var(--maroon);margin:0}
+.stage-card > p{margin:0;color:var(--muted)}
+.nj-signin{display:grid;gap:12px}
+.nj-signin .btn{width:100%;padding-block:13px;font-size:.95rem}
+.nj-signin .linkish{justify-self:start}
+.stage-leave{border-top:1px solid var(--line);padding-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:.86rem;color:var(--muted)}
+.stage-leave a{color:var(--maroon);font-weight:700;text-decoration:none}
+@media (max-width:820px){
+  .stage{grid-template-columns:minmax(0,1fr)}
+  .stage-card{grid-area:2/1/3/2;margin:-18px 8px 0}
+}
 </style>
 </head>
 <body class="signed-out not-owner">
@@ -49,10 +63,9 @@
 
 <main>
   <section>
-    <div class="band"><div class="wrap">
+    <div class="band" id="band" hidden><div class="wrap">
       <div class="hrow"><div class="heading"><span class="eyebrow" id="hEyebrow">Welcome</span><h2 id="hTitle">Natraj Jewels tools</h2></div>
-      <a class="todayrate" id="todayRate" href="rates/" hidden></a>
-      <div class="storesketch" id="sketch" hidden></div></div>
+      <a class="todayrate" id="todayRate" href="rates/" hidden></a></div>
     </div></div>
     <div class="wrap content">
       <div id="home" class="loading">Loading…</div>
@@ -80,32 +93,32 @@ function tile(href, name, desc, cls, ic){
   return '<a class="tile' + (cls ? ' ' + cls : '') + '" href="' + href + '"><span class="tile-top"><span class="tile-ic">' + NJ.icon(ic) + '</span><span class="eyebrow">' + (cls === 'owner' ? 'Owner' : 'App') + '</span></span><h3>' + esc(name) + '</h3><p>' + esc(desc) + '</p><span class="go">Open ›</span></a>';
 }
 
-// the sign-in page shows a pen sketch of the shop (drawn by art/make-store-sketch.js); put inline so its handwriting font loads
-async function showSketch(on){
-  const b = document.getElementById('sketch');
-  b.hidden = !on;
-  if(!on || b.firstChild) return;
-  try { const r = await fetch('img/store-sketch.svg'); if(r.ok) b.innerHTML = await r.text(); } catch(e){ b.hidden = true; }
+// the pen sketch of the shop (drawn by art/make-store-sketch.js), put inline so its handwriting font loads
+let sketch = null;
+async function loadSketch(el){
+  try { if(!sketch){ const r = await fetch('img/store-sketch.svg'); if(r.ok) sketch = await r.text(); } } catch(e){}
+  if(sketch && document.body.contains(el)) el.innerHTML = sketch;
 }
 
+// signed out: the sketch with the sign-in card on its edge, the form right on the page
 async function render(me){
+  document.getElementById('band').hidden = !me;
   if(!me){
     document.getElementById('todayRate').hidden = true;
-    showSketch(true);
     const setup = (await NJ.sb.rpc('setup_needed')).data === true;
-    document.getElementById('hEyebrow').textContent = setup ? 'First time' : 'Welcome';
-    document.getElementById('hTitle').textContent = setup ? 'Set up the owner' : 'Sign in to continue';
     box.className = '';
-    box.innerHTML = '<div class="tiles">' +
-      '<div class="form panel"><h3>' + (setup ? 'Set up the owner' : 'Sign in') + '</h3>' +
-        '<p>' + (setup ? 'Choose the owner’s name and a 6-digit PIN. You will get a recovery code to write down.' : 'Choose your name and enter your 6-digit PIN.') + '</p>' +
-        '<div class="bar"><button class="btn btn-maroon" id="go">' + (setup ? 'Set up the owner' : 'Sign in') + '</button></div></div>' +
-      tile('attendance/#leave', 'Apply for leave', 'No PIN needed. Send a leave request for approval.', '', 'leave') +
-    '</div>';
-    document.getElementById('go').onclick = () => setup ? NJ.setupFlow() : NJ.signInFlow();
+    box.innerHTML = '<div class="stage"><div class="stage-art" id="stageArt"></div>' +
+      '<div class="stage-card form"><span class="eyebrow">' + (setup ? 'First time' : 'Welcome') + '</span>' +
+        '<h2>' + (setup ? 'Set up the owner' : 'Sign in') + '</h2>' +
+        (setup ? '<p>Choose the owner’s name and a 6-digit PIN. You will get a recovery code to write down.</p><button class="btn btn-maroon" id="go">Set up the owner</button>'
+               : '<div id="signin"></div>') +
+        '<div class="stage-leave"><span>Need a day off? No PIN needed.</span><a href="attendance/#leave">Apply for leave ›</a></div>' +
+      '</div></div>';
+    loadSketch(document.getElementById('stageArt'));
+    if(setup) document.getElementById('go').onclick = () => NJ.setupFlow();
+    else NJ.signInForm(document.getElementById('signin'));
     return;
   }
-  showSketch(false);
   document.getElementById('hEyebrow').textContent = me.is_owner ? 'Owner' : 'Welcome';
   document.getElementById('hTitle').textContent = 'Hello, ' + me.name.split(' ')[0];
   const apps = Object.entries(APPS).filter(([k, a]) => NJ.canUse(k) || a.everyone);

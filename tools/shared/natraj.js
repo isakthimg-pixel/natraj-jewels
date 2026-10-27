@@ -241,6 +241,41 @@ async function signInFlow(){
   if(v === 'forgot') return recoverFlow();
 }
 
+// the same sign-in, as a form on the page (the home page); the name chosen last time on this device is picked already
+async function signInForm(el){
+  const names = must(await sb.rpc('login_names')) || [];
+  if(!names.length){ el.innerHTML = '<p>No one can sign in yet. Ask the owner to add you.</p>'; return; }
+  let last = '';
+  try{ last = localStorage.getItem('natraj-last-user') || ''; }catch(e){}
+  if(!names.some(n => n.username === last)) last = '';
+  el.innerHTML = '<form class="nj-signin" novalidate>' +
+    '<label class="field">Your name<select class="input" name="user"><option value="">Choose your name</option>' +
+      names.map(n => '<option value="' + esc(n.username) + '"' + (n.username === last ? ' selected' : '') + '>' + esc(n.name) + '</option>').join('') + '</select></label>' +
+    '<label class="field">PIN<input class="input" name="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="6 digits"></label>' +
+    '<p class="err" role="alert"></p>' +
+    '<button class="btn btn-maroon" type="submit">Sign in</button>' +
+    '<button type="button" class="linkish" data-forgot>Forgot your PIN?</button></form>';
+  const f = el.querySelector('form'), err = f.querySelector('.err'), ok = f.querySelector('[type=submit]');
+  f.querySelector('[data-forgot]').onclick = () => recoverFlow();
+  f.pin.addEventListener('input', () => { if(/is 6 digits/.test(err.textContent)) err.textContent = ''; });
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const user = f.user.value, pin = f.pin.value.trim();
+    const wait = Math.ceil((waitUntil - Date.now()) / 1000);
+    let msg = wait > 0 ? 'Too many wrong PINs. Try again in ' + wait + ' seconds.' : !user ? 'Choose your name.' : !PIN_RE.test(pin) ? 'The PIN is 6 digits.' : '';
+    if(!msg){
+      ok.setAttribute('aria-busy', 'true'); err.textContent = '';
+      try{ msg = await signInWith(user, pin); }catch(x){ msg = friendly(x); }
+      ok.removeAttribute('aria-busy');
+      if(msg && /not right/.test(msg) && ++failed >= 5){ failed = 0; waitUntil = Date.now() + 30000; msg = 'Too many wrong PINs. Try again in 30 seconds.'; }
+      if(!msg){ failed = 0; try{ localStorage.setItem('natraj-last-user', user); }catch(x){} return; }   // the page changes when signed in
+    }
+    err.textContent = msg;
+    if(user){ f.pin.value = ''; f.pin.focus(); } else f.user.focus();
+  });
+  (last ? f.pin : f.user).focus({preventScroll: true});
+}
+
 async function setupFlow(){
   setupFlow.code = null;
   const v = await dialog({
@@ -970,7 +1005,7 @@ function writeXlsx(fileName, sheetName, rows){
   download(fileName, zipStore(files), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
-window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
+window.NJ = {exportAll, rateStatus, sb, start, signInFlow, signInForm, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
   pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
   liveCheck, deviceCode, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick,
   loadQueries, queryMap, queryChip, askQuery, openQuery, queriesBar, queryListen, readXlsx, writeXlsx, selectAll, get me(){ return me; }};
