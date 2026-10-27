@@ -120,6 +120,16 @@
 .hb .tr{height:11px;position:relative}
 .hb .tr i{position:absolute;inset:0 auto 0 0;background:var(--maroon);border-radius:0 3px 3px 0;min-width:2px}
 .hb b{text-align:right;font-variant-numeric:tabular-nums}
+.cfgroup{display:grid;gap:8px}
+.cfgroup .cfrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cfgroup .lab{font-size:.78rem;font-weight:600;color:var(--muted);min-width:64px}
+.hb.main{font-weight:700;margin-top:8px}
+.hb.main:first-child{margin-top:0}
+.hb.sub{font-size:.84rem;color:var(--muted)}
+.hb.sub .nm{padding-left:16px}
+.hb.sub .nm::before{content:"└ ";color:var(--line)}
+.hb.sub .tr i{background:color-mix(in srgb,var(--maroon) 45%,var(--card))}
+.hb.sub.none .tr i{background:var(--line)}
 .wants{display:grid}
 .wants div{padding:9px 0;border-top:1px solid var(--line);font-size:.92rem}
 .wants div:first-child{border-top:0}
@@ -243,7 +253,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
         </div>
         <div class="field"><span>Birthday (year if given)</span><div class="dmy" id="cfBday"></div></div>
         <div class="field"><span>Wedding anniversary (year if given)</span><div class="dmy" id="cfAnn"></div></div>
-        <div class="field"><span>Came for</span><div class="bubbles" id="cfFor" role="group" aria-label="Came for"></div></div>
+        <div class="field"><span>Came for</span><div class="cfgroup" id="cfFor" role="group" aria-label="Came for"></div></div>
         <div class="field"><span>Bought today?</span><div class="bubbles" id="cfBought" role="group" aria-label="Bought today">
           <button type="button" class="bubble" data-b="yes" aria-pressed="false">Yes, bought</button>
           <button type="button" class="bubble" data-b="no" aria-pressed="false">Just looking</button></div></div>
@@ -367,7 +377,7 @@ const $ = id => document.getElementById(id);
 const TAGS = ['Regular', 'VIP', 'Bridal', 'Gold', 'Silver', 'Diamond', 'Chit member', 'Old gold exchange', 'Wholesale'];
 // "How did you hear about us?" on the customer information form
 const SOURCES = ['Instagram', 'Facebook', 'Google', 'Radio', 'Wall painting', 'Pamphlet', 'Newspaper', 'WhatsApp', 'Call', 'Family / friend', 'Passing by', 'Word of mouth'];
-const CAME = ['Gold', 'Silver', 'Diamond', 'Wedding', 'Gift', 'Investment', 'Daily wear'];
+const CAME = ['Gold', 'Silver', 'Diamond', 'Wedding', 'Gift', 'Investment', 'Daily wear'];   // the three metals first
 const NOYEAR = '1904';   // birthdays and anniversaries saved without a year use this (a leap year)
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const SHOW = 200;     // rows shown before asking to search
@@ -987,7 +997,8 @@ function dmyHtml(id){
 $('cfBday').innerHTML = dmyHtml('cfB'); $('cfAnn').innerHTML = dmyHtml('cfA');
 const getDMY = id => { const d = $(id + 'D').value, m = $(id + 'M').value, y = $(id + 'Y').value.trim(); if(!d && !m && !y) return ''; if(!d || !m) return null; return parseDMY(d + '/' + m + (y ? '/' + y : '')); };
 const setDMY = (id, v) => { $(id + 'D').value = v ? String(Number(v.slice(8))) : ''; $(id + 'M').value = v ? String(Number(v.slice(5, 7))) : ''; $(id + 'Y').value = v && v.slice(0, 4) !== NOYEAR ? v.slice(0, 4) : ''; };
-$('cfFor').innerHTML = CAME.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
+// metal first, then what it is for
+$('cfFor').innerHTML = [['Metal', CAME.slice(0, 3)], ['For', CAME.slice(3)]].map(([l, ts]) => '<div class="cfrow"><span class="lab">' + l + '</span>' + ts.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('') + '</div>').join('');
 $('cfTags').innerHTML = TAGS.map(t => '<button type="button" class="bubble" data-v="' + esc(t) + '" aria-pressed="false">' + esc(t) + '</button>').join('');
 $('cfServed').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); });
 // everyone who helped is saved as one list: "Anu, Ravi"
@@ -1195,6 +1206,20 @@ async function saveEdit(f){
 /* ---------- insights (owner) ---------- */
 let insDays = 30;
 $('iRange').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if(!b) return; insDays = Number(b.dataset.d); $('iRange').querySelectorAll('[data-d]').forEach(x => x.setAttribute('aria-pressed', x === b)); loadInsights().catch(x => toast(x.message)); });
+/* Came for: Gold, Silver and Diamond as the main lines, each with what it was for (investment, daily wear, wedding,
+   gift) under it. A form with two metals counts under both. */
+const METALS = ['Gold', 'Silver', 'Diamond'], PURPOSES = CAME.filter(x => !METALS.includes(x));
+function cameFor(el, visits){
+  const groups = [...METALS.map(m => [m, visits.filter(v => (v.came_for || []).includes(m))]),
+    ['Metal not ticked', visits.filter(v => (v.came_for || []).some(x => PURPOSES.includes(x)) && !(v.came_for || []).some(x => METALS.includes(x)))]].filter(([, vs]) => vs.length);
+  const max = Math.max(1, ...groups.map(([, vs]) => vs.length));
+  const row = (cls, k, v) => '<div class="hb ' + cls + '"><span class="nm" title="' + esc(k) + '">' + esc(k) + '</span><span class="tr">' + (v ? '<i style="width:' + (v / max * 100).toFixed(1) + '%"></i>' : '') + '</span><b>' + v + '</b></div>';
+  el.innerHTML = groups.length ? groups.map(([m, vs]) => {
+    const subs = PURPOSES.map(p => [p, vs.filter(v => v.came_for.includes(p)).length]).filter(x => x[1]).sort((a, b) => b[1] - a[1]);
+    const none = vs.filter(v => !v.came_for.some(x => PURPOSES.includes(x))).length;
+    return row('main', m, vs.length) + subs.map(([p, n]) => row('sub', p, n)).join('') + (none && subs.length ? row('sub none', 'Not said', none) : '');
+  }).join('') : '<p class="axisnote">Nothing yet.</p>';
+}
 function hbars(el, pairs, unit){
   const max = Math.max(1, ...pairs.map(p => p[1]));
   el.innerHTML = pairs.length ? pairs.map(([k, v]) => '<div class="hb"><span class="nm" title="' + esc(k) + '">' + esc(k) + '</span><span class="tr">' + (v ? '<i style="width:' + (v / max * 100).toFixed(1) + '%"></i>' : '') + '</span><b>' + v + (unit || '') + '</b></div>').join('')
@@ -1221,7 +1246,7 @@ async function loadInsights(){
   $('iWa').textContent = custs.length ? Math.round(custs.filter(c => c.whatsapp_ok).length / custs.length * 100) + '%' : '–';
   hbars($('iHeard'), tally(custs, c => c.source || 'Not asked'));
   hbars($('iStaff'), tally(visits, v => servedOf(v.served_by).length ? servedOf(v.served_by) : 'Not filled'));
-  hbars($('iFor'), tally(visits, v => v.came_for));
+  cameFor($('iFor'), visits);
   hbars($('iStars'), [5, 4, 3, 2, 1].map(n => ['★'.repeat(n), rated.filter(v => v.rating === n).length]));
   const nb = (list, l) => { const k = list.filter(v => v.bought !== null); return l + (k.length ? ' · ' + Math.round(k.filter(v => v.bought).length / k.length * 100) + '% bought' : ''); };
   const nw = visits.filter(v => v.new_customer === true), ol = visits.filter(v => v.new_customer === false), nm = visits.filter(v => v.new_customer == null);
