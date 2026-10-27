@@ -48,7 +48,8 @@
   <section>
     <div class="band"><div class="wrap">
       <div class="hrow"><div class="heading"><span class="eyebrow" id="hEyebrow">Welcome</span><h2 id="hTitle">Natraj Jewels tools</h2></div>
-      <a class="todayrate" id="todayRate" href="rates/" hidden></a></div>
+      <a class="todayrate" id="todayRate" href="rates/" hidden></a>
+      <div class="climbbox" id="climb" hidden></div></div>
     </div></div>
     <div class="wrap content">
       <div id="home" class="loading">Loading…</div>
@@ -76,9 +77,42 @@ function tile(href, name, desc, cls, ic){
   return '<a class="tile' + (cls ? ' ' + cls : '') + '" href="' + href + '"><span class="tile-top"><span class="tile-ic">' + NJ.icon(ic) + '</span><span class="eyebrow">' + (cls === 'owner' ? 'Owner' : 'App') + '</span></span><h3>' + esc(name) + '</h3><p>' + esc(desc) + '</p><span class="go">Open ›</span></a>';
 }
 
+/* the sign-in page: a climber walks up to the summit, plants the flag, and a new thought for the day appears */
+const LINES = [
+  ['One step at a time reaches the top.', 'ஒவ்வொரு அடியும் உச்சிக்கு அருகில்.'],
+  ['Effort brings success.', 'முயற்சி திருவினையாக்கும்.'],
+  ['Small drops make a great flood. Every customer counts.', 'சிறு துளி பெரு வெள்ளம்.'],
+  ['Today’s effort is tomorrow’s summit.', 'இன்றைய உழைப்பே நாளைய வெற்றி.'],
+  ['A happy customer is the best advertisement.', 'மகிழ்ந்த வாடிக்கையாளரே சிறந்த விளம்பரம்.'],
+  ['Keep climbing. The view is worth it.', 'தொடர்ந்து ஏறுங்கள், உச்சி காத்திருக்கிறது.'],
+  ['Work done with care shines like gold.', 'அக்கறையுடன் செய்யும் வேலை தங்கம் போல் மின்னும்.']
+];
+let climbing = null;
+async function climbLoop(){
+  const box = document.getElementById('climb');
+  if(climbing) return;
+  box.hidden = false;
+  box.innerHTML = NJ.climbSvg() + '<p class="quote" id="climbQ"></p>';
+  const c = NJ.climber(box.querySelector('svg')), q = document.getElementById('climbQ');
+  climbing = c;
+  let i = new Date().getDate() % LINES.length;     // a different first line each day
+  const show = () => { const [en, ta] = LINES[i % LINES.length]; q.innerHTML = '<b>' + esc(en) + '</b><span>' + esc(ta) + '</span>'; };
+  show();
+  if(c.still){ c.go(1, 0); return; }
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  while(climbing === c && document.body.contains(box) && !box.hidden){
+    await wait(700);
+    for(const stop of [.3, .55, .8, 1]) { await c.go(stop, 2400); await wait(250); }     // little rests on the way up
+    await wait(3200);
+    q.classList.add('fade'); await wait(600); i++; c.reset(); show(); q.classList.remove('fade');
+  }
+}
+function stopClimb(){ climbing = null; const b = document.getElementById('climb'); b.hidden = true; b.innerHTML = ''; }
+
 async function render(me){
   if(!me){
     document.getElementById('todayRate').hidden = true;
+    climbLoop();
     const setup = (await NJ.sb.rpc('setup_needed')).data === true;
     document.getElementById('hEyebrow').textContent = setup ? 'First time' : 'Welcome';
     document.getElementById('hTitle').textContent = setup ? 'Set up the owner' : 'Sign in to continue';
@@ -92,6 +126,7 @@ async function render(me){
     document.getElementById('go').onclick = () => setup ? NJ.setupFlow() : NJ.signInFlow();
     return;
   }
+  stopClimb();
   document.getElementById('hEyebrow').textContent = me.is_owner ? 'Owner' : 'Welcome';
   document.getElementById('hTitle').textContent = 'Hello, ' + me.name.split(' ')[0];
   const apps = Object.entries(APPS).filter(([k, a]) => NJ.canUse(k) || a.everyone);

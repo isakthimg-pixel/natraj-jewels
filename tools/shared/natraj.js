@@ -214,13 +214,81 @@ async function signInWith(username, pin){
   return '';
 }
 
+/* ---------- the climb: a walker going up the hill to the summit flag (sign-in page and sign-in box) ---------- */
+let climbN = 0;
+function climbSvg(cls){
+  const k = 'cl' + (++climbN);     // ids must be unique when two scenes are on the page
+  return '<svg class="climb ' + (cls || '') + '" viewBox="' + (cls === 'mini' ? '0 -24 480 220" preserveAspectRatio="xMidYMin slice"' : '0 -30 480 250"') + ' role="img" aria-label="A climber walking up the hill to the summit flag">' +
+    '<defs><linearGradient id="' + k + 's" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6E7CC"/><stop offset="1" stop-color="#FBF6EE"/></linearGradient>' +
+    '<linearGradient id="' + k + 'h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A3443A"/><stop offset="1" stop-color="#6E1F1F"/></linearGradient>' +
+    '<linearGradient id="' + k + 'b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9B58C"/><stop offset="1" stop-color="#E9D3B3"/></linearGradient>' +
+    '<radialGradient id="' + k + 'g"><stop offset="0" stop-color="#FFE7A3" stop-opacity=".95"/><stop offset="1" stop-color="#FFE7A3" stop-opacity="0"/></radialGradient></defs>' +
+    '<rect y="-40" width="480" height="260" fill="url(#' + k + 's)"/>' +
+    '<circle class="cl-sun" cx="402" cy="58" r="24" fill="#E8C072" opacity=".85"/>' +
+    '<path d="M0 220 L0 160 C60 140 110 120 160 128 C210 136 230 96 270 92 C320 88 360 110 410 100 C440 94 465 104 480 112 L480 220Z" fill="url(#' + k + 'b)"/>' +
+    '<path d="M0 220 L0 196 C70 188 120 170 170 146 C215 124 245 90 280 66 C300 52 318 40 332 38 C346 36 360 46 378 62 C410 92 450 130 480 150 L480 220Z" fill="url(#' + k + 'h)"/>' +
+    '<path class="cl-trail" d="M24 204 C80 196 118 182 156 164 C190 148 178 136 210 124 C246 110 232 96 262 84 C288 74 282 62 302 54 C318 47 322 42 331 38" fill="none" stroke="#F3DDB4" stroke-opacity=".55" stroke-width="2.2" stroke-dasharray="2 6" stroke-linecap="round"/>' +
+    '<circle class="cl-glow" cx="333" cy="30" r="40" fill="url(#' + k + 'g)" opacity="0"/>' +
+    '<g class="cl-flag" transform="translate(346 42) scale(1 0)"><line x1="0" y1="0" x2="0" y2="-30" stroke="#3B2420" stroke-width="2" stroke-linecap="round"/><path d="M1 -30 L22 -24 L1 -17Z" fill="#D4A43C"/></g>' +
+    '<g class="cl-spark" opacity="0">' + [[312, 18], [354, 14], [300, 40], [364, 36], [333, 4]].map(([x, y]) => '<path d="M' + x + ' ' + (y - 5) + ' L' + (x + 1.6) + ' ' + (y - 1.6) + ' L' + (x + 5) + ' ' + y + ' L' + (x + 1.6) + ' ' + (y + 1.6) + ' L' + x + ' ' + (y + 5) + ' L' + (x - 1.6) + ' ' + (y + 1.6) + ' L' + (x - 5) + ' ' + y + ' L' + (x - 1.6) + ' ' + (y - 1.6) + 'Z" fill="#F2C94C"/>').join('') + '</g>' +
+    // the climber, feet at 0,0: backpack, body, head, a walking stick, and legs and arms that swing
+    '<g class="cl-man"><g class="cl-body">' +
+      '<line class="cl-leg1" x1="0" y1="-10" x2="0" y2="0" stroke="#2E1A16" stroke-width="2.6" stroke-linecap="round"/>' +
+      '<line class="cl-leg2" x1="0" y1="-10" x2="0" y2="0" stroke="#4A2C25" stroke-width="2.6" stroke-linecap="round"/>' +
+      '<rect x="-6.5" y="-21" width="5" height="8" rx="1.5" fill="#D4A43C"/>' +
+      '<line x1="0" y1="-21" x2="0" y2="-10" stroke="#2E1A16" stroke-width="3" stroke-linecap="round"/>' +
+      '<line class="cl-arm" x1="0" y1="-19" x2="5" y2="-13" stroke="#2E1A16" stroke-width="2.2" stroke-linecap="round"/>' +
+      '<line class="cl-stick" x1="5" y1="-14" x2="8" y2="0" stroke="#7A5A2E" stroke-width="1.6" stroke-linecap="round"/>' +
+      '<circle cx="0.5" cy="-25" r="3.6" fill="#2E1A16"/></g></g></svg>';
+}
+// moves the climber along the trail: go(fraction 0..1, ms), summit(), reset()
+function climber(svg){
+  const path = svg.querySelector('.cl-trail'), man = svg.querySelector('.cl-man'), body = svg.querySelector('.cl-body');
+  const leg1 = svg.querySelector('.cl-leg1'), leg2 = svg.querySelector('.cl-leg2'), arm = svg.querySelector('.cl-arm'), stick = svg.querySelector('.cl-stick');
+  const flag = svg.querySelector('.cl-flag'), glow = svg.querySelector('.cl-glow'), spark = svg.querySelector('.cl-spark');
+  const L = path.getTotalLength(), still = matchMedia('(prefers-reduced-motion: reduce)').matches, size = svg.classList.contains('mini') ? 1.9 : 1.6;
+  let at = 0, raf = 0, phase = 0;
+  function place(f, swing){
+    const p = path.getPointAtLength(f * L), q = path.getPointAtLength(Math.min(L, f * L + 3)), lean = Math.max(-25, Math.min(25, Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI * .45));
+    man.setAttribute('transform', 'translate(' + p.x.toFixed(1) + ' ' + p.y.toFixed(1) + ') scale(' + size + ')');
+    body.setAttribute('transform', 'rotate(' + lean.toFixed(1) + ')');
+    const a = swing ? Math.sin(phase) * 26 : 0;
+    leg1.setAttribute('transform', 'rotate(' + a.toFixed(1) + ' 0 -10)'); leg2.setAttribute('transform', 'rotate(' + (-a).toFixed(1) + ' 0 -10)');
+    arm.setAttribute('transform', 'rotate(' + (-a * .6).toFixed(1) + ' 0 -19)'); stick.setAttribute('transform', 'rotate(' + (-a * .6).toFixed(1) + ' 0 -19)');
+  }
+  function flagUp(on){
+    flag.style.transition = glow.style.transition = spark.style.transition = 'transform .6s cubic-bezier(.2,1.4,.4,1), opacity .6s ease';
+    flag.setAttribute('transform', 'translate(346 42) scale(1 ' + (on ? 1 : 0) + ')');
+    glow.setAttribute('opacity', on ? 1 : 0); spark.setAttribute('opacity', on ? 1 : 0);
+    if(on && !still && spark.animate) spark.animate([{transform: 'translateY(4px)', opacity: 0}, {transform: 'translateY(-4px)', opacity: 1}, {transform: 'translateY(-8px)', opacity: .2}], {duration: 1600, iterations: 2});
+  }
+  const api = {
+    go(f, ms){
+      cancelAnimationFrame(raf);
+      const from = at, to = Math.max(0, Math.min(1, f)), t0 = performance.now(), dur = still ? 0 : ms || 600;
+      return new Promise(res => {
+        const tick = now => {
+          const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+          at = from + (to - from) * e; phase += Math.abs(to - from) > .001 ? .32 : 0; place(at, k < 1);
+          if(k < 1) raf = requestAnimationFrame(tick); else { place(at, false); if(at >= .999) flagUp(true); res(); }
+        };
+        raf = requestAnimationFrame(tick);
+      });
+    },
+    reset(){ cancelAnimationFrame(raf); at = 0; flagUp(false); place(0, false); },
+    flag: flagUp, still
+  };
+  place(0, false);
+  return api;
+}
+
 async function signInFlow(){
   const r = await sb.rpc('setup_needed');
   if(r.data === true) return setupFlow();
   const names = must(await sb.rpc('login_names')) || [];
   if(!names.length){ ask('No one can sign in yet', 'Ask the owner to add you.', null); return; }
-  const v = await dialog({
-    title: 'Sign in', msg: 'Choose your name and enter your 6-digit PIN.', ok: 'Sign in',
+  const box = dialog({
+    title: 'Sign in', msg: 'Choose your name and enter your 6-digit PIN.', ok: 'Sign in', html: climbSvg('mini'),
     fields: [
       {id: 'user', label: 'Your name', type: 'select', options: [['', 'Choose your name'], ...names.map(n => [n.username, n.name])]},
       {id: 'pin', label: 'PIN', type: 'pin'}
@@ -237,6 +305,14 @@ async function signInFlow(){
       return e;
     }
   });
+  // every digit of the PIN is one more step up the hill; all six reach the summit
+  setTimeout(() => {
+    const svg = document.querySelector('dialog[open] svg.climb'), pin = document.getElementById('nj-f-pin');
+    if(!svg || !pin) return;
+    const c = climber(svg);
+    pin.addEventListener('input', () => { const n = pin.value.replace(/\D/g, '').length; if(n < 6) c.flag(false); c.go(n / 6, 520); });
+  }, 0);
+  const v = await box;
   if(v === 'forgot') return recoverFlow();
 }
 
@@ -969,7 +1045,7 @@ function writeXlsx(fileName, sheetName, rows){
   download(fileName, zipStore(files), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
-window.NJ = {exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
+window.NJ = {climbSvg, climber, exportAll, rateStatus, sb, start, signInFlow, setupFlow, signOut, people, dialog, ask, toast, download, esc, must, friendly,
   pad, iso, parse, todayIso, canUse, DEVICE_KEY, presenceText, matchExpenses, taskMeter, meterBar, meterHtml, APPS, ROOT, PIN_RE, loadNotes, icon, showRecoveryCode,
   liveCheck, deviceCode, recentDay, needsApproval, requestChange, requestsBar, loadRequests, reqItem, reqClick,
   loadQueries, queryMap, queryChip, askQuery, openQuery, queriesBar, queryListen, readXlsx, writeXlsx, selectAll, get me(){ return me; }};
