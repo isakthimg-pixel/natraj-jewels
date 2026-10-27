@@ -368,7 +368,6 @@ const note = (target, dx, dy, text, anchor = 'start', bend = 10) => {
   const mx = (t[0] + lx) / 2 + (dy > 0 ? -bend : bend), my = (t[1] + ly) / 2;
   const end = [lx - (anchor === 'start' ? 3 : anchor === 'end' ? -3 : 0), ly + 1];
   return '<path d="M' + f1(t[0]) + ' ' + f1(t[1]) + 'Q' + f1(mx) + ' ' + f1(my) + ' ' + f1(end[0]) + ' ' + f1(end[1]) + '" fill="none" stroke="' + OR + '" stroke-width=".9"/>' +
-    '<circle cx="' + f1(t[0]) + '" cy="' + f1(t[1]) + '" r="1.4" fill="' + OR + '"/>' +
     text.split('\n').map((l, i) => '<text x="' + f1(lx) + '" y="' + f1(ly + 4 + i * 12) + '" text-anchor="' + anchor + '" class="njsk-hand">' + l + '</text>').join('');
 };
 let notes = '';
@@ -389,14 +388,7 @@ let minX = Math.min(...nums.map(p => p[0])), maxX = Math.max(...nums.map(p => p[
 const padX = 120, padT = 60, padB = 40;
 const vx = minX - padX, vy = minY - padT, vw = maxX - minX + padX * 2, vh = maxY - minY + padT + padB;
 
-// sun with its path arcs, top left; a turning arrow round the bottom right, like site notes
-const sx = vx + 52, sy = vy + 52;
-notes += '<circle cx="' + f1(sx) + '" cy="' + f1(sy) + '" r="6" fill="none" stroke="' + OR + '" stroke-width="1.1"/><circle cx="' + f1(sx) + '" cy="' + f1(sy) + '" r="1.8" fill="' + OR + '"/>';
-notes += '<path d="M' + f1(sx + 20) + ' ' + f1(sy - 26) + 'A34 34 0 0 1 ' + f1(sx + 30) + ' ' + f1(sy + 18) + '" fill="none" stroke="' + INK + '" stroke-width=".9"/>';
-notes += '<path d="M' + f1(sx - 22) + ' ' + f1(sy + 26) + 'A34 34 0 0 1 ' + f1(sx - 30) + ' ' + f1(sy - 16) + '" fill="none" stroke="' + INK + '" stroke-width=".9"/>';
-const ax = vx + vw - 70, ay = vy + vh - 70;
-notes += '<path d="M' + f1(ax + 38) + ' ' + f1(ay - 30) + 'A46 46 0 0 1 ' + f1(ax - 20) + ' ' + f1(ay + 40) + '" fill="none" stroke="' + INK + '" stroke-width=".9"/><path d="M' + f1(ax - 13) + ' ' + f1(ay + 33) + 'L' + f1(ax - 21) + ' ' + f1(ay + 40.5) + 'L' + f1(ax - 11) + ' ' + f1(ay + 43) + '" fill="none" stroke="' + INK + '" stroke-width=".9"/>';
-notes += '<circle cx="' + f1(ax + 18) + '" cy="' + f1(ay + 14) + '" r="5" fill="none" stroke="' + OR + '" stroke-width="1"/><circle cx="' + f1(ax + 18) + '" cy="' + f1(ay + 14) + '" r="1.5" fill="' + OR + '"/>';
+// the shop's name and street along the bottom
 notes += '<text x="' + f1(vx + 22) + '" y="' + f1(vy + vh - 18) + '" class="njsk-hand" font-size="15">Natraj Jewels · Eswaran Kovil St, Tiruppur</text>';
 
 // paper with masking tape at the top corners
