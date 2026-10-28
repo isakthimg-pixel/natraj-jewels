@@ -49,6 +49,9 @@
 .wweek button.ok small{color:var(--p)} .wweek button.miss small{color:var(--a)}
 .wweek button[aria-pressed="true"]{border-color:var(--maroon);box-shadow:inset 0 0 0 1px var(--maroon);background:color-mix(in srgb,var(--maroon) 6%,var(--card))}
 .wweek input{width:auto;padding-block:6px;font-size:.84rem}
+.wweek button.next{border-style:dashed} .wweek button.next small{color:var(--gold)}
+.wnext{border-left:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--card));padding:8px 12px;border-radius:0 4px 4px 0;font-size:.9rem;flex-basis:100%}
+.tick-later{width:22px;height:22px;border:1.5px dashed var(--line);border-radius:4px;align-self:center}
 .wpast{border-left:3px solid var(--a);background:color-mix(in srgb,var(--a) 6%,var(--card));padding:8px 12px;border-radius:0 4px 4px 0;font-size:.88rem;margin-top:10px}
 .wnote{display:flex;gap:8px;margin-top:8px;align-items:center}
 .wnote .input{flex:1;min-width:0;padding-block:8px;font-size:.9rem}
@@ -339,7 +342,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
   <section id="tab-today" hidden>
     <div class="band"><div class="wrap">
       <div class="heading"><span class="eyebrow" id="wEyebrow">Today</span><h2 id="wTitle">Today’s wishes</h2></div>
-      <div class="wweek" id="wWeek" role="group" aria-label="Last 7 days"></div>
+      <div class="wweek" id="wWeek" role="group" aria-label="The last 7 days and tomorrow"></div>
       <p class="axisnote" style="font-size:.88rem">Every birthday and wedding anniversary today. Wish the customer on WhatsApp or by phone, then tick the box. Everyone sees the ticks, so nobody is wished twice and nobody is missed.</p>
       <div class="wprog" id="wProg"></div>
     </div></div>
@@ -911,15 +914,19 @@ function renderWishes(){
   const tl = todaysWishes(), tleft = tl.filter(w => !tickOf(w.c, w.k, todayIso())).length;
   $('wCount').hidden = !tleft; $('wCount').textContent = tleft;
   if(curTab !== 'today') return;
-  const day = shownDay(), isToday = day === todayIso(), list = isToday ? tl : wishesOn(day), done = list.filter(w => tickOf(w.c, w.k)).length, left = list.length - done;
-  $('wEyebrow').textContent = parse(day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'}) + (isToday ? '' : ' · an earlier day');
-  $('wTitle').textContent = isToday ? 'Today’s wishes' : 'Wishes on ' + parse(day).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
+  const day = shownDay(), isToday = day === todayIso(), ahead = day > todayIso(), tmrw = addDays(todayIso(), 1);
+  const list = isToday ? tl : wishesOn(day), done = list.filter(w => tickOf(w.c, w.k)).length, left = list.length - done;
+  $('wEyebrow').textContent = parse(day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'}) + (isToday ? '' : ahead ? ' · coming up' : ' · an earlier day');
+  $('wTitle').textContent = isToday ? 'Today’s wishes' : day === tmrw ? 'Tomorrow’s wishes' : 'Wishes on ' + parse(day).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
   // the last 7 days at a glance: done out of due, red when some were missed
   $('wWeek').innerHTML = [6, 5, 4, 3, 2, 1, 0].map(n => { const d = addDays(todayIso(), -n), ws = n ? wishesOn(d) : tl, dn = ws.filter(w => tickOf(w.c, w.k, d)).length;
     return '<button type="button" data-wday="' + d + '" aria-pressed="' + (d === day) + '" class="' + (!ws.length || dn === ws.length ? 'ok' : n ? 'miss' : '') + '">' + (n ? esc(parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric'})) : 'Today') + '<small>' + dn + ' / ' + ws.length + '</small></button>'; }).join('') +
-    '<input class="input" type="date" id="wPick" max="' + todayIso() + '" value="' + day + '" aria-label="Choose another day">';
+    // tomorrow, to get ready: how many are due
+    '<button type="button" data-wday="' + tmrw + '" aria-pressed="' + (tmrw === day) + '" class="next">Tomorrow<small>' + wishesOn(tmrw).length + ' due</small></button>' +
+    '<input class="input" type="date" id="wPick" value="' + day + '" aria-label="Choose another day">';
   $('wProg').innerHTML = list.length ? '<div class="bar2"><i style="width:' + Math.round(done / list.length * 100) + '%"></i></div><span><b>' + done + '</b> of <b>' + list.length + '</b> done' + (left ? '' : ' · all wished') + '</span>' : '';
-  if(!isToday && left) $('wProg').innerHTML += '<div class="wpast" style="flex-basis:100%">' + left + ' not called on this day. Call them now and tick, or note what was said: it is saved for ' + esc(parse(day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '.</div>';
+  if(ahead) $('wProg').innerHTML = list.length ? '<div class="wnext">' + list.length + ' to wish on ' + esc(parse(day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'short'})) + '. Get ready now; the ticks and notes open on the day.</div>' : '';
+  else if(!isToday && left) $('wProg').innerHTML += '<div class="wpast" style="flex-basis:100%">' + left + ' not called on this day. Call them now and tick, or note what was said: it is saved for ' + esc(parse(day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '.</div>';
   // still to do first, then the done ones; each group by name
   list.sort((a, b) => !!tickOf(a.c, a.k) - !!tickOf(b.c, b.k) || a.c.name.localeCompare(b.c.name));
   const greet = w => 'Dear ' + w.c.name + ', ' + (w.k === 'birthday' ? 'wishing you a very happy birthday!' : 'wishing you both a very happy wedding anniversary!') +
@@ -928,21 +935,22 @@ function renderWishes(){
   $('wList').innerHTML = list.length ? list.map(w => {
     const t = tickOf(w.c, w.k), id = 'w-' + w.c.id + '-' + w.k;
     return '<div class="wrow' + (t ? ' done' : '') + '">' +
-      '<input type="checkbox" class="tick" id="' + esc(id) + '" data-c="' + esc(w.c.id) + '" data-k="' + w.k + '"' + (t ? ' checked' : '') + ' aria-label="' + esc((t ? 'Done: ' : 'Mark done: ') + w.label + ' of ' + w.c.name) + '">' +
+      (ahead ? '<span class="tick-later" aria-hidden="true"></span>'
+        : '<input type="checkbox" class="tick" id="' + esc(id) + '" data-c="' + esc(w.c.id) + '" data-k="' + w.k + '"' + (t ? ' checked' : '') + ' aria-label="' + esc((t ? 'Done: ' : 'Mark done: ') + w.label + ' of ' + w.c.name) + '">') +
       '<span class="dot" aria-hidden="true">' + w.icon + '</span>' +
       '<div><button type="button" class="cust-link ttl" data-cust="' + esc(w.c.id) + '">' + esc(w.c.name) + '</button>' +
       '<div class="sub">' + esc([w.label + (w.years > 0 ? ' · ' + w.years + (w.k === 'birthday' ? ' years old' : ' years') : ''), fmtPhone(w.c.phone)].filter(Boolean).join(' · ')) + '</div>' +
       (t ? '<div class="by">✓ Done by ' + esc(t.done_by_name || 'someone') + (iso(new Date(t.done_at)) !== t.day ? ' on ' + esc(fmtD(iso(new Date(t.done_at)))) + ' (late)' : '') + ' at ' + esc(at(t.done_at)) + '</div>' : '') +
-      (t && t.note && wEdit !== id ? '<div class="wsaid"><b>On the call:</b> ' + esc(t.note) + '<button type="button" class="linkish" data-wedit="' + esc(id) + '">Change</button></div>'
+      (ahead ? '' : t && t.note && wEdit !== id ? '<div class="wsaid"><b>On the call:</b> ' + esc(t.note) + '<button type="button" class="linkish" data-wedit="' + esc(id) + '">Change</button></div>'
         : '<div class="wnote"><input class="input" data-wnote="' + esc(id) + '" maxlength="500" placeholder="What did they say on the call? e.g. daughter’s wedding in Jan, wants a light necklace" value="' + esc(t ? t.note || '' : '') + '" aria-label="Note from the call with ' + esc(w.c.name) + '">' +
           '<button type="button" class="btn mini" data-wsave="' + esc(id) + '" data-c="' + esc(w.c.id) + '" data-k="' + w.k + '">Save note</button></div>') + '</div>' +
-      '<div class="acts">' + (w.c.phone ? (w.c.whatsapp_ok ? '<a class="btn mini btn-wa" href="' + esc(waLink(w.c.phone, greet(w))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') +
+      '<div class="acts">' + (w.c.phone ? (w.c.whatsapp_ok && !ahead ? '<a class="btn mini btn-wa" href="' + esc(waLink(w.c.phone, greet(w))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') +
         '<a class="btn mini" href="tel:' + esc(digits(w.c.phone)) + '">Call</a>' : '<span class="axisnote">No phone number</span>') + '</div></div>';
-  }).join('') : '<div class="empty"><h3>No birthdays or anniversaries today</h3><p>The Birthdays &amp; anniversaries tab shows the next 30 days.</p></div>';
+  }).join('') : '<div class="empty"><h3>No birthdays or anniversaries ' + (isToday ? 'today' : 'on this day') + '</h3><p>The Birthdays &amp; anniversaries tab shows the next 30 days.</p></div>';
 }
 let wEdit = null;     // the row whose saved note is being changed
 $('wWeek').addEventListener('click', e => { const b = e.target.closest('[data-wday]'); if(!b) return; wDay = b.dataset.wday === todayIso() ? null : b.dataset.wday; wEdit = null; loadWishes().catch(x => toast(x.message)); });
-$('wWeek').addEventListener('change', e => { if(e.target.id !== 'wPick' || !e.target.value) return; wDay = e.target.value >= todayIso() ? null : e.target.value; wEdit = null; loadWishes().catch(x => toast(x.message)); });
+$('wWeek').addEventListener('change', e => { if(e.target.id !== 'wPick' || !e.target.value) return; wDay = e.target.value === todayIso() ? null : e.target.value; wEdit = null; loadWishes().catch(x => toast(x.message)); });
 $('wList').addEventListener('click', e => {
   const ed = e.target.closest('[data-wedit]');
   if(ed){ wEdit = ed.dataset.wedit; renderWishes(); const i = document.querySelector('[data-wnote="' + CSS.escape(wEdit) + '"]'); if(i) i.focus(); return; }
