@@ -171,6 +171,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
       <button role="tab" data-tab="form" aria-selected="false">Enter a form</button>
       <button role="tab" data-tab="follow" aria-selected="false">Follow-ups<span class="count" id="fuCount" hidden></span></button>
       <button role="tab" data-tab="today" aria-selected="false">Today’s wishes<span class="count" id="wCount" hidden></span></button>
+      <button role="tab" data-tab="thanks" aria-selected="false">Say thank you<span class="count" id="tCount" hidden></span></button>
       <button role="tab" data-tab="occ" aria-selected="false">Birthdays &amp; anniversaries</button>
       <button role="tab" data-tab="ins" aria-selected="false" class="owner-only">Insights</button>
     </nav>
@@ -355,7 +356,17 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
     </div></div>
     <div class="wrap content">
       <div class="ledger" id="wList"><div class="loading">Loading…</div></div>
-      <div class="thx" id="thxBox" hidden></div>
+    </div>
+  </section>
+
+  <!-- THANK BUYERS -->
+  <section id="tab-thanks" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="tEyebrow">Today</span><h2>Say thank you</h2></div>
+      <p class="axisnote" style="font-size:.88rem">Two days after a purchase on the customer form, send a thank-you on WhatsApp with the shop’s Google review link. Sending it ticks the row, so nobody sends it twice.</p>
+    </div></div>
+    <div class="wrap content">
+      <div class="thx" id="thxBox"><div class="loading">Loading…</div></div>
     </div>
   </section>
 
@@ -439,20 +450,21 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
 function show(name){
   curTab = name; badge();
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name || (name === 'cust' && b.dataset.tab === 'list')));
-  ['list', 'cust', 'form', 'follow', 'today', 'occ', 'ins'].forEach(t => $('tab-' + t).hidden = t !== name);
+  ['list', 'cust', 'form', 'follow', 'today', 'thanks', 'occ', 'ins'].forEach(t => $('tab-' + t).hidden = t !== name);
 }
 async function route(){
   const h = location.hash.slice(1);
   if(h.startsWith('edit=')){ await openEdit(decodeURIComponent(h.slice(5))); return; }
   if(cfEdit) leaveEdit();
   if(h.startsWith('c=')){ await openCustomer(decodeURIComponent(h.slice(2))); return; }
-  show(['form', 'follow', 'today', 'occ'].includes(h) || (h === 'ins' && NJ.me.is_owner) ? h : 'list');
+  show(['form', 'follow', 'today', 'thanks', 'occ'].includes(h) || (h === 'ins' && NJ.me.is_owner) ? h : 'list');
   if(curTab === 'form') formReady();
   if(curTab === 'ins') loadInsights().catch(e => toast(e.message));
   if(curTab === 'list') renderList();
   if(curTab === 'follow') renderFollows();
   if(curTab === 'occ') renderOccasions();
   if(curTab === 'today') loadWishes().catch(e => toast(e.message));
+  if(curTab === 'thanks') loadThanks().catch(e => toast(e.message));
 }
 window.addEventListener('hashchange', () => route().catch(e => toast(e.message)));
 let backTo = 'list';    // the tab a customer page was opened from
@@ -468,6 +480,7 @@ async function loadAll(){
   if(!people.length) people = must(await sb.rpc('crm_people')) || [];
   badge();
   loadWishes().catch(() => {});
+  loadThanks().catch(() => {});
 }
 
 /* ---------- list ---------- */
@@ -918,15 +931,10 @@ const tickOf = (c, k, day) => ticks.find(t => t.customer_id === c.id && t.kind =
 async function loadWishes(){
   const from = addDays(todayIso(), -6), d = shownDay();
   ticks = must(await sb.from('occasion_done').select('*').gte('day', d < from ? d : from).lte('day', todayIso())) || [];
-  // purchases to thank: bought two days before the day shown; on today also any from the week before not thanked yet
-  const due = addDays(d, -THX_AFTER), lo = d === todayIso() ? addDays(due, -7) : due;
-  buys = must(await sb.from('customer_activity').select('id, customer_id, visit_day, looking_for, served_by, thanked_at, thanked_by_name')
-    .eq('kind', 'visit').eq('bought', true).gte('visit_day', lo).lte('visit_day', due)) || [];
-  if(reviewLink === null) reviewLink = ((await sb.from('settings').select('review_link').eq('id', 1).maybeSingle()).data || {}).review_link || '';
   renderWishes();
 }
 function renderWishes(){
-  const tl = todaysWishes(), tleft = tl.filter(w => !tickOf(w.c, w.k, todayIso())).length + (shownDay() === todayIso() ? buys.filter(b => !b.thanked_at).length : 0);
+  const tl = todaysWishes(), tleft = tl.filter(w => !tickOf(w.c, w.k, todayIso())).length;
   $('wCount').hidden = !tleft; $('wCount').textContent = tleft;
   if(curTab !== 'today') return;
   const day = shownDay(), isToday = day === todayIso(), ahead = day > todayIso(), tmrw = addDays(todayIso(), 1);
@@ -962,7 +970,6 @@ function renderWishes(){
       '<div class="acts">' + (w.c.phone ? (w.c.whatsapp_ok && !ahead ? '<a class="btn mini btn-wa" href="' + esc(waLink(w.c.phone, greet(w))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') +
         '<a class="btn mini" href="tel:' + esc(digits(w.c.phone)) + '">Call</a>' : '<span class="axisnote">No phone number</span>') + '</div></div>';
   }).join('') : '<div class="empty"><h3>No birthdays or anniversaries ' + (isToday ? 'today' : 'on this day') + '</h3><p>The Birthdays &amp; anniversaries tab shows the next 30 days.</p></div>';
-  renderThanks(day, isToday, ahead);
 }
 
 /* ---------- say thank you: two days after a purchase on the form, a WhatsApp thank-you with the Google review link ---------- */
@@ -975,15 +982,27 @@ const thxText = b => {
   const c = custById(b.customer_id) || {}, item = thxLang === 'en' && b.looking_for ? b.looking_for.toLowerCase() : THX_ITEM[thxLang];
   return THX[thxLang].replace('{name}', (c.name || '').split(' ')[0] || 'friend').replace('{item}', item) + (reviewLink ? '\n' + THX_REVIEW[thxLang] + reviewLink : '');
 };
-function renderThanks(day, isToday, ahead){
+// purchases to thank today: bought two days ago, and any from the week before not thanked yet
+async function loadThanks(){
+  const due = addDays(todayIso(), -THX_AFTER);
+  buys = must(await sb.from('customer_activity').select('id, customer_id, visit_day, looking_for, served_by, thanked_at, thanked_by_name')
+    .eq('kind', 'visit').eq('bought', true).gte('visit_day', addDays(due, -7)).lte('visit_day', due)) || [];
+  if(reviewLink === null) reviewLink = ((await sb.from('settings').select('review_link').eq('id', 1).maybeSingle()).data || {}).review_link || '';
+  renderThanks();
+}
+function renderThanks(){
+  const day = todayIso(), isToday = true, ahead = false;
+  const left = buys.filter(b => !b.thanked_at).length;
+  $('tCount').hidden = !left; $('tCount').textContent = left;
+  if(curTab !== 'thanks') return;
+  $('tEyebrow').textContent = parse(day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'});
   const box = $('thxBox'), due = addDays(day, -THX_AFTER), short = d => parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
   // earlier purchases show only while still to thank (or thanked today); the purchases from the due day always show
   const list = buys.filter(b => custById(b.customer_id) && (b.visit_day === due || !b.thanked_at || iso(new Date(b.thanked_at)) === todayIso())).sort((a, b) => !!a.thanked_at - !!b.thanked_at || (a.visit_day < b.visit_day ? 1 : -1));
-  box.hidden = false;
   const done = list.filter(b => b.thanked_at).length;
   const owner = NJ.me.is_owner, at = t => new Date(t).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
-  box.innerHTML = '<div class="thx-head"><div><h3>Say thank you</h3><p>' + (ahead ? 'Customers who bought on ' + esc(short(due)) + ': thank them on ' + esc(short(day)) + '.'
-      : 'Customers who bought on ' + esc(short(due)) + ' (' + THX_AFTER + ' days ago)' + (isToday ? ', and any from the week before not thanked yet' : '') + '. Send the thank-you on WhatsApp; it asks for a Google review.') + '</p></div>' +
+  box.innerHTML = '<div class="thx-head"><div><p>' + (ahead ? 'Customers who bought on ' + esc(short(due)) + ': thank them on ' + esc(short(day)) + '.'
+      : 'Bought on ' + esc(short(due)) + ' (' + THX_AFTER + ' days ago)' + (isToday ? ', plus any from the week before still to thank' : '') + '. Choose the message language:') + '</p></div>' +
       (list.length ? '<div class="thx-lang" role="group" aria-label="Message language"><button type="button" class="bubble" data-tl="en" aria-pressed="' + (thxLang === 'en') + '">English</button><button type="button" class="bubble" data-tl="ta" aria-pressed="' + (thxLang === 'ta') + '">தமிழ்</button></div>' : '') + '</div>' +
     (list.length && !reviewLink ? '<div class="thx-warn">The Google review link is not added yet, so the message goes without it.' + (owner ? '<button type="button" class="btn mini" data-revset>Add the review link</button>' : ' Ask the owner to add it.') + '</div>' : '') +
     (list.length ? '<div class="wprog"><div class="bar2"><i style="width:' + Math.round(done / list.length * 100) + '%"></i></div><span><b>' + done + '</b> of <b>' + list.length + '</b> thanked</span></div>' : '') +
@@ -1005,18 +1024,18 @@ async function markThanked(id, on){
   const b = buys.find(x => x.id === id); if(!b) return;
   const r = must(await sb.from('customer_activity').update({thanked_at: on ? new Date().toISOString() : null}).eq('id', id).select('thanked_at, thanked_by_name'));
   if(r && r[0]) Object.assign(b, r[0]);
-  renderWishes();
+  renderThanks();
 }
 $('thxBox').addEventListener('click', async e => {
   const l = e.target.closest('[data-tl]');
-  if(l){ thxLang = l.dataset.tl; try{ localStorage.setItem('nj-thx-lang', thxLang); }catch(x){} return renderWishes(); }
+  if(l){ thxLang = l.dataset.tl; try{ localStorage.setItem('nj-thx-lang', thxLang); }catch(x){} return renderThanks(); }
   const s = e.target.closest('[data-thxsend]');
   if(s){ const b = buys.find(x => x.id === s.dataset.thxsend); if(b && !b.thanked_at) markThanked(b.id, true).catch(x => toast(x.message)); return; }   // WhatsApp opens; the row is ticked
   if(e.target.closest('[data-revset]')){
     const v = await NJ.dialog({title: 'Google review link', msg: 'On Google Maps, open the shop, tap “Share” or “Ask for reviews”, copy the link and paste it here.', ok: 'Save', fields: [{id: 'u', label: 'Review link', value: reviewLink, maxlength: 300, placeholder: 'https://g.page/r/…'}],
       validate: async v => !/^https?:\/\//i.test(v.u) ? 'The link should start with https://' : ''});
     if(!v) return;
-    try{ must(await sb.from('settings').update({review_link: v.u.trim()}).eq('id', 1).select()); reviewLink = v.u.trim(); toast('Saved'); renderWishes(); }catch(err){ toast(err.message); }
+    try{ must(await sb.from('settings').update({review_link: v.u.trim()}).eq('id', 1).select()); reviewLink = v.u.trim(); toast('Saved'); renderThanks(); }catch(err){ toast(err.message); }
     return;
   }
   const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust);
