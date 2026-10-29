@@ -65,4 +65,5 @@ That is intended: they power the sign-in screen and the public leave form.
 - `052_occasion_note.sql` — `occasion_done.note`: what the customer said on the birthday / anniversary call (Today's wishes); Customers users may update it. Applied.
 - `053_customers_added_via.sql` — `customers.added_via` (form or list); the 9,001 customers from the 19 Oct 2026 import marked list. Applied.
 - `054_visit_new_customer.sql` — `customer_activity.new_customer` on each visit form: new (first time) or returning; older forms left empty. Applied.
+- `055_visit_thanked.sql` — `customer_activity.thanked_at` / `thanked_by_name`: the WhatsApp thank-you (with the Google review link) sent two days after a purchase on the form; the server stamps when and who. Applied.
 - `008_rate_updaters_many.sql` — any number of people can update the daily rate (everyone with the `rates` app). Applied.

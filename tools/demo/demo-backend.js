@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v47';
+const KEY = 'natraj-demo-db-v48';
 const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -161,8 +161,9 @@ function seed(){
   act(C[3], 'followup', 'Diamond earrings: confirm the size and send photos', addDays(today, 2), 'open', owner);
   act(C[4], 'followup', 'Bridal trial visit with family', addDays(today, 9), 'open', manager);
   const visit = (c, ago, came, bought, look, rating, missing, served, why) => act(c, 'visit', 'Form', null, 'done', manager,
-    {assigned_to: null, assigned_name: '', visit_day: addDays(today, -ago), came_for: came, bought, looking_for: look, rating, missing, why_not: why || '', served_by: served, outcome: '', new_customer: ago > 20 ? true : ago % 2 === 0});
+    {assigned_to: null, assigned_name: '', visit_day: addDays(today, -ago), came_for: came, bought, looking_for: look, rating, missing, why_not: why || '', served_by: served, outcome: '', new_customer: ago > 20 ? true : ago % 2 === 0, thanked_at: bought && ago > 2 && ago % 3 ? addDays(today, -ago + 2) + 'T06:30:00Z' : null, thanked_by_name: bought && ago > 2 && ago % 3 ? manager.name : ''});
   visit(C[0], 2, ['Gold', 'Daily wear'], true, 'Antique bangles', 5, '', 'Sample Staff 2, Sample Manager');
+  visit(C[5], 3, ['Gold'], true, 'Gold chain', 5, '', 'Sample Staff 2');
   visit(C[1], 5, ['Gold', 'Wedding'], false, 'Temple bridal set', 4, 'Lighter bridal necklace under 40 g', 'Sample Manager', 'Too heavy for her budget');
   visit(C[2], 8, ['Silver', 'Gift'], true, 'Silver pooja set', 5, '', 'Sample Staff 3');
   visit(C[3], 11, ['Diamond'], false, 'Diamond studs', 3, 'Solitaire above 30 cents', 'Sample Manager', 'Comparing with another shop');
@@ -1067,6 +1068,9 @@ function crmRest(table, method, params, body, single, wantRows, me){
     if(r.kind === 'note' || r.kind === 'visit'){ r.status = 'done'; r.due = null; if(r.kind === 'visit' && !r.visit_day) r.visit_day = nowIso.slice(0, 10); }
     else if(r.status === 'done' && (!old || old.status !== 'done')){ r.done_at = nowIso; r.done_by_name = me.name; }
     else if(r.status === 'open'){ r.done_at = null; r.done_by_name = ''; r.outcome = ''; }
+    // the thank-you after a purchase: the server stamps when and who (migration 055)
+    if(!old){ r.thanked_at = null; r.thanked_by_name = ''; }
+    else if(r.thanked_at !== old.thanked_at){ if(r.thanked_at){ r.thanked_at = nowIso; r.thanked_by_name = me.name; } else r.thanked_by_name = ''; }
     return r;
   };
   let out = db[table].filter(r => matches(r, params));
@@ -1074,7 +1078,7 @@ function crmRest(table, method, params, body, single, wantRows, me){
   else if(method === 'POST'){
     const base = table === 'customers'
       ? {added_via: 'form', phone: '', alt_phone: '', area: '', address: '', birthday: null, anniversary: null, tags: [], source: '', notes: '', pincode: '', whatsapp_on_phone: true, whatsapp_ok: false, function_month: '', function_note: '', updated_by_name: '', updated_at: null}
-      : {due: null, status: 'open', outcome: '', assigned_to: null, assigned_name: '', done_at: null, done_by_name: '', came_for: [], bought: null, looking_for: '', rating: null, missing: '', why_not: '', served_by: '', visit_day: null, new_customer: null};
+      : {due: null, status: 'open', outcome: '', assigned_to: null, assigned_name: '', done_at: null, done_by_name: '', came_for: [], bought: null, looking_for: '', rating: null, missing: '', why_not: '', served_by: '', visit_day: null, new_customer: null, thanked_at: null, thanked_by_name: ''};
     out = (Array.isArray(body) ? body : [body]).map(b => fix(Object.assign({id: uid()}, base, b, {created_by: me.user_id, created_by_name: me.name, created_at: nowIso})));
     db[table].push(...out);
   } else if(method === 'PATCH'){

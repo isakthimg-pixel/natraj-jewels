@@ -49,6 +49,13 @@
 .wweek button.ok small{color:var(--p)} .wweek button.miss small{color:var(--a)}
 .wweek button[aria-pressed="true"]{border-color:var(--maroon);box-shadow:inset 0 0 0 1px var(--maroon);background:color-mix(in srgb,var(--maroon) 6%,var(--card))}
 .wweek input{width:auto;padding-block:6px;font-size:.84rem}
+.thx{margin-top:28px;display:grid;gap:12px}
+.thx-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.thx-head h3{font-size:1.35rem;color:var(--maroon);margin:0}
+.thx-head p{margin:4px 0 0;font-size:.88rem;color:var(--muted)}
+.thx-lang{display:flex;gap:6px}
+.thx-warn{border-left:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--card));padding:8px 12px;border-radius:0 4px 4px 0;font-size:.88rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.wrow .late{color:var(--a);font-weight:600}
 .wweek button.next{border-style:dashed} .wweek button.next small{color:var(--gold)}
 .wnext{border-left:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--card));padding:8px 12px;border-radius:0 4px 4px 0;font-size:.9rem;flex-basis:100%}
 .tick-later{width:22px;height:22px;border:1.5px dashed var(--line);border-radius:4px;align-self:center}
@@ -348,6 +355,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
     </div></div>
     <div class="wrap content">
       <div class="ledger" id="wList"><div class="loading">Loading…</div></div>
+      <div class="thx" id="thxBox" hidden></div>
     </div>
   </section>
 
@@ -891,6 +899,8 @@ function renderOccasions(){
 /* ---------- today's wishes: today's birthdays and anniversaries, each ticked off once wished ---------- */
 let ticks = [];     // occasion_done rows for the last 7 days (and the chosen day)
 let wDay = null;    // the day shown; null = today
+const THX_AFTER = 2;              // days after a purchase to send the thank-you
+let buys = [], reviewLink = null;  // purchases to thank around the day shown; the shop's Google review link
 const OCC = [['birthday', 'Birthday', '🎂'], ['anniversary', 'Wedding anniversary', '💍']];
 // whose birthday or anniversary falls on a day (29 Feb counts on 28 Feb in other years)
 function wishesOn(day){
@@ -908,10 +918,15 @@ const tickOf = (c, k, day) => ticks.find(t => t.customer_id === c.id && t.kind =
 async function loadWishes(){
   const from = addDays(todayIso(), -6), d = shownDay();
   ticks = must(await sb.from('occasion_done').select('*').gte('day', d < from ? d : from).lte('day', todayIso())) || [];
+  // purchases to thank: bought two days before the day shown; on today also any from the week before not thanked yet
+  const due = addDays(d, -THX_AFTER), lo = d === todayIso() ? addDays(due, -7) : due;
+  buys = must(await sb.from('customer_activity').select('id, customer_id, visit_day, looking_for, served_by, thanked_at, thanked_by_name')
+    .eq('kind', 'visit').eq('bought', true).gte('visit_day', lo).lte('visit_day', due)) || [];
+  if(reviewLink === null) reviewLink = ((await sb.from('settings').select('review_link').eq('id', 1).maybeSingle()).data || {}).review_link || '';
   renderWishes();
 }
 function renderWishes(){
-  const tl = todaysWishes(), tleft = tl.filter(w => !tickOf(w.c, w.k, todayIso())).length;
+  const tl = todaysWishes(), tleft = tl.filter(w => !tickOf(w.c, w.k, todayIso())).length + (shownDay() === todayIso() ? buys.filter(b => !b.thanked_at).length : 0);
   $('wCount').hidden = !tleft; $('wCount').textContent = tleft;
   if(curTab !== 'today') return;
   const day = shownDay(), isToday = day === todayIso(), ahead = day > todayIso(), tmrw = addDays(todayIso(), 1);
@@ -947,7 +962,70 @@ function renderWishes(){
       '<div class="acts">' + (w.c.phone ? (w.c.whatsapp_ok && !ahead ? '<a class="btn mini btn-wa" href="' + esc(waLink(w.c.phone, greet(w))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') +
         '<a class="btn mini" href="tel:' + esc(digits(w.c.phone)) + '">Call</a>' : '<span class="axisnote">No phone number</span>') + '</div></div>';
   }).join('') : '<div class="empty"><h3>No birthdays or anniversaries ' + (isToday ? 'today' : 'on this day') + '</h3><p>The Birthdays &amp; anniversaries tab shows the next 30 days.</p></div>';
+  renderThanks(day, isToday, ahead);
 }
+
+/* ---------- say thank you: two days after a purchase on the form, a WhatsApp thank-you with the Google review link ---------- */
+const THX = {en: 'Dear {name}, thank you for shopping at Natraj Jewels! We hope you love your {item}. 🙏',
+  ta: 'அன்புள்ள {name}, நடராஜ் ஜுவல்லர்ஸில் வாங்கியதற்கு நன்றி! உங்கள் {item} உங்களுக்குப் பிடிக்கும் என நம்புகிறோம். 🙏'};
+const THX_ITEM = {en: 'jewellery', ta: 'நகை'};
+const THX_REVIEW = {en: 'If you were happy with us, please leave a short review on Google: ', ta: 'எங்கள் சேவை பிடித்திருந்தால், Google-ல் ஒரு சிறு மதிப்பாய்வு எழுதுங்கள்: '};
+let thxLang = (() => { try{ return localStorage.getItem('nj-thx-lang') || 'en'; }catch(e){ return 'en'; } })();
+const thxText = b => {
+  const c = custById(b.customer_id) || {}, item = thxLang === 'en' && b.looking_for ? b.looking_for.toLowerCase() : THX_ITEM[thxLang];
+  return THX[thxLang].replace('{name}', (c.name || '').split(' ')[0] || 'friend').replace('{item}', item) + (reviewLink ? '\n' + THX_REVIEW[thxLang] + reviewLink : '');
+};
+function renderThanks(day, isToday, ahead){
+  const box = $('thxBox'), due = addDays(day, -THX_AFTER), short = d => parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
+  // earlier purchases show only while still to thank (or thanked today); the purchases from the due day always show
+  const list = buys.filter(b => custById(b.customer_id) && (b.visit_day === due || !b.thanked_at || iso(new Date(b.thanked_at)) === todayIso())).sort((a, b) => !!a.thanked_at - !!b.thanked_at || (a.visit_day < b.visit_day ? 1 : -1));
+  box.hidden = false;
+  const done = list.filter(b => b.thanked_at).length;
+  const owner = NJ.me.is_owner, at = t => new Date(t).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
+  box.innerHTML = '<div class="thx-head"><div><h3>Say thank you</h3><p>' + (ahead ? 'Customers who bought on ' + esc(short(due)) + ': thank them on ' + esc(short(day)) + '.'
+      : 'Customers who bought on ' + esc(short(due)) + ' (' + THX_AFTER + ' days ago)' + (isToday ? ', and any from the week before not thanked yet' : '') + '. Send the thank-you on WhatsApp; it asks for a Google review.') + '</p></div>' +
+      (list.length ? '<div class="thx-lang" role="group" aria-label="Message language"><button type="button" class="bubble" data-tl="en" aria-pressed="' + (thxLang === 'en') + '">English</button><button type="button" class="bubble" data-tl="ta" aria-pressed="' + (thxLang === 'ta') + '">தமிழ்</button></div>' : '') + '</div>' +
+    (list.length && !reviewLink ? '<div class="thx-warn">The Google review link is not added yet, so the message goes without it.' + (owner ? '<button type="button" class="btn mini" data-revset>Add the review link</button>' : ' Ask the owner to add it.') + '</div>' : '') +
+    (list.length ? '<div class="wprog"><div class="bar2"><i style="width:' + Math.round(done / list.length * 100) + '%"></i></div><span><b>' + done + '</b> of <b>' + list.length + '</b> thanked</span></div>' : '') +
+    '<div class="ledger">' + (list.length ? list.map(b => {
+      const c = custById(b.customer_id), late = b.visit_day < due;
+      return '<div class="wrow' + (b.thanked_at ? ' done' : '') + '">' +
+        (ahead ? '<span class="tick-later" aria-hidden="true"></span>'
+          : '<input type="checkbox" class="tick" data-thx="' + esc(b.id) + '"' + (b.thanked_at ? ' checked' : '') + ' aria-label="' + esc((b.thanked_at ? 'Thanked: ' : 'Mark thanked: ') + c.name) + '">') +
+        '<span class="dot" aria-hidden="true">🙏</span>' +
+        '<div><button type="button" class="cust-link ttl" data-cust="' + esc(c.id) + '">' + esc(c.name) + '</button>' +
+        '<div class="sub">' + esc(['Bought on ' + short(b.visit_day) + (b.looking_for ? ' · ' + b.looking_for : ''), b.served_by ? 'served by ' + b.served_by.split(',').map(x => x.trim()).filter(Boolean).join(', ') : '', fmtPhone(c.phone)].filter(Boolean).join(' · ')) +
+          (late && !b.thanked_at ? ' · <span class="late">' + Math.round((parse(day) - parse(b.visit_day)) / 864e5) + ' days ago, still to thank</span>' : '') + '</div>' +
+        (b.thanked_at ? '<div class="by">✓ Thanked by ' + esc(b.thanked_by_name || 'someone') + ' on ' + esc(fmtD(iso(new Date(b.thanked_at)))) + ' at ' + esc(at(b.thanked_at)) + '</div>' : '') + '</div>' +
+        '<div class="acts">' + (c.phone ? (ahead ? '' : c.whatsapp_ok ? '<a class="btn mini btn-wa" data-thxsend="' + esc(b.id) + '" href="' + esc(waLink(c.phone, thxText(b))) + '" target="_blank" rel="noopener">' + (b.thanked_at ? 'Send again' : 'Send thanks') + '</a>' : '<span class="axisnote">No WhatsApp: did not agree</span>') +
+          '<a class="btn mini" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '<span class="axisnote">No phone number</span>') + '</div></div>';
+    }).join('') : '<div class="empty"><h3>Nobody to thank' + (ahead ? '' : ' today') + '</h3><p>No purchases were entered on the form on ' + esc(short(due)) + '.</p></div>') + '</div>';
+}
+async function markThanked(id, on){
+  const b = buys.find(x => x.id === id); if(!b) return;
+  const r = must(await sb.from('customer_activity').update({thanked_at: on ? new Date().toISOString() : null}).eq('id', id).select('thanked_at, thanked_by_name'));
+  if(r && r[0]) Object.assign(b, r[0]);
+  renderWishes();
+}
+$('thxBox').addEventListener('click', async e => {
+  const l = e.target.closest('[data-tl]');
+  if(l){ thxLang = l.dataset.tl; try{ localStorage.setItem('nj-thx-lang', thxLang); }catch(x){} return renderWishes(); }
+  const s = e.target.closest('[data-thxsend]');
+  if(s){ const b = buys.find(x => x.id === s.dataset.thxsend); if(b && !b.thanked_at) markThanked(b.id, true).catch(x => toast(x.message)); return; }   // WhatsApp opens; the row is ticked
+  if(e.target.closest('[data-revset]')){
+    const v = await NJ.dialog({title: 'Google review link', msg: 'On Google Maps, open the shop, tap “Share” or “Ask for reviews”, copy the link and paste it here.', ok: 'Save', fields: [{id: 'u', label: 'Review link', value: reviewLink, maxlength: 300, placeholder: 'https://g.page/r/…'}],
+      validate: async v => !/^https?:\/\//i.test(v.u) ? 'The link should start with https://' : ''});
+    if(!v) return;
+    try{ must(await sb.from('settings').update({review_link: v.u.trim()}).eq('id', 1).select()); reviewLink = v.u.trim(); toast('Saved'); renderWishes(); }catch(err){ toast(err.message); }
+    return;
+  }
+  const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust);
+});
+$('thxBox').addEventListener('change', async e => {
+  const t = e.target.closest('[data-thx]'); if(!t) return;
+  t.disabled = true;
+  try{ await markThanked(t.dataset.thx, t.checked); }catch(err){ t.checked = !t.checked; t.disabled = false; toast(err.message); }
+});
 let wEdit = null;     // the row whose saved note is being changed
 $('wWeek').addEventListener('click', e => { const b = e.target.closest('[data-wday]'); if(!b) return; wDay = b.dataset.wday === todayIso() ? null : b.dataset.wday; wEdit = null; loadWishes().catch(x => toast(x.message)); });
 $('wWeek').addEventListener('change', e => { if(e.target.id !== 'wPick' || !e.target.value) return; wDay = e.target.value === todayIso() ? null : e.target.value; wEdit = null; loadWishes().catch(x => toast(x.message)); });
