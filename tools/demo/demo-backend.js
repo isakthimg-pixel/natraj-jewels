@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v48';
-const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
+const KEY = 'natraj-demo-db-v49';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'wishes', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 // migration 029: staff add, change and remove only entries dated today or yesterday
@@ -20,10 +20,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'wishes', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, review_link: 'https://g.page/r/natraj-jewels-demo/review', silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [], campaign_posts: [], marketing_dates: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, review_link: 'https://g.page/r/natraj-jewels-demo/review', silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [], wish_list: [], campaign_posts: [], marketing_dates: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -172,6 +172,25 @@ function seed(){
   visit(C[6], 26, ['Gold', 'Gift'], false, 'Kids’ chain', 3, '22K kids’ chain under 4 g', 'Sample Staff 2', 'Price above budget');
   act(C[5], 'followup', 'Old gold exchange rate check', addDays(today, -6), 'done', manager, {outcome: 'Came in, exchanged 18 g.'});
   db.occasion_done = [{customer_id: C[7].id, kind: 'birthday', day: today, done_by: manager.user_id, done_by_name: manager.name, done_at: today + 'T04:15:00Z', note: 'Thanked us. Son’s wedding in February, will come with family to see bridal sets.'}];
+  // the birthday list (the Wishes app): kept apart from customers. Lakshmi is also a customer with the same birthday, so she is wished once.
+  const wl = (name, phone, extra) => { const r = Object.assign({id: uid(), name, phone, alt_phone: '', birthday: null, anniversary: null, notes: '', whatsapp_ok: false,
+    created_by: manager.user_id, created_by_name: manager.name, created_at: addDays(today, -12) + 'T10:00:00Z', updated_by_name: '', updated_at: null}, extra); db.wish_list.push(r); return r; };
+  const L = [
+    wl('Lakshmi S', '9843012345', {birthday: md(0, 1904), notes: 'Card 112'}),
+    wl('Kathirvel', '9894509588', {birthday: md(0, 1979), notes: 'Card 214'}),
+    wl('Vaeeswari', '9894509588', {anniversary: md(0, 2004), whatsapp_ok: true, notes: 'Card 214'}),
+    wl('Muthulakshmi R', '9443312876', {birthday: md(0, 1962), whatsapp_ok: true}),
+    wl('Senthil Kumar', '9786543210', {birthday: md(1, 1985), notes: 'Card 87'}),
+    wl('Banu Priya', '9600012398', {anniversary: md(1, 2012), whatsapp_ok: true}),
+    wl('Ganesan P', '9842265431', {birthday: md(-1, 1958)}),
+    wl('Revathi M', '9500544321', {birthday: md(-2, 1991), whatsapp_ok: true}),
+    wl('Arumugam', '9865011122', {anniversary: md(4, 1996)}),
+    wl('Saranya K', '9626033344', {birthday: md(9, 1994), whatsapp_ok: true}),
+    wl('Prakash N', '9788055566', {birthday: md(17, 1983)}),
+    wl('Gomathi', '9443188776', {anniversary: md(25, 1989), birthday: md(120, 1965)})
+  ];
+  db.occasion_done.push({customer_id: L[3].id, kind: 'birthday', day: today, done_by: manager.user_id, done_by_name: manager.name, done_at: today + 'T05:10:00Z', note: ''},
+    {customer_id: L[6].id, kind: 'birthday', day: addDays(today, -1), done_by: manager.user_id, done_by_name: manager.name, done_at: addDays(today, -1) + 'T06:00:00Z', note: 'Will visit for a chain next week.'});
   // design library: customer enquiries and restock at every stage, with drawn sample photos (see samplePhoto)
   const at = (n, h) => addDays(today, n) + 'T' + (h || '11') + ':00:00Z';
   const des = (kind, metal, category, purity, weight_g, extra, kinds, ago, status) => {
@@ -760,6 +779,7 @@ function rpc(name, a, me, headers){
       return {status: 200, body: l};
     }
     case 'campaign_people': return {status: 200, body: canUse(me, 'campaigns') ? db.profiles.filter(p => p.is_owner || p.apps.includes('campaigns')).map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
+    case 'wish_customers': return {status: 200, body: canUse(me, 'wishes') ? db.customers.filter(c => c.birthday || c.anniversary).map(c => ({id: c.id, name: c.name, phone: c.phone, whatsapp_ok: c.whatsapp_ok, birthday: c.birthday, anniversary: c.anniversary})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'crm_people': return {status: 200, body: canUse(me, 'crm') ? db.profiles.filter(p => p.is_owner || p.apps.includes('crm')).map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
     case 'bank_balances': return {status: 200, body: bankBalances(a.p_until, me)};
     case 'assignable_people': return {status: 200, body: canUse(me, 'todo') ? db.profiles.map(p => ({user_id: p.user_id, name: p.name})).sort((x, y) => x.name.localeCompare(y.name)) : []};
@@ -817,7 +837,8 @@ function rest(method, table, params, body, headers, me){
     designs: {read: canUse(me, 'designs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'designs')},
     jobs: {read: canUse(me, 'jobs'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'jobs')},
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}, entry_queries: {read: true, write: false},
-    occasion_done: {read: canUse(me, 'crm'), write: canUse(me, 'crm')}
+    occasion_done: {read: canUse(me, 'wishes'), write: canUse(me, 'wishes')},
+    wish_list: {read: canUse(me, 'wishes'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'wishes')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
   if(method === 'GET' ? !rule.read : !rule.write) return denied;
@@ -846,7 +867,7 @@ function rest(method, table, params, body, headers, me){
   if(table === 'expenses') return expensesRest(method, params, body, single, wantRows, me);
   if(table === 'user_prefs') return prefsRest(method, params, body, single, wantRows, me);
   if(table === 'occasion_done'){
-    if(!canUse(me, 'crm')) return method === 'GET' ? {status: 200, body: []} : {status: 403, body: {code: '42501', message: 'permission denied'}};
+    if(!canUse(me, 'wishes')) return method === 'GET' ? {status: 200, body: []} : {status: 403, body: {code: '42501', message: 'permission denied'}};
     db.occasion_done = db.occasion_done || [];
     let out = db.occasion_done.filter(r => matches(r, params));
     if(method === 'POST'){
@@ -858,6 +879,19 @@ function rest(method, table, params, body, headers, me){
     else if(method === 'DELETE') db.occasion_done = db.occasion_done.filter(r => !out.includes(r));
     if(method !== 'GET' && !wantRows) return {status: 204, body: null};
     return {status: 200, body: out.map(r => Object.assign({}, r))};
+  }
+  if(table === 'wish_list'){
+    const nowIso = new Date().toISOString();
+    let out = db.wish_list.filter(r => matches(r, params));
+    if(method === 'GET') out = sortBy(out.slice(), params.get('order'));
+    else if(method === 'POST'){
+      out = (Array.isArray(body) ? body : [body]).map(b => Object.assign({id: uid(), phone: '', alt_phone: '', birthday: null, anniversary: null, notes: '', whatsapp_ok: false}, b,
+        {created_by: me.user_id, created_by_name: me.name, created_at: nowIso, updated_by_name: '', updated_at: null}));
+      db.wish_list.push(...out);
+    } else if(method === 'PATCH') out.forEach(r => Object.assign(r, body, {id: r.id, created_by: r.created_by, created_by_name: r.created_by_name, created_at: r.created_at, updated_by_name: me.name, updated_at: nowIso}));
+    else if(method === 'DELETE') db.wish_list = db.wish_list.filter(r => !out.includes(r));
+    if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+    return {status: 200, body: single ? (out[0] ? Object.assign({}, out[0]) : null) : out.map(r => Object.assign({}, r))};
   }
   if(table === 'customers' || table === 'customer_activity') return crmRest(table, method, params, body, single, wantRows, me);
   if(table === 'bank_accounts') return bankAccountsRest(method, params, body, single, wantRows, me);

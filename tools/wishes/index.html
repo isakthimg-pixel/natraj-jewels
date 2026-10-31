@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#3B2420">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>Birthday &amp; anniversary wishes · Natraj Jewels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../shared/natraj.css">
+<style>
+.signed-out main{display:none!important}
+.signin-msg{display:none}
+.signed-out .signin-msg{display:block}
+.no-access main{display:none!important}
+.no-access-msg{display:none}
+.no-access .no-access-msg{display:block}
+
+.search{flex:1 1 260px;max-width:460px;height:44px;padding:0 14px}
+.btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
+.btn-wa:hover{background:#0B6358;border-color:#0B6358}
+.axisnote{font-size:.78rem;color:var(--muted);margin:0}
+.cust-link{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.cust-link:hover{text-decoration:underline;text-underline-offset:3px}
+.dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;margin-top:1px;background:var(--paper);color:var(--muted);border:1px solid var(--line)}
+.src{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:6px;vertical-align:2px}
+.src.form{color:var(--maroon);border-color:color-mix(in srgb,var(--maroon) 35%,var(--line))}
+.tag.today{border-color:var(--h);color:var(--h);background:var(--h-bg)}
+.tag.soon{border-color:var(--hm);color:var(--hm);background:var(--hm-bg)}
+.more{padding:14px 18px;color:var(--muted);font-size:.88rem}
+
+/* today's wishes: a tick for each one done */
+.wrow{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:4px 14px;padding:14px 18px;align-items:center}
+.wrow .tick{width:26px;height:26px;margin:0;accent-color:var(--maroon);cursor:pointer}
+.wrow .ttl{font-weight:600;color:var(--ink)}
+.wrow .sub{font-size:.84rem;color:var(--muted);margin-top:2px}
+.wrow .by{font-size:.82rem;color:var(--p);margin-top:3px}
+.wrow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.wrow.done{background:var(--paper)}
+.wrow.done .ttl{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 60%,transparent)}
+.wweek{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:4px 0 16px}
+.wweek button{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:7px 10px;font:600 .78rem/1.25 var(--body);color:var(--ink);cursor:pointer;text-align:center;min-width:74px}
+.wweek button small{display:block;font-weight:700;font-size:.8rem;margin-top:2px}
+.wweek button.ok small{color:var(--p)} .wweek button.miss small{color:var(--a)}
+.wweek button[aria-pressed="true"]{border-color:var(--maroon);box-shadow:inset 0 0 0 1px var(--maroon);background:color-mix(in srgb,var(--maroon) 6%,var(--card))}
+.wweek button.next{border-style:dashed} .wweek button.next small{color:var(--gold)}
+.wweek input{width:auto;padding-block:6px;font-size:.84rem}
+.wnext{border-left:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--card));padding:8px 12px;border-radius:0 4px 4px 0;font-size:.9rem;flex-basis:100%}
+.tick-later{width:22px;height:22px;border:1.5px dashed var(--line);border-radius:4px;align-self:center}
+.wpast{border-left:3px solid var(--a);background:color-mix(in srgb,var(--a) 6%,var(--card));padding:8px 12px;border-radius:0 4px 4px 0;font-size:.88rem;margin-top:10px}
+.wnote{display:flex;gap:8px;margin-top:8px;align-items:center}
+.wnote .input{flex:1;min-width:0;padding-block:8px;font-size:.9rem}
+.wsaid{margin-top:6px;font-size:.88rem;color:var(--ink);background:color-mix(in srgb,var(--gold) 9%,var(--card));border-left:3px solid var(--gold);padding:6px 10px;border-radius:0 4px 4px 0;white-space:pre-line}
+.wsaid button{margin-left:6px}
+.wprog{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px}
+.wprog .bar2{flex:1 1 220px;max-width:420px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.wprog .bar2 i{display:block;height:100%;background:var(--p);border-radius:99px;transition:width .3s ease}
+.wprog b{font-variant-numeric:lining-nums tabular-nums}
+@media (max-width:640px){.wrow{grid-template-columns:auto auto minmax(0,1fr)}.wrow .acts{grid-column:3;justify-content:flex-start}}
+
+/* coming up and the list */
+.arow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;padding:14px 18px;align-items:start}
+.arow .ttl{font-weight:600;color:var(--ink)}
+.arow .sub{font-size:.84rem;color:var(--muted);margin-top:2px}
+.arow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.arow{grid-template-columns:auto minmax(0,1fr)}.arow .acts{grid-column:2;justify-content:flex-start}}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:13px 18px;align-items:center;cursor:pointer}
+.lrow:hover{background:color-mix(in srgb,var(--gold) 5%,var(--card))}
+.lrow .nm{font:600 1.02rem/1.3 var(--heading);color:var(--ink)}
+.lrow .sub{font-size:.84rem;color:var(--muted);margin-top:2px}
+
+/* bring in a list */
+.imsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+.imsum div{border:1px solid var(--line);border-radius:4px;padding:12px 14px;background:var(--card)}
+.imsum b{display:block;font:600 1.5rem/1.1 var(--display);color:var(--maroon);font-variant-numeric:lining-nums tabular-nums}
+.imsum span{font-size:.82rem;color:var(--muted)}
+.imwrap{overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;background:var(--card)}
+table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:lining-nums tabular-nums}
+.im th,.im td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;vertical-align:top}
+.im thead th{position:sticky;top:0;font:600 .7rem var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:var(--paper)}
+.im td.why{white-space:normal;color:var(--a);min-width:200px}
+</style>
+</head>
+<body class="signed-out not-owner">
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><img src="../img/logo-cream.png" alt="Natraj Jewels: Gold, Silver, Diamond"></span>
+    <div class="title">
+      <h1>Wishes</h1>
+    </div>
+    <div class="access" id="access"></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="today" aria-selected="true">Today’s wishes<span class="count" id="wCount" hidden></span></button>
+      <button role="tab" data-tab="soon" aria-selected="false">Coming up</button>
+      <button role="tab" data-tab="list" aria-selected="false">Birthday list</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap content signin-msg"><div class="form panel signin"><h3>Sign in</h3><p>Sign in to see today’s birthdays and anniversaries.</p><div class="bar"><button class="btn btn-maroon" data-nj-in>Sign in</button></div></div></div>
+<div class="wrap content no-access-msg"><div class="form panel"><h3>No access</h3><p>Ask the owner to switch on Wishes for you in People &amp; settings.</p></div></div>
+
+<main>
+  <!-- TODAY'S WISHES -->
+  <section id="tab-today">
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow" id="wEyebrow">Today</span><h2 id="wTitle">Today’s wishes</h2></div>
+      <div class="wweek" id="wWeek" role="group" aria-label="The last 7 days and tomorrow"></div>
+      <p class="axisnote" style="font-size:.88rem">Every birthday and wedding anniversary today, from the birthday list and from the customers entered on the form. Wish them on WhatsApp or by phone, then tick the box. Everyone sees the ticks, so nobody is wished twice and nobody is missed.</p>
+      <div class="wprog" id="wProg"></div>
+    </div></div>
+    <div class="wrap content">
+      <div class="ledger" id="wList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- COMING UP -->
+  <section id="tab-soon" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Next 30 days</span><h2>Coming up</h2></div>
+      <p class="axisnote" style="font-size:.88rem">Birthdays and anniversaries in the next 30 days. The WhatsApp button shows only for people who agreed to WhatsApp messages.</p>
+    </div></div>
+    <div class="wrap content">
+      <div class="ledger" id="soonList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- THE BIRTHDAY LIST -->
+  <section id="tab-list" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">Birthday list</span><h2 id="lTitle">The birthday list</h2></div>
+      <p class="axisnote" style="font-size:.88rem">The shop’s own list of birthdays and anniversaries. It is kept apart from Customers: nothing here goes into Customers. Customers entered on the form are wished too, but they are looked after in the Customers app.</p>
+      <div class="bar">
+        <input class="input search" id="q" type="search" placeholder="Search name or phone" aria-label="Search the birthday list" autocomplete="off">
+        <button class="btn btn-maroon" id="addPerson" type="button">Add a person</button>
+        <button class="btn owner-only" id="imPick" type="button">Bring in a list</button>
+        <input type="file" id="imFile" accept=".xlsx,.numbers,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+      </div>
+    </div></div>
+    <div class="wrap content" id="imBox" hidden>
+      <div class="form panel">
+        <span class="eyebrow">Bring in a list</span><h3 id="imTitle">Birthday and anniversary list</h3>
+        <p class="axisnote" style="font-size:.88rem">One sheet for each month, with the columns Birthday, Anniversary, Ref no, Name and Contact no. Dates are read as day/month/year, and the sheet’s month is trusted when a date looks mixed up. People with the same phone and name are joined into one; a family on one phone become separate people. People already on the list only get the dates they are missing, and customers already entered on the form are left out. Nothing is saved until you press the button.</p>
+        <div class="imsum" id="imSum"></div>
+        <h3 style="font-size:1.1rem" id="imCheckT">Please check these</h3>
+        <div class="imwrap"><table class="im" id="imCheck"></table></div>
+        <p class="axisnote" id="imNote"></p>
+        <p class="err" id="imErr" role="alert"></p>
+        <div class="actions"><button class="btn btn-maroon" type="button" id="imSave">Bring in</button><button class="btn" type="button" id="imCancel">Close</button></div>
+      </div>
+    </div>
+    <div class="wrap content">
+      <div class="ledger" id="pList"><div class="loading">Loading…</div></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="../img/logo-cream.png" alt="Natraj Jewels">
+    <span>Wishes · 24, Eswaran Kovil St, Tiruppur 641604</span>
+    <span>© <span id="year">2026</span> Natraj Jewels</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="../shared/natraj.js"></script>
+<script>
+(function(){
+'use strict';
+/* Birthday & anniversary wishes. Two sources, kept apart:
+   - wish_list: the shop's birthday list (brought in from the old sheets, or added here)
+   - wish_customers(): customers entered on the form in the Customers app, read-only
+   The flow is one way: this app reads the form customers' dates and never writes into Customers. */
+const {sb, esc, must, toast, dialog, iso, parse, todayIso} = NJ;
+const $ = id => document.getElementById(id);
+const NOYEAR = '1904';   // dates saved without a year use this (a leap year)
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const SHOW = 200;        // rows shown on the list before asking to search
+const OCC = [['birthday', 'Birthday', '🎂'], ['anniversary', 'Wedding anniversary', '💍']];
+let list = [], custs = [], people = [], curTab = 'today', ticks = [], wDay = null, wEdit = null, im = null;
+
+const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
+const fmtD = d => parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
+const fmtDM = d => parse(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'long'}) + (d.slice(0, 4) === NOYEAR ? '' : ' ' + d.slice(0, 4));
+const dmy = d => d ? Number(d.slice(8, 10)) + '/' + Number(d.slice(5, 7)) + (d.slice(0, 4) === NOYEAR ? '' : '/' + d.slice(0, 4)) : '';
+// "12/3", "12-03-1985" or "12 3 1985" → 1904-03-12 / 1985-03-12; '' for empty; null when it is not a real date
+function parseDMY(t){
+  t = String(t || '').trim(); if(!t) return '';
+  const m = t.match(/^(\d{1,2})\s*[\/.\- ]\s*(\d{1,2})(?:\s*[\/.\- ]\s*(\d{4}))?$/); if(!m) return null;
+  const y = m[3] || NOYEAR, d = new Date(Number(y), Number(m[2]) - 1, Number(m[1]));
+  if(d.getMonth() !== Number(m[2]) - 1 || Number(y) < 1900 || Number(y) > new Date().getFullYear()) return null;
+  return iso(d);
+}
+const digits = s => String(s || '').replace(/\D/g, '');
+const last10 = p => digits(p).slice(-10);
+const waNum = p => { const d = digits(p); return d.length === 10 ? '91' + d : d.length === 11 && d[0] === '0' ? '91' + d.slice(1) : d; };
+const waLink = (p, text) => 'https://wa.me/' + waNum(p) + (text ? '?text=' + encodeURIComponent(text) : '');
+const fmtPhone = p => { const d = digits(p); return d.length === 10 ? d.slice(0, 5) + ' ' + d.slice(5) : p; };
+const personById = id => people.find(p => p.id === id);
+const greet = w => 'Dear ' + w.p.name + ', ' + (w.k === 'birthday' ? 'wishing you a very happy birthday!' : 'wishing you both a very happy wedding anniversary!') +
+  ' May the year ahead bring you joy and good health. Warm wishes from all of us at Natraj Jewels, Tiruppur.';
+// the name: a list person opens their details here; a form customer opens in Customers (for those who use it)
+const who = p => p.src === 'list'
+  ? '<button type="button" class="cust-link ttl" data-person="' + esc(p.id) + '">' + esc(p.name) + '</button>'
+  : (NJ.canUse('crm') ? '<a class="cust-link ttl" href="../crm/#c=' + encodeURIComponent(p.id) + '">' + esc(p.name) + '</a>' : '<span class="ttl">' + esc(p.name) + '</span>') + '<span class="src form">Customer</span>';
+const phoneActs = (p, wish, w) => p.phone ? (wish && p.whatsapp_ok ? '<a class="btn mini btn-wa" href="' + esc(waLink(p.phone, greet(w))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') +
+  '<a class="btn mini" href="tel:' + esc(digits(p.phone)) + '">Call</a>' : '<span class="axisnote">No phone number</span>';
+
+/* ---------- loading: the list, and the form customers' dates (read-only) ---------- */
+async function loadAll(){
+  const [l, c] = await Promise.all([
+    NJ.selectAll(() => sb.from('wish_list').select('*').order('name').order('id')),
+    NJ.selectAll(() => sb.rpc('wish_customers').order('name').order('id'))
+  ]);
+  list = l; custs = c;
+  joinPeople();
+}
+function joinPeople(){
+  people = custs.map(c => Object.assign({src: 'form'}, c)).concat(list.map(p => Object.assign({src: 'list'}, p)));
+}
+
+/* ---------- whose day is it ---------- */
+// whose birthday or anniversary falls on a day (29 Feb counts on 28 Feb in other years). Someone on the list who is also
+// a customer (same phone) with the same date is shown once, as the customer.
+function wishesOn(day){
+  const md = day.slice(5), y = Number(day.slice(0, 4)), leap = new Date(y, 1, 29).getMonth() === 1, out = [], seen = new Set();
+  const mdOf = d => d.slice(5) === '02-29' && !leap ? '02-28' : d.slice(5);
+  people.forEach(p => OCC.forEach(([k, label, icon]) => {
+    const d = p[k]; if(!d || mdOf(d) !== md) return;
+    const key = last10(p.phone) + '|' + k;
+    if(last10(p.phone) && seen.has(key)) return;
+    seen.add(key);
+    out.push({p, k, label, icon, years: d.slice(0, 4) === NOYEAR ? 0 : y - Number(d.slice(0, 4))});
+  }));
+  return out;
+}
+const shownDay = () => wDay || todayIso();
+const tickOf = (p, k, day) => ticks.find(t => t.customer_id === p.id && t.kind === k && t.day === (day || shownDay()));
+async function loadWishes(){
+  const from = addDays(todayIso(), -6), d = shownDay();
+  ticks = must(await sb.from('occasion_done').select('*').gte('day', d < from ? d : from).lte('day', todayIso())) || [];
+  renderWishes();
+}
+function renderWishes(){
+  const tl = wishesOn(todayIso()), tleft = tl.filter(w => !tickOf(w.p, w.k, todayIso())).length;
+  $('wCount').hidden = !tleft; $('wCount').textContent = tleft;
+  if(curTab !== 'today') return;
+  const day = shownDay(), isToday = day === todayIso(), ahead = day > todayIso(), tmrw = addDays(todayIso(), 1);
+  const ws = isToday ? tl : wishesOn(day), done = ws.filter(w => tickOf(w.p, w.k)).length, left = ws.length - done;
+  $('wEyebrow').textContent = parse(day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'}) + (isToday ? '' : ahead ? ' · coming up' : ' · an earlier day');
+  $('wTitle').textContent = isToday ? 'Today’s wishes' : day === tmrw ? 'Tomorrow’s wishes' : 'Wishes on ' + parse(day).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
+  // the last 7 days at a glance: done out of due, red when some were missed; and tomorrow, to get ready
+  $('wWeek').innerHTML = [6, 5, 4, 3, 2, 1, 0].map(n => { const d = addDays(todayIso(), -n), w = n ? wishesOn(d) : tl, dn = w.filter(x => tickOf(x.p, x.k, d)).length;
+    return '<button type="button" data-wday="' + d + '" aria-pressed="' + (d === day) + '" class="' + (!w.length || dn === w.length ? 'ok' : n ? 'miss' : '') + '">' + (n ? esc(parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric'})) : 'Today') + '<small>' + dn + ' / ' + w.length + '</small></button>'; }).join('') +
+    '<button type="button" data-wday="' + tmrw + '" aria-pressed="' + (tmrw === day) + '" class="next">Tomorrow<small>' + wishesOn(tmrw).length + ' due</small></button>' +
+    '<input class="input" type="date" id="wPick" value="' + day + '" aria-label="Choose another day">';
+  $('wProg').innerHTML = ws.length ? '<div class="bar2"><i style="width:' + Math.round(done / ws.length * 100) + '%"></i></div><span><b>' + done + '</b> of <b>' + ws.length + '</b> done' + (left ? '' : ' · all wished') + '</span>' : '';
+  if(ahead) $('wProg').innerHTML = ws.length ? '<div class="wnext">' + ws.length + ' to wish on ' + esc(parse(day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'short'})) + '. Get ready now; the ticks and notes open on the day.</div>' : '';
+  else if(!isToday && left) $('wProg').innerHTML += '<div class="wpast" style="flex-basis:100%">' + left + ' not called on this day. Call them now and tick, or note what was said: it is saved for ' + esc(parse(day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '.</div>';
+  // still to do first, then the done ones; each group by name
+  ws.sort((a, b) => !!tickOf(a.p, a.k) - !!tickOf(b.p, b.k) || a.p.name.localeCompare(b.p.name));
+  const at = t => new Date(t).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
+  $('wList').innerHTML = ws.length ? ws.map(w => {
+    const t = tickOf(w.p, w.k), id = 'w-' + w.p.id + '-' + w.k;
+    return '<div class="wrow' + (t ? ' done' : '') + '">' +
+      (ahead ? '<span class="tick-later" aria-hidden="true"></span>'
+        : '<input type="checkbox" class="tick" id="' + esc(id) + '" data-c="' + esc(w.p.id) + '" data-k="' + w.k + '"' + (t ? ' checked' : '') + ' aria-label="' + esc((t ? 'Done: ' : 'Mark done: ') + w.label + ' of ' + w.p.name) + '">') +
+      '<span class="dot" aria-hidden="true">' + w.icon + '</span>' +
+      '<div>' + who(w.p) +
+      '<div class="sub">' + esc([w.label + (w.years > 0 ? ' · ' + w.years + (w.k === 'birthday' ? ' years old' : ' years') : ''), fmtPhone(w.p.phone)].filter(Boolean).join(' · ')) + '</div>' +
+      (t ? '<div class="by">✓ Done by ' + esc(t.done_by_name || 'someone') + (iso(new Date(t.done_at)) !== t.day ? ' on ' + esc(fmtD(iso(new Date(t.done_at)))) + ' (late)' : '') + ' at ' + esc(at(t.done_at)) + '</div>' : '') +
+      (ahead ? '' : t && t.note && wEdit !== id ? '<div class="wsaid"><b>On the call:</b> ' + esc(t.note) + '<button type="button" class="linkish" data-wedit="' + esc(id) + '">Change</button></div>'
+        : '<div class="wnote"><input class="input" data-wnote="' + esc(id) + '" maxlength="500" placeholder="What did they say on the call? e.g. daughter’s wedding in Jan, wants a light necklace" value="' + esc(t ? t.note || '' : '') + '" aria-label="Note from the call with ' + esc(w.p.name) + '">' +
+          '<button type="button" class="btn mini" data-wsave="' + esc(id) + '" data-c="' + esc(w.p.id) + '" data-k="' + w.k + '">Save note</button></div>') + '</div>' +
+      '<div class="acts">' + phoneActs(w.p, !ahead, w) + '</div></div>';
+  }).join('') : '<div class="empty"><h3>No birthdays or anniversaries ' + (isToday ? 'today' : 'on this day') + '</h3><p>The Coming up tab shows the next 30 days.</p></div>';
+}
+$('wWeek').addEventListener('click', e => { const b = e.target.closest('[data-wday]'); if(!b) return; wDay = b.dataset.wday === todayIso() ? null : b.dataset.wday; wEdit = null; loadWishes().catch(x => toast(x.message)); });
+$('wWeek').addEventListener('change', e => { if(e.target.id !== 'wPick' || !e.target.value) return; wDay = e.target.value === todayIso() ? null : e.target.value; wEdit = null; loadWishes().catch(x => toast(x.message)); });
+$('wList').addEventListener('click', e => {
+  const ed = e.target.closest('[data-wedit]');
+  if(ed){ wEdit = ed.dataset.wedit; renderWishes(); const i = document.querySelector('[data-wnote="' + CSS.escape(wEdit) + '"]'); if(i) i.focus(); return; }
+  const sv = e.target.closest('[data-wsave]');
+  if(sv) return saveWishNote(sv);
+  const pb = e.target.closest('[data-person]'); if(pb) editPerson(personById(pb.dataset.person));
+});
+$('wList').addEventListener('keydown', e => { const i = e.target.closest('[data-wnote]'); if(i && e.key === 'Enter'){ e.preventDefault(); const b = document.querySelector('[data-wsave="' + CSS.escape(i.dataset.wnote) + '"]'); if(b) saveWishNote(b); } });
+// a note from the call: kept on the day's wish (which it ticks as done). It stays in this app.
+async function saveWishNote(b){
+  const id = b.dataset.wsave, input = document.querySelector('[data-wnote="' + CSS.escape(id) + '"]'), note = input.value.trim().replace(/\s+/g, ' ');
+  const p = personById(b.dataset.c), k = b.dataset.k, t = tickOf(p, k), day = shownDay();
+  if(!note){ input.focus(); return toast('Type what they said first.'); }
+  if(t && t.note === note){ wEdit = null; return renderWishes(); }
+  b.setAttribute('aria-busy', 'true');
+  try{
+    if(t) must(await sb.from('occasion_done').update({note}).eq('customer_id', p.id).eq('kind', k).eq('day', day).select());
+    else {
+      const r = await sb.from('occasion_done').insert({customer_id: p.id, kind: k, day, note}).select();
+      if(r.error && r.error.code === '23505') must(await sb.from('occasion_done').update({note}).eq('customer_id', p.id).eq('kind', k).eq('day', day).select());
+      else if(r.error) throw new Error(NJ.friendly(r.error));
+    }
+    wEdit = null; toast('Note saved');
+    await loadWishes();
+  }catch(err){ toast(err.message); b.removeAttribute('aria-busy'); }
+}
+$('wList').addEventListener('change', async e => {
+  const box = e.target.closest('.tick'); if(!box) return;
+  const row = {customer_id: box.dataset.c, kind: box.dataset.k, day: shownDay()};
+  box.disabled = true;
+  try{
+    if(box.checked){
+      const r = await sb.from('occasion_done').insert(row).select('*');
+      if(r.error && r.error.code !== '23505') throw new Error(NJ.friendly(r.error));     // 23505: someone else ticked it just now
+    } else must(await sb.from('occasion_done').delete().eq('customer_id', row.customer_id).eq('kind', row.kind).eq('day', row.day));
+    await loadWishes();
+  }catch(err){ box.checked = !box.checked; box.disabled = false; toast(err.message); }
+});
+
+/* ---------- coming up: the next 30 days ---------- */
+function renderSoon(){
+  const items = [];
+  for(let n = 0; n <= 30; n++){ const d = addDays(todayIso(), n); wishesOn(d).forEach(w => items.push(Object.assign(w, {n, d}))); }
+  const when = d => d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : 'In ' + d + ' days';
+  const cap = 300;
+  $('soonList').innerHTML = items.length ? items.slice(0, cap).map(w =>
+    '<div class="arow"><span class="dot" aria-hidden="true">' + w.icon + '</span>' +
+    '<div>' + who(w.p) + '<div class="sub">' + esc([w.label + ' · ' + fmtD(w.d), fmtPhone(w.p.phone)].filter(Boolean).join(' · ')) + '</div>' +
+    '<div style="margin-top:6px"><span class="tag' + (w.n === 0 ? ' today' : w.n <= 7 ? ' soon' : '') + '">' + when(w.n) + '</span></div></div>' +
+    '<div class="acts">' + phoneActs(w.p, w.n === 0, w) + '</div></div>').join('') +
+    (items.length > cap ? '<div class="more">' + (items.length - cap).toLocaleString('en-IN') + ' more after these. They come up here as the days get closer.</div>' : '')
+    : '<div class="empty"><h3>None in the next 30 days</h3></div>';
+}
+$('soonList').addEventListener('click', e => { const pb = e.target.closest('[data-person]'); if(pb) editPerson(personById(pb.dataset.person)); });
+
+/* ---------- the birthday list: search, add, change ---------- */
+function renderList(){
+  const q = $('q').value.trim().toLowerCase(), qd = digits(q);
+  const found = list.filter(p => !q || p.name.toLowerCase().includes(q) || (qd.length >= 3 && (digits(p.phone).includes(qd) || digits(p.alt_phone).includes(qd))));
+  $('lTitle').textContent = list.length.toLocaleString('en-IN') + ' on the birthday list';
+  $('pList').innerHTML = found.length ? found.slice(0, SHOW).map(p =>
+    '<div class="lrow" data-id="' + esc(p.id) + '"><div><div class="nm">' + esc(p.name) + '</div>' +
+    '<div class="sub">' + esc([fmtPhone(p.phone), p.birthday ? 'Birthday ' + fmtDM(p.birthday) : '', p.anniversary ? 'Anniversary ' + fmtDM(p.anniversary) : ''].filter(Boolean).join(' · ')) + '</div></div>' +
+    '<div class="acts">' + (p.phone ? '<a class="btn mini" href="tel:' + esc(digits(p.phone)) + '">Call</a>' : '') + '</div></div>').join('') +
+    (found.length > SHOW ? '<div class="more">Showing ' + SHOW + ' of ' + found.length.toLocaleString('en-IN') + '. Search to find someone.</div>' : '')
+    : '<div class="empty"><h3>' + (q ? 'Nobody found' : 'The list is empty') + '</h3><p>' + (q ? 'Try part of the name or the phone number.' : 'Add people one by one, or bring in the shop’s list.') + '</p></div>';
+}
+$('q').addEventListener('input', renderList);
+$('pList').addEventListener('click', e => {
+  if(e.target.closest('a')) return;
+  const r = e.target.closest('.lrow'); if(r) editPerson(personById(r.dataset.id));
+});
+$('addPerson').onclick = () => editPerson(null);
+async function editPerson(p){
+  if(p && p.src !== 'list') return;
+  const v = await dialog({
+    title: p ? p.name : 'Add a person to the birthday list', ok: p ? 'Save' : 'Add',
+    msg: p ? (p.created_by_name ? 'Added by ' + p.created_by_name + '.' : '') : 'For the birthday and anniversary wishes only. To enter a customer who came to the shop, use the form in Customers.',
+    fields: [
+      {id: 'name', label: 'Name', value: p ? p.name : '', maxlength: 80},
+      {id: 'phone', label: 'Phone', type: 'tel', value: p ? p.phone : '', maxlength: 20},
+      {id: 'alt', label: 'Other phone', type: 'tel', value: p ? p.alt_phone : '', maxlength: 20},
+      {id: 'bd', label: 'Birthday (day/month/year, the year can be left out)', value: p ? dmy(p.birthday) : '', placeholder: 'e.g. 12/3/1985 or 12/3', maxlength: 12},
+      {id: 'an', label: 'Wedding anniversary (day/month/year)', value: p ? dmy(p.anniversary) : '', placeholder: 'e.g. 5/6/2010', maxlength: 12},
+      {id: 'notes', label: 'Notes', type: 'textarea', value: p ? p.notes : '', maxlength: 1000},
+      {id: 'wa', label: 'Agreed to WhatsApp messages', type: 'checkbox', value: p ? p.whatsapp_ok : false}
+    ],
+    extra: p && NJ.me.is_owner ? {label: 'Remove from the list', value: 'remove', btn: 'btn-danger'} : undefined,
+    validate: async v => {
+      if(!v.name) return 'Type the name.';
+      if(parseDMY(v.bd) === null) return 'The birthday is not a real date. Type it as day/month/year, e.g. 12/3/1985.';
+      if(parseDMY(v.an) === null) return 'The anniversary is not a real date. Type it as day/month/year, e.g. 5/6/2010.';
+      if(!parseDMY(v.bd) && !parseDMY(v.an)) return 'Type a birthday or an anniversary.';
+      return '';
+    }
+  });
+  if(!v) return;
+  try{
+    if(v === 'remove'){
+      if(!(await dialog({title: 'Remove ' + p.name + '?', msg: 'They are taken off the birthday list and are not wished any more.', ok: 'Remove', danger: true}))) return;
+      must(await sb.from('wish_list').delete().eq('id', p.id));
+      list = list.filter(x => x.id !== p.id); toast('Removed');
+    } else {
+      const row = {name: v.name.slice(0, 80), phone: v.phone.trim(), alt_phone: v.alt.trim(), birthday: parseDMY(v.bd) || null, anniversary: parseDMY(v.an) || null, notes: v.notes, whatsapp_ok: !!v.wa};
+      if(p){ const r = must(await sb.from('wish_list').update(row).eq('id', p.id).select('*').single()); Object.assign(list.find(x => x.id === p.id), r); toast('Saved'); }
+      else { const r = must(await sb.from('wish_list').insert(row).select('*').single()); list.push(r); list.sort((a, b) => a.name.localeCompare(b.name)); toast(r.name + ' added'); }
+    }
+    joinPeople(); route();
+  }catch(e){ toast(e.message); }
+}
+
+/* ---------- bring in a list (the shop's old birthday & anniversary sheets) ----------
+   An Excel file with one sheet per month ("JANUARY-1" … "DECEMBER-12"): Birthday, Anniversary, Ref no, Name, Contact no,
+   Contact no. Dates are day/month/year. Excel often turned 01/02/1978 into 2 Jan 1978, so the sheet's month wins: when
+   the month does not match but the day does, the two are swapped back. */
+const MON3 = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const titleCase = n => n === n.toUpperCase() || n === n.toLowerCase() ? n.toLowerCase().replace(/(^|[\s.])\S/g, c => c.toUpperCase()) : n;
+const nameKey = n => String(n || '').toLowerCase().replace(/[^a-z஀-௿]/g, '');
+function sheetMonth(sh){
+  const m = /-\s*(\d{1,2})\s*$/.exec(sh.name);
+  if(m && Number(m[1]) >= 1 && Number(m[1]) <= 12) return Number(m[1]);
+  const t = (sh.name + ' ' + ((sh.rows[0] || []).join(' '))).toLowerCase().replace(/0/g, 'o');
+  const i = MON3.findIndex(x => new RegExp('\\b' + x).test(t));
+  return i < 0 ? 0 : i + 1;
+}
+const realDay = (y, m, d) => { const x = new Date(y, m - 1, d); return x.getFullYear() === y && x.getMonth() === m - 1 && x.getDate() === d; };
+// a cell → 'yyyy-mm-dd' (NOYEAR when there is no year), '' when empty, null when it cannot be read.
+// listDate.other is set when a clear date (day over 12) is for another month than the sheet's
+function listDate(v, month){
+  listDate.other = false;
+  if(v === undefined || v === null || v === '') return '';
+  if(typeof v === 'string' && /^\s*[2-6]\d{4}\s*$/.test(v)) v = Number(v);     // a date saved as its Excel number
+  let d, m, y;
+  if(typeof v === 'number'){
+    const x = new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 864e5);
+    d = x.getUTCDate(); m = x.getUTCMonth() + 1; y = x.getUTCFullYear();
+  } else {
+    const t = String(v).trim().toLowerCase().replace(/o/g, '0').replace(/[`'’]/g, '');
+    if(!t) return '';
+    const g = t.split(/\D+/).filter(Boolean);
+    if(!g.length) return null;
+    if(g.length === 1 && g[0].length >= 4){ g.splice(0, 1, g[0].slice(0, 2), g[0].slice(2, 4), g[0].slice(4)); }
+    else if(g.length === 2 && g[1].length > 2){ g.splice(1, 1, g[1].slice(0, 2), g[1].slice(2)); }   // 02/0601998
+    if(g.length < 2) return null;
+    d = Number(g[0]); m = Number(g[1]);
+    const ys = (g[2] || '').slice(-4);
+    y = ys.length === 4 ? Number(ys) : ys.length === 2 ? (Number(ys) <= new Date().getFullYear() % 100 ? 2000 : 1900) + Number(ys) : 0;
+  }
+  if(month && m !== month){
+    if(d === month && m <= 31) [d, m] = [m, d];
+    else if(d > 12 && m <= 12) listDate.other = true;
+    else return null;
+  }
+  if(!(y >= 1900 && y <= new Date().getFullYear())) y = Number(NOYEAR);
+  if(!realDay(y, m, d)) return null;
+  return y + '-' + NJ.pad(m) + '-' + NJ.pad(d);
+}
+// how a cell looked in the sheet (Excel keeps dates as numbers)
+const cellText = v => { if(typeof v === 'string' && /^\s*[2-6]\d{4}\s*$/.test(v)) v = Number(v); if(typeof v !== 'number') return String(v); const x = new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 864e5); return NJ.pad(x.getUTCDate()) + '/' + NJ.pad(x.getUTCMonth() + 1) + '/' + x.getUTCFullYear(); };
+const listPhone = v => { let d = typeof v === 'number' ? String(Math.round(v)) : digits(v); if(d.length === 12 && d.startsWith('91')) d = d.slice(2); if(d.length === 11 && d[0] === '0') d = d.slice(1); return d; };
+const goodPhone = d => /^[6-9]\d{9}$/.test(d);
+function readList(books){
+  const found = new Map(), check = [];
+  let rows = 0, noName = 0, sheets = 0;
+  for(const sh of books){
+    const hi = sh.rows.slice(0, 10).findIndex(r => r.some(c => /^\s*name\b/i.test(String(c || ''))));
+    if(hi < 0) continue;
+    const h = sh.rows[hi].map(c => String(c || '').trim().toLowerCase());
+    const col = re => h.findIndex(c => re.test(c));
+    const cB = col(/birth/), cA = col(/anniv/), cR = col(/^ref/), cN = col(/^name/);
+    const cP = h.map((c, i) => /contact|phone|mobile|cell/.test(c) ? i : -1).filter(i => i >= 0);
+    const month = sheetMonth(sh);
+    if(cN < 0 || (cB < 0 && cA < 0)) continue;
+    sheets++;
+    sh.rows.slice(hi + 1).forEach((r, i) => {
+      const cell = c => c >= 0 ? r[c] : '';
+      const raw = String(cell(cN) ?? '').trim().replace(/\s+/g, ' ');
+      if(!raw){ if(r.some(c => c !== '' && c !== undefined && c !== null)) noName++; return; }
+      rows++;
+      const where = sh.name + ', row ' + (hi + i + 2), why = [];
+      const name = titleCase(raw).slice(0, 80);
+      const ph = listPhone(cell(cP[0])), alt = listPhone(cell(cP[1]));
+      if(!ph) why.push('No phone number'); else if(!goodPhone(ph)) why.push('Phone ' + ph + ' is not a 10-digit mobile');
+      const bd = listDate(cell(cB), month), bdOther = listDate.other, an = listDate(cell(cA), month), anOther = listDate.other;
+      const onSheet = MONTHS[month - 1] + ' sheet';
+      if(bd === null) why.push('Birthday “' + cellText(cell(cB)) + '” could not be read');
+      else if(bdOther) why.push('Birthday saved as ' + fmtDM(bd) + ', but it is on the ' + onSheet);
+      if(an === null) why.push('Anniversary “' + cellText(cell(cA)) + '” could not be read');
+      else if(anOther) why.push('Anniversary saved as ' + fmtDM(an) + ', but it is on the ' + onSheet);
+      if(!bd && !an && bd !== null && an !== null) why.push('No date');
+      const ref = String(cell(cR) ?? '').replace(/\.0+$/, '').trim();
+      const key = (ph.slice(-10) || 'x' + where) + '|' + nameKey(name);
+      const p = found.get(key) || {name, phone: ph, alt: '', birthday: '', anniversary: '', refs: new Set(), where};
+      if(bd && !p.birthday) p.birthday = bd;
+      if(an && !p.anniversary) p.anniversary = an;
+      if(alt && alt !== ph && !p.alt) p.alt = alt;
+      if(ref) p.refs.add(ref);
+      found.set(key, p);
+      if(why.length) check.push({where, name, phone: ph, why: why.join('; ')});
+    });
+  }
+  // people already on the list get only what they are missing; customers entered on the form are left out
+  const saved = new Map(list.map(c => [last10(c.phone) + '|' + nameKey(c.name), c]));
+  const isCust = new Set(custs.map(c => last10(c.phone) + '|' + nameKey(c.name)));
+  const add = [], fill = [];
+  let cust = 0;
+  for(const [key, p] of found){
+    if(isCust.has(key)){ cust++; continue; }
+    const notes = p.refs.size ? 'Card ' + [...p.refs].join(', ') : '';
+    const c = saved.get(key);
+    if(c){
+      const patch = {};
+      if(p.birthday && !c.birthday) patch.birthday = p.birthday;
+      if(p.anniversary && !c.anniversary) patch.anniversary = p.anniversary;
+      if(p.alt && !c.alt_phone) patch.alt_phone = p.alt;
+      if(notes && !(c.notes || '').includes(notes)) patch.notes = ((c.notes ? c.notes + '\n' : '') + notes).slice(0, 1000);
+      if(Object.keys(patch).length) fill.push({id: c.id, patch});
+    } else add.push({name: p.name, phone: p.phone.slice(0, 20), alt_phone: p.alt.slice(0, 20), birthday: p.birthday || null, anniversary: p.anniversary || null, notes: notes.slice(0, 1000)});
+  }
+  return {sheets, rows, noName, people: found.size, add, fill, check, cust, same: found.size - add.length - fill.length - cust};
+}
+function showList(){
+  const n = x => x.toLocaleString('en-IN');
+  $('imSum').innerHTML = [[im.rows, 'rows read from ' + im.sheets + ' sheet' + (im.sheets === 1 ? '' : 's')], [im.people, 'people, after joining repeats'],
+    [im.add.length, 'new people to add'], [im.fill.length, 'on the list already, get missing dates'], [im.check.length, 'rows to check']]
+    .map(([v, t]) => '<div><b>' + n(v) + '</b><span>' + esc(t) + '</span></div>').join('');
+  $('imCheckT').hidden = !im.check.length; $('imCheck').parentNode.hidden = !im.check.length;
+  $('imCheck').innerHTML = '<thead><tr><th>Where</th><th>Name</th><th>Phone</th><th>What to check</th></tr></thead><tbody>' +
+    im.check.slice(0, 500).map(x => '<tr><td>' + esc(x.where) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.phone) + '</td><td class="why">' + esc(x.why) + '</td></tr>').join('') + '</tbody>';
+  $('imNote').textContent = [im.check.length > 500 ? 'Showing the first 500 rows to check.' : '', im.check.length ? 'These are still brought in with what could be read; fix them later on the list.' : '',
+    im.same ? n(im.same) + ' people are already on the list with these details.' : '', im.cust ? n(im.cust) + ' are customers entered on the form, so they are left out (they are wished as customers).' : '',
+    im.noName ? n(im.noName) + ' rows without a name are left out.' : ''].filter(Boolean).join(' ');
+  const total = im.add.length + im.fill.length;
+  $('imSave').disabled = !total;
+  $('imSave').textContent = total ? 'Bring in ' + n(im.add.length) + ' new' + (im.fill.length ? ' and update ' + n(im.fill.length) : '') : 'Nothing new to bring in';
+  $('imErr').textContent = '';
+}
+$('imPick').onclick = () => $('imFile').click();
+$('imFile').addEventListener('change', async () => {
+  const f = $('imFile').files[0]; $('imFile').value = '';
+  if(!f) return;
+  if(/\.numbers$/i.test(f.name)){ dialog({title: 'Save it as Excel first', msg: 'This is a Numbers file. In Numbers, choose File › Export To › Excel…, save it, and pick that .xlsx file here.', ok: 'OK', cancel: null}); return; }
+  $('imPick').setAttribute('aria-busy', 'true');
+  try{
+    const books = await NJ.readXlsx(f, true);
+    im = readList(books);
+    if(!im.sheets) throw new Error('No sheet in this file has the columns Name and Birthday or Anniversary.');
+    $('imTitle').textContent = f.name.replace(/\.xlsx$/i, '');
+    showList();
+    $('imBox').hidden = false;
+    $('imBox').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }catch(e){ toast(e.message); }
+  $('imPick').removeAttribute('aria-busy');
+});
+$('imCancel').onclick = () => { im = null; $('imBox').hidden = true; };
+$('imSave').onclick = async () => {
+  if(!im) return;
+  const btn = $('imSave'), total = im.add.length + im.fill.length;
+  btn.disabled = true; $('imErr').textContent = '';
+  let done = 0;
+  const step = () => { btn.textContent = 'Saving… ' + Math.round(done / total * 100) + '%'; };
+  try{
+    while(im.add.length){
+      const part = im.add.slice(0, 500);
+      const rows = must(await sb.from('wish_list').insert(part).select('*')) || [];
+      list.push(...rows); im.add.splice(0, part.length); done += part.length; step();
+    }
+    while(im.fill.length){
+      const {id, patch} = im.fill[0];
+      const row = must(await sb.from('wish_list').update(patch).eq('id', id).select('*').single());
+      const c = list.find(x => x.id === id); if(c) Object.assign(c, row);
+      im.fill.shift(); done++; step();
+    }
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    toast(total.toLocaleString('en-IN') + ' brought in');
+    im = null; $('imBox').hidden = true; joinPeople(); renderList(); renderWishes();
+  }catch(e){
+    // what was saved stays saved; pressing again carries on with the rest
+    $('imErr').textContent = e.message + ' ' + done.toLocaleString('en-IN') + ' were saved. Press the button again to carry on.';
+    showList(); btn.disabled = false;
+  }
+};
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.tab === 'today' ? '' : b.dataset.tab; route(); }));
+function route(){
+  const h = location.hash.slice(1);
+  curTab = ['soon', 'list'].includes(h) ? h : 'today';
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === curTab));
+  ['today', 'soon', 'list'].forEach(t => $('tab-' + t).hidden = t !== curTab);
+  loadWishes().catch(e => toast(e.message));     // the ticks, for the count on the tab and today's list
+  if(curTab === 'soon') renderSoon();
+  if(curTab === 'list') renderList();
+}
+window.addEventListener('hashchange', route);
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && NJ.me && NJ.canUse('wishes') && !document.querySelector('dialog[open]'))
+    loadAll().then(route).catch(e => toast(e.message));
+});
+
+NJ.start({onReady: async me => {
+  const ok = !!me && NJ.canUse('wishes');
+  document.body.classList.toggle('no-access', !!me && !ok);
+  if(!ok) return;
+  try{ await loadAll(); route(); }catch(e){ toast(e.message); }
+}});
+})();
+</script>
+</body>
+</html>

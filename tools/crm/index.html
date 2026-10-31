@@ -170,9 +170,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
       <button role="tab" data-tab="list" aria-selected="true">Customers</button>
       <button role="tab" data-tab="form" aria-selected="false">Enter a form</button>
       <button role="tab" data-tab="follow" aria-selected="false">Follow-ups<span class="count" id="fuCount" hidden></span></button>
-      <button role="tab" data-tab="today" aria-selected="false">Today’s wishes<span class="count" id="wCount" hidden></span></button>
       <button role="tab" data-tab="thanks" aria-selected="false">Say thank you<span class="count" id="tCount" hidden></span></button>
-      <button role="tab" data-tab="occ" aria-selected="false">Birthdays &amp; anniversaries</button>
       <button role="tab" data-tab="ins" aria-selected="false" class="owner-only">Insights</button>
     </nav>
   </div>
@@ -189,24 +187,9 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
       <div class="bar">
         <input class="input search" id="q" type="search" placeholder="Search name, phone or area" aria-label="Search customers" autocomplete="off">
         <button class="btn btn-maroon" id="addCust">Enter a form</button>
-        <button class="btn owner-only" id="imPick" type="button">Bring in a list</button>
-        <input type="file" id="imFile" accept=".xlsx,.numbers,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
       </div>
-      <div class="bubbles" id="viaFilter" role="group" aria-label="How they were added" style="margin-bottom:10px"></div>
       <div class="bubbles" id="tagFilter" role="group" aria-label="Filter by tag"></div>
     </div></div>
-    <div class="wrap content" id="imBox" hidden>
-      <div class="form panel">
-        <span class="eyebrow" id="imEyebrow">Bring in a list</span><h3 id="imTitle">Birthday and anniversary list</h3>
-        <p class="axisnote" style="font-size:.88rem">One sheet for each month, with the columns Birthday, Anniversary, Ref no, Name and Contact no. Dates are read as day/month/year, and the sheet’s month is trusted when a date looks mixed up. People with the same phone and name are joined into one customer; a family on one phone become separate customers. Customers already saved only get the dates they are missing. Nothing is saved until you press the button.</p>
-        <div class="imsum" id="imSum"></div>
-        <h3 style="font-size:1.1rem" id="imCheckT">Please check these</h3>
-        <div class="imwrap"><table class="im" id="imCheck"></table></div>
-        <p class="axisnote" id="imNote"></p>
-        <p class="err" id="imErr" role="alert"></p>
-        <div class="actions"><button class="btn btn-maroon" type="button" id="imSave">Bring in</button><button class="btn" type="button" id="imCancel">Close</button></div>
-      </div>
-    </div>
     <div class="wrap content">
       <div class="ledger" id="custList"><div class="loading">Loading…</div></div>
     </div>
@@ -347,18 +330,6 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
   </section>
 
   <!-- OCCASIONS -->
-  <section id="tab-today" hidden>
-    <div class="band"><div class="wrap">
-      <div class="heading"><span class="eyebrow" id="wEyebrow">Today</span><h2 id="wTitle">Today’s wishes</h2></div>
-      <div class="wweek" id="wWeek" role="group" aria-label="The last 7 days and tomorrow"></div>
-      <p class="axisnote" style="font-size:.88rem">Every birthday and wedding anniversary today. Wish the customer on WhatsApp or by phone, then tick the box. Everyone sees the ticks, so nobody is wished twice and nobody is missed.</p>
-      <div class="wprog" id="wProg"></div>
-    </div></div>
-    <div class="wrap content">
-      <div class="ledger" id="wList"><div class="loading">Loading…</div></div>
-    </div>
-  </section>
-
   <!-- THANK BUYERS -->
   <section id="tab-thanks" hidden>
     <div class="band"><div class="wrap">
@@ -370,15 +341,6 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
     </div>
   </section>
 
-  <section id="tab-occ" hidden>
-    <div class="band"><div class="wrap">
-      <div class="heading"><span class="eyebrow">Next 30 days</span><h2>Birthdays &amp; anniversaries</h2></div>
-      <p class="axisnote" style="font-size:.88rem">Send a greeting on WhatsApp on the day. The button shows only for customers who agreed to WhatsApp messages. Family functions coming up in the next 3 months are listed too: a good reason to call.</p>
-    </div></div>
-    <div class="wrap content">
-      <div class="ledger" id="occList"><div class="loading">Loading…</div></div>
-    </div>
-  </section>
 </main>
 
 <footer>
@@ -403,7 +365,6 @@ const CAME = ['Gold', 'Silver', 'Diamond', 'Wedding', 'Gift', 'Investment', 'Dai
 const NOYEAR = '1904';   // birthdays and anniversaries saved without a year use this (a leap year)
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const SHOW = 200;     // rows shown before asking to search
-let viaF = '';    // '', 'form' or 'list': how the customer was first saved
 let customers = [], follows = [], people = [], curTab = 'list', tagF = '', fuWho = 'all', cur = null, activity = [];
 
 const addDays = (d, n) => { const x = parse(d); x.setDate(x.getDate() + n); return iso(x); };
@@ -450,20 +411,18 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
 function show(name){
   curTab = name; badge();
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name || (name === 'cust' && b.dataset.tab === 'list')));
-  ['list', 'cust', 'form', 'follow', 'today', 'thanks', 'occ', 'ins'].forEach(t => $('tab-' + t).hidden = t !== name);
+  ['list', 'cust', 'form', 'follow', 'thanks', 'ins'].forEach(t => $('tab-' + t).hidden = t !== name);
 }
 async function route(){
   const h = location.hash.slice(1);
   if(h.startsWith('edit=')){ await openEdit(decodeURIComponent(h.slice(5))); return; }
   if(cfEdit) leaveEdit();
   if(h.startsWith('c=')){ await openCustomer(decodeURIComponent(h.slice(2))); return; }
-  show(['form', 'follow', 'today', 'thanks', 'occ'].includes(h) || (h === 'ins' && NJ.me.is_owner) ? h : 'list');
+  show(['form', 'follow', 'thanks'].includes(h) || (h === 'ins' && NJ.me.is_owner) ? h : 'list');
   if(curTab === 'form') formReady();
   if(curTab === 'ins') loadInsights().catch(e => toast(e.message));
   if(curTab === 'list') renderList();
   if(curTab === 'follow') renderFollows();
-  if(curTab === 'occ') renderOccasions();
-  if(curTab === 'today') loadWishes().catch(e => toast(e.message));
   if(curTab === 'thanks') loadThanks().catch(e => toast(e.message));
 }
 window.addEventListener('hashchange', () => route().catch(e => toast(e.message)));
@@ -479,7 +438,6 @@ async function loadAll(){
   customers = c; follows = must(f) || [];
   if(!people.length) people = must(await sb.rpc('crm_people')) || [];
   badge();
-  loadWishes().catch(() => {});
   loadThanks().catch(() => {});
 }
 
@@ -488,9 +446,7 @@ function renderList(){
   const used = TAGS.filter(t => customers.some(c => (c.tags || []).includes(t)));
   $('tagFilter').innerHTML = used.length ? ['', ...used].map(t => '<button type="button" class="bubble" data-tag="' + esc(t) + '" aria-pressed="' + (tagF === t) + '">' + esc(t || 'All') + '</button>').join('') : '';
   const q = $('q').value.trim().toLowerCase(), qd = digits(q);
-  const nVia = v => customers.filter(c => (c.added_via || 'form') === v).length;
-  $('viaFilter').innerHTML = customers.length ? [['form', 'Entered on a form'], ['list', 'Brought in from a list']].map(([v, l]) => '<button type="button" class="bubble" data-via="' + v + '" aria-pressed="' + (viaF === v) + '">' + l + ' · ' + nVia(v).toLocaleString('en-IN') + '</button>').join('') : '';
-  const list = customers.filter(c => (!viaF || (c.added_via || 'form') === viaF) && (!tagF || (c.tags || []).includes(tagF)) && (!q ||
+  const list = customers.filter(c => (!tagF || (c.tags || []).includes(tagF)) && (!q ||
     c.name.toLowerCase().includes(q) || (c.area || '').toLowerCase().includes(q) || (qd.length >= 3 && (digits(c.phone).includes(qd) || digits(c.alt_phone).includes(qd)))));
   $('lTitle').textContent = customers.length ? customers.length.toLocaleString('en-IN') + ' customer' + (customers.length === 1 ? '' : 's') : 'All customers';
   const nextFu = id => follows.filter(f => f.customer_id === id)[0];
@@ -505,7 +461,6 @@ function renderList(){
 }
 $('q').addEventListener('input', renderList);
 $('tagFilter').addEventListener('click', e => { const b = e.target.closest('[data-tag]'); if(!b) return; tagF = b.dataset.tag; renderList(); });
-$('viaFilter').addEventListener('click', e => { const b = e.target.closest('[data-via]'); if(!b) return; viaF = viaF === b.dataset.via ? '' : b.dataset.via; renderList(); });
 $('custList').addEventListener('click', e => {
   if(e.target.closest('a')) return;
   const r = e.target.closest('.crow'); if(r) location.hash = 'c=' + encodeURIComponent(r.dataset.id);
@@ -513,179 +468,10 @@ $('custList').addEventListener('click', e => {
 
 $('addCust').onclick = () => { location.hash = 'form'; };
 
-/* ---------- bring in a list (the shop's old birthday & anniversary sheets) ----------
-   An Excel file with one sheet per month ("JANUARY-1" … "DECEMBER-12"): Birthday, Anniversary, Ref no, Name, Contact no,
-   Contact no. Dates are day/month/year. Excel often turned 01/02/1978 into 2 Jan 1978, so the sheet's month wins: when
-   the month does not match but the day does, the two are swapped back. */
-const MON3 = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-const titleCase = n => n === n.toUpperCase() || n === n.toLowerCase() ? n.toLowerCase().replace(/(^|[\s.])\S/g, c => c.toUpperCase()) : n;
-const nameKey = n => String(n || '').toLowerCase().replace(/[^a-z\u0B80-\u0BFF]/g, '');
-function sheetMonth(sh){
-  const m = /-\s*(\d{1,2})\s*$/.exec(sh.name);
-  if(m && Number(m[1]) >= 1 && Number(m[1]) <= 12) return Number(m[1]);
-  const t = (sh.name + ' ' + ((sh.rows[0] || []).join(' '))).toLowerCase().replace(/0/g, 'o');
-  const i = MON3.findIndex(x => new RegExp('\\b' + x).test(t));
-  return i < 0 ? 0 : i + 1;
-}
-const realDay = (y, m, d) => { const x = new Date(y, m - 1, d); return x.getFullYear() === y && x.getMonth() === m - 1 && x.getDate() === d; };
-// a cell → 'yyyy-mm-dd' (NOYEAR when there is no year), '' when empty, null when it cannot be read.
-// listDate.other is set when a clear date (day over 12) is for another month than the sheet's
-function listDate(v, month){
-  listDate.other = false;
-  if(v === undefined || v === null || v === '') return '';
-  if(typeof v === 'string' && /^\s*[2-6]\d{4}\s*$/.test(v)) v = Number(v);     // a date saved as its Excel number
-  let d, m, y;
-  if(typeof v === 'number'){
-    const x = new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 864e5);
-    d = x.getUTCDate(); m = x.getUTCMonth() + 1; y = x.getUTCFullYear();
-  } else {
-    const t = String(v).trim().toLowerCase().replace(/o/g, '0').replace(/[`'’]/g, '');
-    if(!t) return '';
-    const g = t.split(/\D+/).filter(Boolean);
-    if(!g.length) return null;
-    if(g.length === 1 && g[0].length >= 4){ g.splice(0, 1, g[0].slice(0, 2), g[0].slice(2, 4), g[0].slice(4)); }
-    else if(g.length === 2 && g[1].length > 2){ g.splice(1, 1, g[1].slice(0, 2), g[1].slice(2)); }   // 02/0601998
-    if(g.length < 2) return null;
-    d = Number(g[0]); m = Number(g[1]);
-    const ys = (g[2] || '').slice(-4);
-    y = ys.length === 4 ? Number(ys) : ys.length === 2 ? (Number(ys) <= new Date().getFullYear() % 100 ? 2000 : 1900) + Number(ys) : 0;
-  }
-  if(month && m !== month){
-    if(d === month && m <= 31) [d, m] = [m, d];
-    else if(d > 12 && m <= 12) listDate.other = true;
-    else return null;
-  }
-  if(!(y >= 1900 && y <= new Date().getFullYear())) y = Number(NOYEAR);
-  if(!realDay(y, m, d)) return null;
-  return y + '-' + NJ.pad(m) + '-' + NJ.pad(d);
-}
-// how a cell looked in the sheet (Excel keeps dates as numbers)
-const cellText = v => { if(typeof v === 'string' && /^\s*[2-6]\d{4}\s*$/.test(v)) v = Number(v); if(typeof v !== 'number') return String(v); const x = new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 864e5); return NJ.pad(x.getUTCDate()) + '/' + NJ.pad(x.getUTCMonth() + 1) + '/' + x.getUTCFullYear(); };
-const listPhone = v => { let d = typeof v === 'number' ? String(Math.round(v)) : digits(v); if(d.length === 12 && d.startsWith('91')) d = d.slice(2); if(d.length === 11 && d[0] === '0') d = d.slice(1); return d; };
-const goodPhone = d => /^[6-9]\d{9}$/.test(d);
-let im = null;
-function readList(books){
-  const people = new Map(), check = [];
-  let rows = 0, noName = 0, sheets = 0;
-  for(const sh of books){
-    const hi = sh.rows.slice(0, 10).findIndex(r => r.some(c => /^\s*name\b/i.test(String(c || ''))));
-    if(hi < 0) continue;
-    const h = sh.rows[hi].map(c => String(c || '').trim().toLowerCase());
-    const col = re => h.findIndex(c => re.test(c));
-    const cB = col(/birth/), cA = col(/anniv/), cR = col(/^ref/), cN = col(/^name/);
-    const cP = h.map((c, i) => /contact|phone|mobile|cell/.test(c) ? i : -1).filter(i => i >= 0);
-    const month = sheetMonth(sh);
-    if(cN < 0 || (cB < 0 && cA < 0)) continue;
-    sheets++;
-    sh.rows.slice(hi + 1).forEach((r, i) => {
-      const cell = c => c >= 0 ? r[c] : '';
-      const raw = String(cell(cN) ?? '').trim().replace(/\s+/g, ' ');
-      if(!raw){ if(r.some(c => c !== '' && c !== undefined && c !== null)) noName++; return; }
-      rows++;
-      const where = sh.name + ', row ' + (hi + i + 2), why = [];
-      const name = titleCase(raw).slice(0, 80);
-      const ph = listPhone(cell(cP[0])), alt = listPhone(cell(cP[1]));
-      if(!ph) why.push('No phone number'); else if(!goodPhone(ph)) why.push('Phone ' + ph + ' is not a 10-digit mobile');
-      const bd = listDate(cell(cB), month), bdOther = listDate.other, an = listDate(cell(cA), month), anOther = listDate.other;
-      const onSheet = MONTHS[month - 1] + ' sheet';
-      if(bd === null) why.push('Birthday “' + cellText(cell(cB)) + '” could not be read');
-      else if(bdOther) why.push('Birthday saved as ' + fmtDM(bd) + ', but it is on the ' + onSheet);
-      if(an === null) why.push('Anniversary “' + cellText(cell(cA)) + '” could not be read');
-      else if(anOther) why.push('Anniversary saved as ' + fmtDM(an) + ', but it is on the ' + onSheet);
-      if(!bd && !an && bd !== null && an !== null) why.push('No date');
-      const ref = String(cell(cR) ?? '').replace(/\.0+$/, '').trim();
-      const key = (ph.slice(-10) || 'x' + where) + '|' + nameKey(name);
-      const p = people.get(key) || {name, phone: ph, alt: '', birthday: '', anniversary: '', refs: new Set(), where};
-      if(bd && !p.birthday) p.birthday = bd;
-      if(an && !p.anniversary) p.anniversary = an;
-      if(alt && alt !== ph && !p.alt) p.alt = alt;
-      if(ref) p.refs.add(ref);
-      people.set(key, p);
-      if(why.length) check.push({where, name, phone: ph, why: why.join('; ')});
-    });
-  }
-  // match customers already saved: same phone and same name
-  const saved = new Map(customers.map(c => [digits(c.phone).slice(-10) + '|' + nameKey(c.name), c]));
-  const add = [], fill = [];
-  for(const [key, p] of people){
-    const notes = p.refs.size ? 'Card ' + [...p.refs].join(', ') : '';
-    const c = saved.get(key);
-    if(c){
-      const patch = {};
-      if(p.birthday && !c.birthday) patch.birthday = p.birthday;
-      if(p.anniversary && !c.anniversary) patch.anniversary = p.anniversary;
-      if(p.alt && !c.alt_phone) patch.alt_phone = p.alt;
-      if(notes && !(c.notes || '').includes(notes)) patch.notes = ((c.notes ? c.notes + '\n' : '') + notes).slice(0, 1000);
-      if(Object.keys(patch).length) fill.push({id: c.id, patch});
-    } else add.push({name: p.name, phone: p.phone.slice(0, 20), alt_phone: p.alt.slice(0, 20), birthday: p.birthday || null, anniversary: p.anniversary || null, notes: notes.slice(0, 1000)});
-  }
-  return {sheets, rows, noName, people: people.size, add, fill, check, same: people.size - add.length - fill.length};
-}
-function showList(){
-  const n = x => x.toLocaleString('en-IN');
-  $('imSum').innerHTML = [[im.rows, 'rows read from ' + im.sheets + ' sheet' + (im.sheets === 1 ? '' : 's')], [im.people, 'people, after joining repeats'],
-    [im.add.length, 'new customers to add'], [im.fill.length, 'saved customers get missing dates'], [im.check.length, 'rows to check']]
-    .map(([v, t]) => '<div><b>' + n(v) + '</b><span>' + esc(t) + '</span></div>').join('');
-  $('imCheckT').hidden = !im.check.length; $('imCheck').parentNode.hidden = !im.check.length;
-  $('imCheck').innerHTML = '<thead><tr><th>Where</th><th>Name</th><th>Phone</th><th>What to check</th></tr></thead><tbody>' +
-    im.check.slice(0, 500).map(x => '<tr><td>' + esc(x.where) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.phone) + '</td><td class="why">' + esc(x.why) + '</td></tr>').join('') + '</tbody>';
-  $('imNote').textContent = [im.check.length > 500 ? 'Showing the first 500 rows to check.' : '', im.check.length ? 'These are still brought in with what could be read; fix them later on the customer page.' : '',
-    im.same ? n(im.same) + ' people are already saved with these details.' : '', im.noName ? n(im.noName) + ' rows without a name are left out.' : ''].filter(Boolean).join(' ');
-  const total = im.add.length + im.fill.length;
-  $('imSave').disabled = !total;
-  $('imSave').textContent = total ? 'Bring in ' + n(im.add.length) + ' new' + (im.fill.length ? ' and update ' + n(im.fill.length) : '') : 'Nothing new to bring in';
-  $('imErr').textContent = '';
-}
-$('imPick').onclick = () => $('imFile').click();
-$('imFile').addEventListener('change', async () => {
-  const f = $('imFile').files[0]; $('imFile').value = '';
-  if(!f) return;
-  if(/\.numbers$/i.test(f.name)){ dialog({title: 'Save it as Excel first', msg: 'This is a Numbers file. In Numbers, choose File › Export To › Excel…, save it, and pick that .xlsx file here.', ok: 'OK', cancel: null}); return; }
-  $('imPick').setAttribute('aria-busy', 'true');
-  try{
-    const books = await NJ.readXlsx(f, true);
-    im = readList(books);
-    if(!im.sheets) throw new Error('No sheet in this file has the columns Name and Birthday or Anniversary.');
-    $('imTitle').textContent = f.name.replace(/\.xlsx$/i, '');
-    showList();
-    $('imBox').hidden = false;
-    $('imBox').scrollIntoView({behavior: 'smooth', block: 'start'});
-  }catch(e){ toast(e.message); }
-  $('imPick').removeAttribute('aria-busy');
-});
-$('imCancel').onclick = () => { im = null; $('imBox').hidden = true; };
-$('imSave').onclick = async () => {
-  if(!im) return;
-  const btn = $('imSave'), total = im.add.length + im.fill.length;
-  btn.disabled = true; $('imErr').textContent = '';
-  let done = 0;
-  const step = () => { btn.textContent = 'Saving… ' + Math.round(done / total * 100) + '%'; };
-  try{
-    while(im.add.length){
-      const part = im.add.slice(0, 500).map(x => Object.assign({added_via: 'list'}, x));
-      const rows = must(await sb.from('customers').insert(part).select('*')) || [];
-      customers.push(...rows); im.add.splice(0, part.length); done += part.length; step();
-    }
-    while(im.fill.length){
-      const {id, patch} = im.fill[0];
-      const row = must(await sb.from('customers').update(patch).eq('id', id).select('*').single());
-      const c = custById(id); if(c) Object.assign(c, row);
-      im.fill.shift(); done++; step();
-    }
-    customers.sort((a, b) => a.name.localeCompare(b.name));
-    toast(total.toLocaleString('en-IN') + ' customers brought in');
-    im = null; $('imBox').hidden = true; renderList();
-  }catch(e){
-    // what was saved stays saved; pressing again carries on with the rest
-    $('imErr').textContent = e.message + ' ' + done.toLocaleString('en-IN') + ' were saved. Press the button again to carry on.';
-    showList(); btn.disabled = false;
-  }
-};
-
 /* ---------- one customer ---------- */
 async function openCustomer(id){
   if(curTab !== 'cust') backTo = curTab;
-  $('backBtn').textContent = '‹ ' + ({list: 'All customers', form: 'Enter a form', follow: 'Follow-ups', occ: 'Birthdays & anniversaries', ins: 'Insights'}[backTo]);
+  $('backBtn').textContent = '‹ ' + ({list: 'All customers', form: 'Enter a form', follow: 'Follow-ups', thanks: 'Say thank you', ins: 'Insights'}[backTo]);
   show('cust');
   cur = custById(id);
   if(!cur){ cur = must(await sb.from('customers').select('*').eq('id', id).maybeSingle()); if(cur) customers.push(cur); }
@@ -884,95 +670,10 @@ $('fuList').addEventListener('click', async e => {
   const f = follows.find(x => x.id === r.dataset.id); if(f && await completeFollow(f)){ renderFollows(); badge(); }
 });
 
-/* ---------- birthdays and anniversaries ---------- */
-function renderOccasions(){
-  const items = [];
-  customers.forEach(c => [['birthday', 'Birthday'], ['anniversary', 'Wedding anniversary']].forEach(([k, label]) => {
-    const n = nextOccur(c[k]); if(n && n.days <= 30) items.push({c, k, label, n});
-  }));
-  items.sort((a, b) => a.n.days - b.n.days || a.c.name.localeCompare(b.c.name));
-  const when = d => d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : 'In ' + d + ' days';
-  const greet = (it) => 'Dear ' + it.c.name + ', ' + (it.k === 'birthday' ? 'wishing you a very happy birthday!' : 'wishing you both a very happy wedding anniversary!') +
-    ' May the year ahead bring you joy and good health. Warm wishes from all of us at Natraj Jewels, Tiruppur.';
-  $('occList').innerHTML = items.length ? items.map(it =>
-    '<div class="arow"><span class="dot" aria-hidden="true">' + (it.k === 'birthday' ? '🎂' : '💍') + '</span>' +
-    '<div><button type="button" class="cust-link ttl" data-cust="' + esc(it.c.id) + '">' + esc(it.c.name) + '</button>' +
-    '<div class="sub">' + esc(it.label + ' · ' + fmtD(it.n.date)) + '</div><div style="margin-top:6px"><span class="tag' + (it.n.days === 0 ? ' today' : it.n.days <= 7 ? ' soon' : '') + '">' + when(it.n.days) + '</span></div></div>' +
-    '<div class="acts">' + (it.c.phone && it.c.whatsapp_ok ? '<a class="btn mini btn-wa" href="' + esc(waLink(it.c.phone, greet(it))) + '" target="_blank" rel="noopener">Send wishes</a>'
-      : it.c.phone ? '<span class="axisnote">No WhatsApp permission</span>' : '') + '</div></div>').join('')
-    : '<div class="empty"><h3>None in the next 30 days</h3><p>Add birthdays and anniversaries on each customer’s details.</p></div>';
-  // family functions this month and the next 3
-  const m0 = todayIso().slice(0, 7), mEnd = (() => { const d = parse(m0 + '-01'); d.setMonth(d.getMonth() + 3); return iso(d).slice(0, 7); })();
-  const fns = customers.filter(c => c.function_month && c.function_month >= m0 && c.function_month <= mEnd).sort((a, b) => a.function_month.localeCompare(b.function_month) || a.name.localeCompare(b.name));
-  if(fns.length) $('occList').innerHTML += '<div class="lhead">Family functions coming up</div>' + fns.map(c =>
-    '<div class="arow"><span class="dot" aria-hidden="true">✦</span><div><button type="button" class="cust-link ttl" data-cust="' + esc(c.id) + '">' + esc(c.name) + '</button>' +
-    '<div class="sub">' + esc([fmtMonth(c.function_month), c.function_note].filter(Boolean).join(' · ')) + '</div></div>' +
-    '<div class="acts">' + (c.phone ? '<a class="btn mini" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') + '</div></div>').join('');
-}
-/* ---------- today's wishes: today's birthdays and anniversaries, each ticked off once wished ---------- */
-let ticks = [];     // occasion_done rows for the last 7 days (and the chosen day)
-let wDay = null;    // the day shown; null = today
+/* ---------- say thank you: the WhatsApp thank-you after a purchase (birthdays and anniversaries are in the Wishes app) ---------- */
 const THX_AFTER = 2;              // days after a purchase to send the thank-you
-let buys = [], reviewLink = null;  // purchases to thank around the day shown; the shop's Google review link
-const OCC = [['birthday', 'Birthday', '🎂'], ['anniversary', 'Wedding anniversary', '💍']];
-// whose birthday or anniversary falls on a day (29 Feb counts on 28 Feb in other years)
-function wishesOn(day){
-  const md = day.slice(5), y = Number(day.slice(0, 4)), leap = new Date(y, 1, 29).getMonth() === 1, out = [];
-  customers.forEach(c => OCC.forEach(([k, label, icon]) => {
-    const d = c[k]; if(!d) return;
-    const m = d.slice(5) === '02-29' && !leap ? '02-28' : d.slice(5);
-    if(m === md) out.push({c, k, label, icon, years: d.slice(0, 4) === NOYEAR ? 0 : y - Number(d.slice(0, 4))});
-  }));
-  return out;
-}
-const todaysWishes = () => wishesOn(todayIso());
-const shownDay = () => wDay || todayIso();
-const tickOf = (c, k, day) => ticks.find(t => t.customer_id === c.id && t.kind === k && t.day === (day || shownDay()));
-async function loadWishes(){
-  const from = addDays(todayIso(), -6), d = shownDay();
-  ticks = must(await sb.from('occasion_done').select('*').gte('day', d < from ? d : from).lte('day', todayIso())) || [];
-  renderWishes();
-}
-function renderWishes(){
-  const tl = todaysWishes(), tleft = tl.filter(w => !tickOf(w.c, w.k, todayIso())).length;
-  $('wCount').hidden = !tleft; $('wCount').textContent = tleft;
-  if(curTab !== 'today') return;
-  const day = shownDay(), isToday = day === todayIso(), ahead = day > todayIso(), tmrw = addDays(todayIso(), 1);
-  const list = isToday ? tl : wishesOn(day), done = list.filter(w => tickOf(w.c, w.k)).length, left = list.length - done;
-  $('wEyebrow').textContent = parse(day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'}) + (isToday ? '' : ahead ? ' · coming up' : ' · an earlier day');
-  $('wTitle').textContent = isToday ? 'Today’s wishes' : day === tmrw ? 'Tomorrow’s wishes' : 'Wishes on ' + parse(day).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'});
-  // the last 7 days at a glance: done out of due, red when some were missed
-  $('wWeek').innerHTML = [6, 5, 4, 3, 2, 1, 0].map(n => { const d = addDays(todayIso(), -n), ws = n ? wishesOn(d) : tl, dn = ws.filter(w => tickOf(w.c, w.k, d)).length;
-    return '<button type="button" data-wday="' + d + '" aria-pressed="' + (d === day) + '" class="' + (!ws.length || dn === ws.length ? 'ok' : n ? 'miss' : '') + '">' + (n ? esc(parse(d).toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric'})) : 'Today') + '<small>' + dn + ' / ' + ws.length + '</small></button>'; }).join('') +
-    // tomorrow, to get ready: how many are due
-    '<button type="button" data-wday="' + tmrw + '" aria-pressed="' + (tmrw === day) + '" class="next">Tomorrow<small>' + wishesOn(tmrw).length + ' due</small></button>' +
-    '<input class="input" type="date" id="wPick" value="' + day + '" aria-label="Choose another day">';
-  $('wProg').innerHTML = list.length ? '<div class="bar2"><i style="width:' + Math.round(done / list.length * 100) + '%"></i></div><span><b>' + done + '</b> of <b>' + list.length + '</b> done' + (left ? '' : ' · all wished') + '</span>' : '';
-  if(ahead) $('wProg').innerHTML = list.length ? '<div class="wnext">' + list.length + ' to wish on ' + esc(parse(day).toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'short'})) + '. Get ready now; the ticks and notes open on the day.</div>' : '';
-  else if(!isToday && left) $('wProg').innerHTML += '<div class="wpast" style="flex-basis:100%">' + left + ' not called on this day. Call them now and tick, or note what was said: it is saved for ' + esc(parse(day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})) + '.</div>';
-  // still to do first, then the done ones; each group by name
-  list.sort((a, b) => !!tickOf(a.c, a.k) - !!tickOf(b.c, b.k) || a.c.name.localeCompare(b.c.name));
-  const greet = w => 'Dear ' + w.c.name + ', ' + (w.k === 'birthday' ? 'wishing you a very happy birthday!' : 'wishing you both a very happy wedding anniversary!') +
-    ' May the year ahead bring you joy and good health. Warm wishes from all of us at Natraj Jewels, Tiruppur.';
-  const at = t => new Date(t).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
-  $('wList').innerHTML = list.length ? list.map(w => {
-    const t = tickOf(w.c, w.k), id = 'w-' + w.c.id + '-' + w.k;
-    return '<div class="wrow' + (t ? ' done' : '') + '">' +
-      (ahead ? '<span class="tick-later" aria-hidden="true"></span>'
-        : '<input type="checkbox" class="tick" id="' + esc(id) + '" data-c="' + esc(w.c.id) + '" data-k="' + w.k + '"' + (t ? ' checked' : '') + ' aria-label="' + esc((t ? 'Done: ' : 'Mark done: ') + w.label + ' of ' + w.c.name) + '">') +
-      '<span class="dot" aria-hidden="true">' + w.icon + '</span>' +
-      '<div><button type="button" class="cust-link ttl" data-cust="' + esc(w.c.id) + '">' + esc(w.c.name) + '</button>' +
-      '<div class="sub">' + esc([w.label + (w.years > 0 ? ' · ' + w.years + (w.k === 'birthday' ? ' years old' : ' years') : ''), fmtPhone(w.c.phone)].filter(Boolean).join(' · ')) + '</div>' +
-      (t ? '<div class="by">✓ Done by ' + esc(t.done_by_name || 'someone') + (iso(new Date(t.done_at)) !== t.day ? ' on ' + esc(fmtD(iso(new Date(t.done_at)))) + ' (late)' : '') + ' at ' + esc(at(t.done_at)) + '</div>' : '') +
-      (ahead ? '' : t && t.note && wEdit !== id ? '<div class="wsaid"><b>On the call:</b> ' + esc(t.note) + '<button type="button" class="linkish" data-wedit="' + esc(id) + '">Change</button></div>'
-        : '<div class="wnote"><input class="input" data-wnote="' + esc(id) + '" maxlength="500" placeholder="What did they say on the call? e.g. daughter’s wedding in Jan, wants a light necklace" value="' + esc(t ? t.note || '' : '') + '" aria-label="Note from the call with ' + esc(w.c.name) + '">' +
-          '<button type="button" class="btn mini" data-wsave="' + esc(id) + '" data-c="' + esc(w.c.id) + '" data-k="' + w.k + '">Save note</button></div>') + '</div>' +
-      '<div class="acts">' + (w.c.phone ? (w.c.whatsapp_ok && !ahead ? '<a class="btn mini btn-wa" href="' + esc(waLink(w.c.phone, greet(w))) + '" target="_blank" rel="noopener">Send wishes</a>' : '') +
-        '<a class="btn mini" href="tel:' + esc(digits(w.c.phone)) + '">Call</a>' : '<span class="axisnote">No phone number</span>') + '</div></div>';
-  }).join('') : '<div class="empty"><h3>No birthdays or anniversaries ' + (isToday ? 'today' : 'on this day') + '</h3><p>The Birthdays &amp; anniversaries tab shows the next 30 days.</p></div>';
-}
+let buys = [], reviewLink = null;  // purchases to thank; the shop's Google review link
 
-/* ---------- say thank you: two days after a purchase on the form, a WhatsApp thank-you with the Google review link ---------- */
 const THX = {en: 'Dear {name}, thank you for shopping at Natraj Jewels! We hope you love your {item}. 🙏',
   ta: 'அன்புள்ள {name}, நடராஜ் ஜுவல்லர்ஸில் வாங்கியதற்கு நன்றி! உங்கள் {item} உங்களுக்குப் பிடிக்கும் என நம்புகிறோம். 🙏'};
 const THX_ITEM = {en: 'jewellery', ta: 'நகை'};
@@ -1045,51 +746,6 @@ $('thxBox').addEventListener('change', async e => {
   t.disabled = true;
   try{ await markThanked(t.dataset.thx, t.checked); }catch(err){ t.checked = !t.checked; t.disabled = false; toast(err.message); }
 });
-let wEdit = null;     // the row whose saved note is being changed
-$('wWeek').addEventListener('click', e => { const b = e.target.closest('[data-wday]'); if(!b) return; wDay = b.dataset.wday === todayIso() ? null : b.dataset.wday; wEdit = null; loadWishes().catch(x => toast(x.message)); });
-$('wWeek').addEventListener('change', e => { if(e.target.id !== 'wPick' || !e.target.value) return; wDay = e.target.value === todayIso() ? null : e.target.value; wEdit = null; loadWishes().catch(x => toast(x.message)); });
-$('wList').addEventListener('click', e => {
-  const ed = e.target.closest('[data-wedit]');
-  if(ed){ wEdit = ed.dataset.wedit; renderWishes(); const i = document.querySelector('[data-wnote="' + CSS.escape(wEdit) + '"]'); if(i) i.focus(); return; }
-  const sv = e.target.closest('[data-wsave]');
-  if(sv) return saveWishNote(sv);
-  const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust);
-});
-$('wList').addEventListener('keydown', e => { const i = e.target.closest('[data-wnote]'); if(i && e.key === 'Enter'){ e.preventDefault(); const b = document.querySelector('[data-wsave="' + CSS.escape(i.dataset.wnote) + '"]'); if(b) saveWishNote(b); } });
-// a note from the call: kept on today's wish (which it ticks as done) and added to the customer's history
-async function saveWishNote(b){
-  const id = b.dataset.wsave, input = document.querySelector('[data-wnote="' + CSS.escape(id) + '"]'), note = input.value.trim().replace(/\s+/g, ' ');
-  const c = custById(b.dataset.c), k = b.dataset.k, t = tickOf(c, k), day = shownDay();
-  if(!note){ input.focus(); return toast('Type what they said first.'); }
-  if(t && t.note === note){ wEdit = null; return renderWishes(); }
-  b.setAttribute('aria-busy', 'true');
-  try{
-    if(t) must(await sb.from('occasion_done').update({note}).eq('customer_id', c.id).eq('kind', k).eq('day', day).select());
-    else {
-      const r = await sb.from('occasion_done').insert({customer_id: c.id, kind: k, day, note}).select();
-      if(r.error && r.error.code === '23505') must(await sb.from('occasion_done').update({note}).eq('customer_id', c.id).eq('kind', k).eq('day', day).select());
-      else if(r.error) throw new Error(NJ.friendly(r.error));
-    }
-    must(await sb.from('customer_activity').insert({customer_id: c.id, kind: 'note', body: ((k === 'birthday' ? 'Birthday call' : 'Anniversary call') + (day === todayIso() ? '' : ' (' + parse(day).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}) + ')') + ': ' + note).slice(0, 500)}).select('id'));
-    wEdit = null; toast('Note saved to ' + c.name + '’s history');
-    await loadWishes();
-  }catch(err){ toast(err.message); b.removeAttribute('aria-busy'); }
-}
-$('wList').addEventListener('change', async e => {
-  const box = e.target.closest('.tick'); if(!box) return;
-  const row = {customer_id: box.dataset.c, kind: box.dataset.k, day: shownDay()};
-  box.disabled = true;
-  try{
-    if(box.checked){
-      const r = await sb.from('occasion_done').insert(row).select('*');
-      if(r.error && r.error.code !== '23505') throw new Error(NJ.friendly(r.error));     // 23505: someone else ticked it just now
-    } else must(await sb.from('occasion_done').delete().eq('customer_id', row.customer_id).eq('kind', row.kind).eq('day', row.day));
-    await loadWishes();
-  }catch(err){ box.checked = !box.checked; box.disabled = false; toast(err.message); }
-});
-
-$('occList').addEventListener('click', e => { const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust); });
-
 /* ---------- enter a form ---------- */
 let staffNames = [], cfMatch = null, cfBought = null, cfRating = 0, cfNew = null, cfNewTouched = false;
 const paintNew = () => $('cfNew').querySelectorAll('[data-n]').forEach(b => b.setAttribute('aria-pressed', b.dataset.n === cfNew));

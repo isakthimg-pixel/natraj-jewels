@@ -534,16 +534,17 @@ async function loadBank(){
     '<div class="list">' + accs.map(x => '<div><span>' + esc(x.name + (x.last4 ? ' ··' + x.last4 : '')) + '</span><b style="font-variant-numeric:tabular-nums;' + (of(x.id) < 0 ? 'color:var(--a)' : '') + '">' + inr(of(x.id)) + '</b></div>').join('') + '</div>';
 }
 
-/* customers: follow-ups due, new this month, birthdays and anniversaries in the next 7 days */
+/* customers: follow-ups due, new this month; birthdays and anniversaries in the next 7 days (customers and the birthday list, from the Wishes app) */
 async function loadCrm(){
   const today = todayIso(), first = today.slice(0, 8) + '01';
-  const [c, f] = await Promise.all([
+  const [c, f, w] = await Promise.all([
     NJ.selectAll(() => sb.from('customers').select('id,name,birthday,anniversary,created_at').order('id')).then(data => ({data}), error => ({error})),
-    sb.from('customer_activity').select('due,customer_id').eq('kind', 'followup').eq('status', 'open').lte('due', today)
+    sb.from('customer_activity').select('due,customer_id').eq('kind', 'followup').eq('status', 'open').lte('due', today),
+    NJ.selectAll(() => sb.from('wish_list').select('id,name,birthday,anniversary').order('id')).then(data => ({data}), () => ({data: []}))
   ]);
-  const cs = must(c) || [], fs = must(f) || [];
+  const cs = must(c) || [], fs = must(f) || [], ws = w.data || [];
   const t = parse(today), soon = [];
-  cs.forEach(x => [['birthday', 'birthday'], ['anniversary', 'anniversary']].forEach(([k, w]) => {
+  cs.concat(ws).forEach(x => [['birthday', 'birthday'], ['anniversary', 'anniversary']].forEach(([k, w]) => {
     if(!x[k]) return;
     let n = new Date(t.getFullYear(), Number(x[k].slice(5, 7)) - 1, Number(x[k].slice(8, 10)));
     if(n < t) n.setFullYear(n.getFullYear() + 1);
@@ -556,9 +557,9 @@ async function loadCrm(){
   $('crmBox').innerHTML = '<div class="rates" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">' +
       '<div><span>Follow-ups due</span><b' + (late ? ' style="color:var(--a)"' : '') + '>' + fs.length + '</b><em>' + (late ? late + ' overdue · ' : '') + td + ' today</em></div>' +
       '<div><span>Customers</span><b>' + cs.length + '</b><em>' + fresh + ' new this month</em></div>' +
-      '<div><span>Occasions this week</span><b>' + soon.length + '</b></div></div>' +
+      '<div><span>Occasions this week</span><b>' + soon.length + '</b><em><a href="../wishes/">Wishes</a></em></div></div>' +
     (soon.length ? '<div class="list">' + soon.slice(0, 6).map(x => '<div><span>' + esc(x.name) + '</span><small>' + (x.d === 0 ? 'today' : x.d === 1 ? 'tomorrow' : 'in ' + x.d + ' days') + ' · ' + x.w + '</small></div>').join('') + '</div>'
-      : '<small>No birthdays or anniversaries in the next 7 days. <a href="../crm/#occ">See the next 30 days</a>.</small>');
+      : '<small>No birthdays or anniversaries in the next 7 days. <a href="../wishes/#soon">See the next 30 days</a>.</small>');
 }
 
 /* design library: what is waiting to be bought, what has arrived for customers, and what is late */
