@@ -234,7 +234,8 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
           <label>Date on the form<input class="input" type="date" id="cfDay"></label>
         </div>
         <div class="field"><span>Sales staff who handled this customer (tap everyone who helped)</span><div class="bubbles" id="cfServed" role="group" aria-label="Sales staff"></div></div>
-        <label>Mobile number<input class="input" id="cfPhone" type="tel" inputmode="numeric" maxlength="20" placeholder="10 digits"></label>
+        <label>Mobile number<input class="input" id="cfPhone" type="tel" inputmode="numeric" maxlength="16" placeholder="10 digits" aria-describedby="cfPhoneErr"></label>
+        <p class="err" id="cfPhoneErr" role="alert"></p>
         <p class="match" id="cfMatch" hidden></p>
         <div class="field"><span>Customer is</span><div class="bubbles" id="cfNew" role="group" aria-label="New or returning customer">
           <button type="button" class="bubble" data-n="new" aria-pressed="false">New customer (first time)</button>
@@ -263,7 +264,8 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
         <label class="check" id="cfWantL" hidden><input type="checkbox" id="cfWant" checked> Add this to the Design library so it can be ordered for them</label>
         <label class="check"><input type="checkbox" id="cfWaOk"> Customer ticked: send offers and wishes on WhatsApp</label>
         <div class="staffbox"><span>Not on the paper form</span>
-          <label>Other number<input class="input" id="cfAlt" type="tel" maxlength="20"></label>
+          <label>Other number<input class="input" id="cfAlt" type="tel" inputmode="numeric" maxlength="16" placeholder="10 digits" aria-describedby="cfAltErr"></label>
+          <p class="err" id="cfAltErr" role="alert"></p>
           <label>Address<textarea class="input" id="cfAddr" maxlength="300"></textarea></label>
           <label>Notes<textarea class="input" id="cfNotes" maxlength="1000" placeholder="e.g. Ring size 14, prefers antique finish"></textarea></label>
         </div>
@@ -797,6 +799,21 @@ async function formReady(){
     setServed(keep.length ? keep : meServed());
   }
 }
+// mobile numbers are exactly 10 digits: keep only digits as they are typed (a pasted +91 or 0 in front is dropped),
+// and say when the count is wrong; the form does not save until it is right
+const tenDigits = v => { let d = digits(v); if(d.length === 12 && d.startsWith('91')) d = d.slice(2); else if(d.length === 11 && d[0] === '0') d = d.slice(1); return d; };
+const phoneProblem = (d, label) => !d ? '' : d.length !== 10 ? label + ' has ' + d.length + ' digit' + (d.length === 1 ? '' : 's') + '. It must be exactly 10.' : '';
+[['cfPhone', 'cfPhoneErr', 'The mobile number'], ['cfAlt', 'cfAltErr', 'The other number']].forEach(([id, errId, label]) => {
+  const el = $(id);
+  el.addEventListener('input', () => {
+    const d = tenDigits(el.value);
+    if(el.value !== d) el.value = d;
+    // a short number is still being typed: it is called wrong when they move on; too long is wrong at once
+    $(errId).textContent = d.length > 10 ? phoneProblem(d, label) : '';
+    if(d.length === 10 && $('cfErr').textContent.startsWith(label)) $('cfErr').textContent = '';
+  });
+  el.addEventListener('blur', () => { $(errId).textContent = phoneProblem(tenDigits(el.value), label); });
+});
 // a known mobile number: say whose it is and fill in what we already have
 $('cfPhone').addEventListener('input', () => {
   const d = digits($('cfPhone').value);
@@ -828,6 +845,7 @@ $('cfPhone').addEventListener('input', () => {
   }
 });
 function clearForm(){
+  $('cfPhoneErr').textContent = ''; $('cfAltErr').textContent = '';
   ['cfPhone', 'cfName', 'cfArea', 'cfPin', 'cfLook', 'cfFnMonth', 'cfFnNote', 'cfMissing', 'cfAlt', 'cfAddr', 'cfNotes', 'cfWhy'].forEach(id => $(id).value = ''); $('cfWhyL').hidden = true;
   setDMY('cfB', ''); setDMY('cfA', '');
   ['cfFor', 'cfHeard', 'cfBought', 'cfTags', 'cfNew'].forEach(id => $(id).querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')));
@@ -861,7 +879,7 @@ async function openEdit(id){
   $('cfDay').value = v.visit_day || todayIso();
   $('cfServed').querySelectorAll('[data-v]').forEach(x => { if(!staffNames.includes(x.dataset.v)) x.remove(); });
   setServed(servedOf(v.served_by));
-  $('cfPhone').value = c.phone || ''; $('cfWaOn').checked = c.whatsapp_on_phone !== false;
+  $('cfPhone').value = tenDigits(c.phone || ''); $('cfPhoneErr').textContent = ''; $('cfAltErr').textContent = ''; $('cfWaOn').checked = c.whatsapp_on_phone !== false;
   $('cfName').value = c.name || ''; $('cfArea').value = c.area || ''; $('cfPin').value = c.pincode || '';
   setDMY('cfB', c.birthday || ''); setDMY('cfA', c.anniversary || '');
   press('cfFor', v.came_for || []);
@@ -894,11 +912,15 @@ function leaveEdit(){
 $('cf').addEventListener('submit', async e => {
   e.preventDefault(); const err = m => { $('cfErr').textContent = m; };
   err('');
-  const name = $('cfName').value.trim().replace(/\s+/g, ' '), phone = cleanPhone($('cfPhone').value), day = $('cfDay').value;
+  const name = $('cfName').value.trim().replace(/\s+/g, ' '), day = $('cfDay').value;
+  let phone = cleanPhone($('cfPhone').value);
   if(!name) return err('Type the customer’s name.');
-  if(phone && (digits(phone).length < 10 || digits(phone).length > 13)) return err('Check the mobile number: it should be 10 digits.');
-  const alt = cleanPhone($('cfAlt').value);
-  if(alt && (digits(alt).length < 10 || digits(alt).length > 13)) return err('Check the other number: it should be 10 digits.');
+  const pd = tenDigits(phone);
+  if(!pd){ $('cfPhone').focus(); return err('Type the customer’s mobile number (10 digits).'); }
+  if(pd.length !== 10){ $('cfPhoneErr').textContent = phoneProblem(pd, 'The mobile number'); $('cfPhone').focus(); return err(phoneProblem(pd, 'The mobile number')); }
+  const ad = tenDigits($('cfAlt').value);
+  if(ad && ad.length !== 10){ $('cfAltErr').textContent = phoneProblem(ad, 'The other number'); $('cfAlt').focus(); return err(phoneProblem(ad, 'The other number')); }
+  phone = pd; const alt = ad;     // saved as the plain 10 digits
   if(!day || day > todayIso()) return err('Choose the date on the form (not in the future).');
   const bd = getDMY('cfB'), an = getDMY('cfA');
   if(bd === null) return err('Check the birthday: choose both the day and the month.');
