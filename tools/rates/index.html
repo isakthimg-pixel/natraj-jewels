@@ -42,6 +42,8 @@
 .msg{white-space:pre-line;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:14px 16px;font-size:.92rem;line-height:1.55;color:var(--ink);margin:0}
 .mjdta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .mjdta span{font-size:.85rem;color:var(--muted);min-width:0}
+.autoline{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:6px 0 0;font-size:.86rem;color:var(--muted)}
+.autoline b{color:var(--p);font-weight:600} .autoline b.off{color:var(--muted)}
 .btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
 .btn-wa:hover{background:#0B6358;border-color:#0B6358}
 
@@ -102,6 +104,7 @@ table.hist{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-num
         <div><span class="lbl">Silver</span><b id="rS">–</b><span class="chg" id="cS"></span></div>
       </div>
       <p class="stampline" id="stamp">Loading…</p>
+      <p class="autoline" id="autoLine" hidden></p>
       <p class="notice duty" id="duty" hidden></p>
     </div></div>
     <div class="wrap content grid2">
@@ -189,9 +192,30 @@ function showTab(name){
 }
 function render(){ curTab === 'today' ? renderToday() : renderHistory(); }
 
+/* the MJDTA rate updates itself every 30 minutes in shop hours (migration 057); the owner can switch it off */
+let feed = null;
+function renderAuto(){
+  const on = settings.mjdta_auto !== false, el = $('autoLine'), owner = NJ.me && NJ.me.is_owner;
+  const at = t => new Date(t).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'}) + (new Date(t).toDateString() === new Date().toDateString() ? '' : ', ' + new Date(t).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}));
+  el.hidden = false;
+  el.innerHTML = (on ? '<b>⟳ Updates itself from MJDTA every 30 minutes</b><span>5:30 am to 10 pm' + (feed && feed.auto_at ? ' · last checked ' + esc(at(feed.auto_at)) + ': ' + esc(feed.auto_result) : '') + '</span>'
+      : '<b class="off">Automatic MJDTA update is off</b><span>The rate is entered by hand.</span>') +
+    (owner ? '<button type="button" class="btn mini" id="autoToggle">' + (on ? 'Switch off' : 'Switch on') + '</button>' : '');
+}
+$('autoLine').addEventListener('click', async e => {
+  if(!e.target.closest('#autoToggle')) return;
+  const on = settings.mjdta_auto !== false;
+  if(on && !(await ask('Switch off the automatic update?', 'The rate will no longer follow MJDTA by itself. Staff enter it by hand, as before.', 'Switch off'))) return;
+  try{ must(await sb.from('settings').update({mjdta_auto: !on}).eq('id', 1).select()); settings.mjdta_auto = !on; toast(on ? 'Automatic update off' : 'Automatic update on'); renderAuto(); }
+  catch(x){ toast(x.message); }
+});
+// while the page is open, pick up a rate the automatic update has saved
+setInterval(() => { if(document.visibilityState === 'visible' && NJ.me && !document.querySelector('dialog[open]') && !$('rateForm').dataset.touched) load().then(render).catch(() => {}); }, 5 * 60e3);
+
 async function load(){
   const since = new Date(Date.now() - 366 * 864e5).toISOString();
   settings = must(await sb.from('settings').select('*').eq('id', 1).maybeSingle()) || {};
+  feed = (await sb.from('rate_feed').select('*').eq('id', 1).maybeSingle()).data || null;
   updaters = must(await sb.rpc('rate_updaters')) || [];
   rates = must(await sb.from('rates').select('*').gte('set_at', since).order('set_at', {ascending: false}).limit(2000)) || [];
   if(!rates.length){   // older than a year: still show the last known rate
@@ -218,6 +242,7 @@ function renderToday(){
     c.textContent = d == null ? '' : d === 0 ? 'No change' : (d > 0 ? '▲ ' : '▼ ') + inr(Math.abs(d)) + ' since last change';
   });
   $('stamp').textContent = cur ? 'Set by ' + (cur.set_by_name || 'someone') + ' · ' + when(cur.set_at) + (cur.note ? ' · ' + cur.note : '') : 'No rate set yet.';
+  renderAuto();
   const s = NJ.rateStatus(settings, cur, updaters);
   document.body.classList.toggle('no-rates-access', !s.canSet);
   const duty = $('duty');
