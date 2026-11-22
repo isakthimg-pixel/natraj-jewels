@@ -54,6 +54,12 @@
 .thx-head h3{font-size:1.35rem;color:var(--maroon);margin:0}
 .thx-head p{margin:4px 0 0;font-size:.88rem;color:var(--muted)}
 .thx-lang{display:flex;gap:6px}
+.thx-pic{display:flex;gap:14px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:4px;background:var(--card);padding:10px 14px}
+.thx-pic img{width:128px;height:72px;object-fit:cover;border-radius:3px;border:1px solid var(--line);cursor:zoom-in}
+.thx-pic p{margin:0;font-size:.86rem;color:var(--muted);flex:1 1 260px}
+.thx-pic p b{display:block;color:var(--ink);font-size:.92rem}
+.thx-pic .bar{margin:0}
+dialog .thx-big{display:block;width:100%;max-width:360px;margin:0 auto;border-radius:4px}
 .thx-warn{border-left:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--card));padding:8px 12px;border-radius:0 4px 4px 0;font-size:.88rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .wrow .late{color:var(--a);font-weight:600}
 .wweek button.next{border-style:dashed} .wweek button.next small{color:var(--gold)}
@@ -340,6 +346,7 @@ table.im{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numer
     </div></div>
     <div class="wrap content">
       <div class="thx" id="thxBox"><div class="loading">Loading…</div></div>
+      <input type="file" id="thxFile" accept="image/jpeg,image/png,image/webp" hidden>
     </div>
   </section>
 
@@ -690,8 +697,36 @@ async function loadThanks(){
   const due = addDays(todayIso(), -THX_AFTER);
   buys = must(await sb.from('customer_activity').select('id, customer_id, visit_day, looking_for, served_by, thanked_at, thanked_by_name')
     .eq('kind', 'visit').eq('bought', true).gte('visit_day', addDays(due, -7)).lte('visit_day', due)) || [];
-  if(reviewLink === null) reviewLink = ((await sb.from('settings').select('review_link').eq('id', 1).maybeSingle()).data || {}).review_link || '';
+  if(reviewLink === null){
+    const st = (await sb.from('settings').select('review_link, thanks_picture').eq('id', 1).maybeSingle()).data || {};
+    reviewLink = st.review_link || ''; loadPicture(st.thanks_picture || '').catch(() => {});
+  }
   renderThanks();
+}
+/* the thank-you picture. A WhatsApp link can carry only text, so "Send thanks" copies the picture as it opens the chat,
+   and staff paste it there. Where a phone cannot copy pictures, the share sheet sends the picture and the message. */
+const DEFAULT_PIC = '../img/thank-you.jpg';
+let thxPic = {path: '', url: DEFAULT_PIC, png: null, jpg: null};
+async function loadPicture(path){
+  let url = DEFAULT_PIC;
+  if(path){ const r = await sb.storage.from('marketing').createSignedUrl(path, 12 * 3600); if(r.data && r.data.signedUrl) url = r.data.signedUrl; }
+  thxPic = {path, url, png: null, jpg: null};
+  if(curTab === 'thanks') renderThanks();
+  // ready as a PNG before anyone presses the button: copying must happen in the same tap
+  const blob = await (await fetch(url)).blob();
+  const bmp = await createImageBitmap(blob), cv = document.createElement('canvas');
+  cv.width = bmp.width; cv.height = bmp.height; cv.getContext('2d').drawImage(bmp, 0, 0);
+  thxPic.png = await new Promise(r => cv.toBlob(r, 'image/png'));
+  thxPic.jpg = blob;
+}
+function copyPicture(){
+  if(!thxPic.png || !navigator.clipboard || !window.ClipboardItem) return Promise.reject(new Error('no copy'));
+  return navigator.clipboard.write([new ClipboardItem({'image/png': thxPic.png})]);
+}
+const picFile = () => { const b = thxPic.jpg || thxPic.png; return new File([b], 'natraj-jewels-thank-you.' + (b.type === 'image/png' ? 'png' : 'jpg'), {type: b.type}); };
+function showPicture(){
+  NJ.dialog({title: 'The thank-you picture', html: '<img class="thx-big" src="' + esc(thxPic.url) + '" alt="The thank-you picture">',
+    msg: 'If it did not paste in WhatsApp: on a phone, long-press the picture here and choose Copy (or Save), then paste or attach it in the chat.', ok: 'Close', cancel: null});
 }
 function renderThanks(){
   const day = todayIso(), isToday = true, ahead = false;
@@ -704,7 +739,11 @@ function renderThanks(){
   const list = buys.filter(b => custById(b.customer_id) && (b.visit_day === due || !b.thanked_at || iso(new Date(b.thanked_at)) === todayIso())).sort((a, b) => !!a.thanked_at - !!b.thanked_at || (a.visit_day < b.visit_day ? 1 : -1));
   const done = list.filter(b => b.thanked_at).length;
   const owner = NJ.me.is_owner, at = t => new Date(t).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'});
-  box.innerHTML = '<div class="thx-head"><div><p>' + (ahead ? 'Customers who bought on ' + esc(short(due)) + ': thank them on ' + esc(short(day)) + '.'
+  box.innerHTML = '<div class="thx-pic"><img src="' + esc(thxPic.url) + '" alt="The thank-you picture" data-picshow>' +
+      '<p><b>A thank-you picture goes with each message</b>Press Send thanks: WhatsApp opens with the message, and the picture is copied. In the chat, paste it (long-press › Paste, or Ctrl+V) and send.</p>' +
+      '<div class="bar"><button type="button" class="btn mini" data-piccopy>Copy picture</button>' +
+      (owner ? '<button type="button" class="btn mini" data-picset>Change picture</button>' + (thxPic.path ? '<button type="button" class="btn mini" data-picdefault>Use the standard picture</button>' : '') : '') + '</div></div>' +
+    '<div class="thx-head"><div><p>' + (ahead ? 'Customers who bought on ' + esc(short(due)) + ': thank them on ' + esc(short(day)) + '.'
       : 'Bought on ' + esc(short(due)) + ' (' + THX_AFTER + ' days ago)' + (isToday ? ', plus any from the week before still to thank' : '') + '. Choose the message language:') + '</p></div>' +
       (list.length ? '<div class="thx-lang" role="group" aria-label="Message language"><button type="button" class="bubble" data-tl="en" aria-pressed="' + (thxLang === 'en') + '">English</button><button type="button" class="bubble" data-tl="ta" aria-pressed="' + (thxLang === 'ta') + '">தமிழ்</button></div>' : '') + '</div>' +
     (list.length && !reviewLink ? '<div class="thx-warn">The Google review link is not added yet, so the message goes without it.' + (owner ? '<button type="button" class="btn mini" data-revset>Add the review link</button>' : ' Ask the owner to add it.') + '</div>' : '') +
@@ -733,7 +772,27 @@ $('thxBox').addEventListener('click', async e => {
   const l = e.target.closest('[data-tl]');
   if(l){ thxLang = l.dataset.tl; try{ localStorage.setItem('nj-thx-lang', thxLang); }catch(x){} return renderThanks(); }
   const s = e.target.closest('[data-thxsend]');
-  if(s){ const b = buys.find(x => x.id === s.dataset.thxsend); if(b && !b.thanked_at) markThanked(b.id, true).catch(x => toast(x.message)); return; }   // WhatsApp opens; the row is ticked
+  if(s){
+    const b = buys.find(x => x.id === s.dataset.thxsend);
+    const canCopy = thxPic.png && navigator.clipboard && window.ClipboardItem;
+    let file = null; try{ file = !canCopy && thxPic.png && navigator.canShare ? picFile() : null; }catch(x){}
+    if(!canCopy && file && navigator.canShare({files: [file]})){
+      // no copying pictures here: share the picture with the message, and staff choose the customer in WhatsApp
+      e.preventDefault();
+      try{ await navigator.share({files: [file], text: thxText(b)}); }catch(x){ return; }
+    } else {
+      copyPicture().then(() => toast('Picture copied. In the WhatsApp chat, paste it (long-press › Paste) and send.'), () => toast('The picture could not be copied. Press the picture above to save it.'));
+    }
+    if(b && !b.thanked_at) markThanked(b.id, true).catch(x => toast(x.message));   // the row is ticked
+    return;
+  }
+  if(e.target.closest('[data-picshow]')) return showPicture();
+  if(e.target.closest('[data-piccopy]')){ copyPicture().then(() => toast('Picture copied'), () => showPicture()); return; }
+  if(e.target.closest('[data-picdefault]')){
+    try{ must(await sb.from('settings').update({thanks_picture: ''}).eq('id', 1).select()); toast('The standard picture is back'); await loadPicture(''); renderThanks(); }catch(err){ toast(err.message); }
+    return;
+  }
+  if(e.target.closest('[data-picset]')){ $('thxFile').click(); return; }
   if(e.target.closest('[data-revset]')){
     const v = await NJ.dialog({title: 'Google review link', msg: 'On Google Maps, open the shop, tap “Share” or “Ask for reviews”, copy the link and paste it here.', ok: 'Save', fields: [{id: 'u', label: 'Review link', value: reviewLink, maxlength: 300, placeholder: 'https://g.page/r/…'}],
       validate: async v => !/^https?:\/\//i.test(v.u) ? 'The link should start with https://' : ''});
@@ -742,6 +801,22 @@ $('thxBox').addEventListener('click', async e => {
     return;
   }
   const c = e.target.closest('[data-cust]'); if(c) location.hash = 'c=' + encodeURIComponent(c.dataset.cust);
+});
+// the owner's own picture: made smaller on the phone (at most 1600 pixels across), kept in the marketing bucket under thanks/
+$('thxFile').addEventListener('change', async () => {
+  const f = $('thxFile').files[0]; $('thxFile').value = '';
+  if(!f) return;
+  try{
+    const bmp = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)), cv = document.createElement('canvas');
+    cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k); cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .88));
+    const path = 'thanks/' + Date.now() + '.jpg', old = thxPic.path;
+    const up = await sb.storage.from('marketing').upload(path, await blob.arrayBuffer(), {contentType: 'image/jpeg', upsert: false});
+    if(up.error) throw new Error(NJ.friendly(up.error));
+    must(await sb.from('settings').update({thanks_picture: path}).eq('id', 1).select());
+    if(old) sb.storage.from('marketing').remove([old]).catch(() => {});
+    toast('New thank-you picture saved'); await loadPicture(path); renderThanks();
+  }catch(err){ toast(err.message || 'The picture could not be saved.'); }
 });
 $('thxBox').addEventListener('change', async e => {
   const t = e.target.closest('[data-thx]'); if(!t) return;
