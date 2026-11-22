@@ -683,14 +683,14 @@ $('fuList').addEventListener('click', async e => {
 const THX_AFTER = 2;              // days after a purchase to send the thank-you
 let buys = [], reviewLink = null;  // purchases to thank; the shop's Google review link
 
-const THX = {en: 'Dear {name}, thank you for shopping at Natraj Jewels! We hope you love your {item}. 🙏',
-  ta: 'அன்புள்ள {name}, நடராஜ் ஜுவல்லர்ஸில் வாங்கியதற்கு நன்றி! உங்கள் {item} உங்களுக்குப் பிடிக்கும் என நம்புகிறோம். 🙏'};
-const THX_ITEM = {en: 'jewellery', ta: 'நகை'};
+// the message never names what they bought: just "your jewellery"
+const THX = {en: 'Dear {name}, thank you for shopping at Natraj Jewels! We hope you love your jewellery. 🙏',
+  ta: 'அன்புள்ள {name}, நடராஜ் ஜுவல்லர்ஸில் வாங்கியதற்கு நன்றி! உங்கள் நகை உங்களுக்குப் பிடிக்கும் என நம்புகிறோம். 🙏'};
 const THX_REVIEW = {en: 'If you were happy with us, please leave a short review on Google: ', ta: 'எங்கள் சேவை பிடித்திருந்தால், Google-ல் ஒரு சிறு மதிப்பாய்வு எழுதுங்கள்: '};
 let thxLang = (() => { try{ return localStorage.getItem('nj-thx-lang') || 'en'; }catch(e){ return 'en'; } })();
 const thxText = b => {
-  const c = custById(b.customer_id) || {}, item = thxLang === 'en' && b.looking_for ? b.looking_for.toLowerCase() : THX_ITEM[thxLang];
-  return THX[thxLang].replace('{name}', (c.name || '').split(' ')[0] || 'friend').replace('{item}', item) + (reviewLink ? '\n' + THX_REVIEW[thxLang] + reviewLink : '');
+  const c = custById(b.customer_id) || {};
+  return THX[thxLang].replace('{name}', (c.name || '').split(' ')[0] || 'friend') + (reviewLink ? '\n' + THX_REVIEW[thxLang] + reviewLink : '');
 };
 // purchases to thank today: bought two days ago, and any from the week before not thanked yet
 async function loadThanks(){
