@@ -81,11 +81,7 @@
 .slip td.r{text-align:right}
 .slip .it{margin:5px 0}
 .slip .it .nm{white-space:normal;word-break:break-word}
-.slip .dots td:last-child{border-bottom:1px dotted #000;width:62%}
-.slip .dots td{padding-top:7px}
 .slip .final td{font-weight:700;font-size:13px}
-.slip .lines td{padding-top:6px}
-.slip .lines td:last-child{width:62%;border-bottom:1px dotted #000}
 .slip .box{display:inline-block;width:10px;height:10px;border:1px solid #000;vertical-align:-1px;margin-right:4px}
 #slipHost{display:none}
 @media print{
@@ -351,9 +347,7 @@ function slipHtml(e){
     '<tr><td>Net.wt ' + f3(t.net) + '</td><td class="r">Total Amount ' + f2(t.total) + '</td></tr></table>';
   h += '<table style="margin-top:4px">' + tr('SGST Amt (1.5%)', f2(t.sgst)) + tr('CGST Amt (1.5%)', f2(t.cgst)) + '<tr><td></td><td class="r" style="border-top:1px dashed #000">' + f2(t.final) + '</td></tr></table>';
   h += '<div class="hr"></div><table>' + tr('FINAL AMOUNT', f2(t.final), 'final') + '</table><div class="hr"></div>';
-  h += '<table class="dots">' + ['Scheme', 'Cash', 'Card', 'OG/SR', 'Advance', 'RB/Due', 'Total'].map(l => '<tr><td>' + l + ' :</td><td></td></tr>').join('') + '</table>';
   h += '<div style="margin-top:8px">Time ' + esc(time) + '</div><div class="c" style="margin:4px 0;font-weight:700">*** VALID FOR ONE HOUR ONLY ***</div>';
-  h += '<table class="lines"><tr><td>Name :</td><td>' + esc(e.customer_name) + '</td></tr><tr><td>Address :</td><td></td></tr><tr><td>Address2 :</td><td></td></tr><tr><td>Address3 :</td><td></td></tr><tr><td>Contact No :</td><td>' + esc(e.phone) + '</td></tr></table>';
   h += '<div style="margin-top:8px"><span class="box"></span>Old Customer &nbsp; <span class="box"></span>New Customer</div>';
   h += '<div class="c" style="margin-top:6px">[ Branch : TIRUPPUR ]</div><div class="c">Export Quality 91.6 HallMark Jewellery</div>';
   return h;
