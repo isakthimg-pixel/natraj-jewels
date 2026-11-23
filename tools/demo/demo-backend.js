@@ -4,8 +4,8 @@
 (function(){
 'use strict';
 const BASE = 'https://uottxgpjgakinqprexsp.supabase.co';
-const KEY = 'natraj-demo-db-v51';
-const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'wishes', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
+const KEY = 'natraj-demo-db-v52';
+const APPS = ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'wishes', 'estimates', 'designs', 'chits', 'silver', 'campaigns', 'jobs'];
 const pad = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 // migration 029: staff add, change and remove only entries dated today or yesterday
@@ -20,10 +20,10 @@ function seed(){
   const staff = [['Sample Staff 1', 'Manager'], ['Sample Staff 2', 'Sales'], ['Sample Staff 3', 'Sales'], ['Sample Staff 4', 'Goldsmith']]
     .map(([name, designation]) => ({id: uid(), name, designation, phone: '', joined: null, active: true, created_at: now()}));
   const owner = {user_id: uid(), name: 'Owner', username: 'owner', is_owner: true, apps: APPS, staff_id: null, created_at: now()};
-  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'wishes', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
+  const manager = {user_id: uid(), name: 'Sample Manager', username: 'sample-manager', is_owner: false, apps: ['attendance', 'rates', 'todo', 'expenses', 'banking', 'crm', 'wishes', 'estimates', 'designs', 'chits', 'silver', 'campaigns', 'jobs'], staff_id: staff[0].id, created_at: now()};
   const worker = {user_id: uid(), name: 'Sample Staff 2', username: 'sample-staff-2', is_owner: false, apps: [], staff_id: staff[1].id, created_at: now()};
   const db = {
-    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, mjdta_auto: true, thanks_picture: '', review_link: 'https://g.page/r/natraj-jewels-demo/review', silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [], wish_list: [], rate_feed: [{id: 1, source: 'MJDTA', fetched_at: now(), update_text: '', gold_22k: null, gold_18k: null, gold_14k: null, silver: null, ok: true, error: '', auto_at: new Date(Date.now() - 12 * 60e3).toISOString(), auto_result: 'No change at MJDTA.', applied_key: ''}], campaign_posts: [], marketing_dates: [],
+    staff, profiles: [owner, manager, worker], settings: [{id: 1, weekly_off: 0, rate_due: '10:30:00', expense_categories: ['Salary & wages', 'Rent', 'Electricity', 'Tea & snacks', 'Staff food', 'Transport & petrol', 'Packing & boxes', 'Repairs & maintenance', 'Hallmarking', 'Stationery & printing', 'Advertising', 'Pooja & festival', 'Bank charges', 'Insurance', 'Other'], device_lock: false, mjdta_auto: true, thanks_picture: '', estimate_va: 12, review_link: 'https://g.page/r/natraj-jewels-demo/review', silver_items: ['Anklet', 'Toe ring', 'Chain', 'Bangle', 'Bracelet', 'Ring', 'Kumkum bowl', 'Plate', 'Glass', 'Lamp (vilakku)', 'Pooja set', 'Idol', 'Kids items', 'Coin', 'Bar', 'Old silver'], job_services: ['Polish', 'Soldering', 'Size change', 'Stone setting', 'Rhodium / plating', 'Hook / clasp', 'Cleaning', 'Chain repair', 'Screw / pin', 'Enamel']}], attendance: [], leave_requests: [], rates: [], tasks: [], expenses: [], notifications: [], bank_accounts: [], bank_entries: [], customers: [], customer_activity: [], user_prefs: [], designs: [], photos: {}, chit_plans: [], chit_members: [], chit_payments: [], chitSeq: {card: 1001, receipt: 1}, presence: [], silver_entries: [], report_cards: [], campaigns: [], campaign_contacts: [], campaign_costs: [], approved_devices: [], change_requests: [], jobs: [], entry_queries: [], occasion_done: [], wish_list: [], estimates: [], estSeq: 1, rate_feed: [{id: 1, source: 'MJDTA', fetched_at: now(), update_text: '', gold_22k: null, gold_18k: null, gold_14k: null, silver: null, ok: true, error: '', auto_at: new Date(Date.now() - 12 * 60e3).toISOString(), auto_result: 'No change at MJDTA.', applied_key: ''}], campaign_posts: [], marketing_dates: [],
     users: {owner: {id: owner.user_id, pin: '111111', recovery: 'DEMO-2026'}, 'sample-manager': {id: manager.user_id, pin: '222222'}, 'sample-staff-2': {id: worker.user_id, pin: '333333'}},
     tokens: {}
   };
@@ -839,6 +839,7 @@ function rest(method, table, params, body, headers, me){
     tasks: {read: true, write: method === 'PATCH' || canUse(me, 'todo')}, change_requests: {read: true, write: false}, entry_queries: {read: true, write: false},
     occasion_done: {read: canUse(me, 'wishes'), write: canUse(me, 'wishes')},
     rate_feed: {read: true, write: false},
+    estimates: {read: canUse(me, 'estimates'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'estimates')},
     wish_list: {read: canUse(me, 'wishes'), write: method === 'DELETE' ? me.is_owner : canUse(me, 'wishes')}
   }[table];
   if(!rule) return {status: 404, body: {message: 'Unknown table'}};
@@ -880,6 +881,21 @@ function rest(method, table, params, body, headers, me){
     else if(method === 'DELETE') db.occasion_done = db.occasion_done.filter(r => !out.includes(r));
     if(method !== 'GET' && !wantRows) return {status: 204, body: null};
     return {status: 200, body: out.map(r => Object.assign({}, r))};
+  }
+  if(table === 'estimates'){   // numbered in order; who and when stamped, like migration 059
+    db.estimates = db.estimates || []; db.estSeq = db.estSeq || 1;
+    let out = db.estimates.filter(r => matches(r, params));
+    if(method === 'GET') out = sortBy(out.slice(), params.get('order'));
+    else if(method === 'POST'){
+      out = (Array.isArray(body) ? body : [body]).map(b => Object.assign({id: uid(), customer_name: '', phone: '', served_by: '', items: [], total: 0, sgst: 0, cgst: 0, final: 0, note: ''}, b,
+        {est_no: db.estSeq++, made_at: new Date().toISOString(), created_by: me.user_id, created_by_name: me.name}));
+      db.estimates.push(...out);
+    } else if(method === 'PATCH'){
+      out = out.filter(r => me.is_owner || r.created_by === me.user_id);
+      out.forEach(r => Object.assign(r, body, {id: r.id, est_no: r.est_no, made_at: r.made_at, created_by: r.created_by, created_by_name: r.created_by_name}));
+    } else if(method === 'DELETE') db.estimates = db.estimates.filter(r => !out.includes(r));
+    if(method !== 'GET' && !wantRows) return {status: 204, body: null};
+    return {status: 200, body: single ? (out[0] ? JSON.parse(JSON.stringify(out[0])) : null) : out.map(r => JSON.parse(JSON.stringify(r)))};
   }
   if(table === 'wish_list'){
     const nowIso = new Date().toISOString();

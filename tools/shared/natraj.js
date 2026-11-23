@@ -18,6 +18,7 @@ const APPS = {
   banking: {name: 'Banking', path: 'banking/', desc: 'Deposits, withdrawals and transfers for each bank account, with statements and balances.'},
   crm: {name: 'Customers', path: 'crm/', desc: 'Customers entered on the form: their visits, follow-ups to call back, and a thank-you after they buy.'},
   wishes: {name: 'Birthday & anniversary wishes', path: 'wishes/', desc: 'Today’s birthdays and anniversaries to wish, from the shop’s birthday list and the customers entered on the form.', short: 'Wishes'},
+  estimates: {name: 'Sales estimate', path: 'estimates/', desc: 'Make a sales estimate at the counter with today’s rate: weight, V.A, GST. Print the slip or send it on WhatsApp.', short: 'Estimates'},
   designs: {name: 'Design library', path: 'designs/', desc: 'What customers asked for and what to restock, with photos: order it, track it, tell the customer when it arrives.', short: 'Designs'},
   chits: {name: 'Chit scheme', path: 'chits/', desc: 'Monthly savings plans: members, payments with receipts, who is behind, and who is ready to redeem.', short: 'Chits'},
   silver: {name: 'Silver sales & purchase', path: 'silver/', desc: 'Silver sold and bought: weight, touch, rate and amount, with a day book and monthly totals.', short: 'Silver'},
@@ -40,6 +41,7 @@ const ICONS = {
   designs: '<path d="M6.5 4h11l3.5 5-9 11L3 9z"/><path d="M3 9h18M9.5 4 8 9l4 11 4-11-1.5-5"/>',
   campaigns: '<path d="M3.5 10v4a1 1 0 0 0 1 1H7l6 4V5L7 9H4.5a1 1 0 0 0-1 1z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',
   wishes: '<rect x="4" y="11" width="16" height="9.5" rx="1.5"/><path d="M4 15c2 0 2-1.4 4-1.4s2 1.4 4 1.4 2-1.4 4-1.4 2 1.4 4 1.4"/><path d="M12 11V7.5"/><path d="M12 3.5c1 1.1 1 2.3 0 3-1-.7-1-1.9 0-3z"/>',
+  estimates: '<rect x="5" y="2.8" width="14" height="18.4" rx="2"/><path d="M8.5 6.5h7v3h-7z"/><path d="M8.7 13h.01M12 13h.01M15.3 13h.01M8.7 16.5h.01M12 16.5h.01M15.3 16.5h.01" stroke-width="2.2" stroke-linecap="round"/>',
   jobs: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2l-5.6 5.6a1.6 1.6 0 0 0 2.2 2.2l5.6-5.6a4 4 0 0 0 5.2-5.4l-2.4 2.4-2-.4-.4-2z"/>',
   silver: '<path d="M4 15h16l-2 5H6z"/><path d="M7 15l1.5-5h7L17 15M10 10l.8-3h2.4l.8 3"/>',
   chits: '<ellipse cx="12" cy="6.5" rx="7" ry="2.5"/><path d="M5 6.5v4c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-4M5 10.5v4c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-4M5 14.5v3c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-3"/>',
@@ -667,7 +669,7 @@ function matchExpenses(expenses, bank, from, to){
   return {matched, missing, waiting, noAccount, extra};
 }
 
-const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs', 'change_requests', 'jobs', 'entry_queries', 'occasion_done', 'wish_list', 'campaign_posts', 'marketing_dates'];
+const TABLES = ['staff', 'profiles', 'settings', 'attendance', 'leave_requests', 'rates', 'tasks', 'expenses', 'bank_accounts', 'bank_entries', 'customers', 'customer_activity', 'designs', 'chit_plans', 'chit_members', 'chit_payments', 'silver_entries', 'report_cards', 'campaigns', 'campaign_contacts', 'campaign_costs', 'change_requests', 'jobs', 'entry_queries', 'occasion_done', 'wish_list', 'estimates', 'campaign_posts', 'marketing_dates'];
 // every row of a query, 1000 at a time (the server sends at most 1000 rows per request).
 // make(): a fresh query each time, e.g. () => sb.from('customers').select('*').order('name').order('id')
 async function selectAll(make){
