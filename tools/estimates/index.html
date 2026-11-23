@@ -71,6 +71,18 @@
 .erow .amt{text-align:right;font:700 1.05rem/1.2 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
 .erow .amt small{display:block;font:500 .75rem var(--body);color:var(--muted)}
 .more{padding:14px 18px;color:var(--muted);font-size:.88rem}
+/* by day */
+.tally em{font-style:normal;font-size:.82rem;color:var(--muted)}
+.drow{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:4px 16px;padding:12px 18px;align-items:center;border-top:1px solid var(--line)}
+.drow:first-child{border-top:0}
+.drow .d{font-weight:600;color:var(--ink)}
+.drow .d small{display:block;font-weight:500;font-size:.78rem;color:var(--muted)}
+.drow .bar{height:12px;border-radius:0 3px 3px 0;background:var(--maroon);min-width:2px}
+.drow .who{font-size:.8rem;color:var(--muted);margin-top:4px}
+.drow .n{text-align:right;font:700 1.2rem/1.1 var(--display);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.drow .n small{display:block;font:500 .76rem var(--body);color:var(--muted)}
+.drow.zero .d,.drow.zero .n{color:var(--muted);font-weight:500}
+@media (max-width:560px){.drow{grid-template-columns:90px minmax(0,1fr) auto}}
 
 /* the printed slip: the counter's 80 mm receipt printer */
 .slipwrap{display:flex;justify-content:center}
@@ -108,6 +120,7 @@
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="new" aria-selected="true">New estimate</button>
       <button role="tab" data-tab="list" aria-selected="false">Estimates</button>
+      <button role="tab" data-tab="days" aria-selected="false">By day</button>
     </nav>
   </div>
 </header>
@@ -149,6 +162,17 @@
           <button class="btn" type="button" id="eNew">Start a new estimate</button>
         </div>
       </aside>
+    </div>
+  </section>
+
+  <!-- BY DAY -->
+  <section id="tab-days" hidden>
+    <div class="band"><div class="wrap">
+      <div class="heading"><span class="eyebrow">How many</span><h2>Estimates by day</h2></div>
+      <div class="tally t4" id="dTally"></div>
+    </div></div>
+    <div class="wrap content">
+      <div class="ledger" id="dList"><div class="loading">Loading…</div></div>
     </div>
   </section>
 
@@ -524,13 +548,39 @@ $('vaSet').onclick = async () => {
   try{ must(await sb.from('settings').update({estimate_va: r2(num(v.va))}).eq('id', 1).select()); vaDefault = r2(num(v.va)); toast('Usual V.A is now ' + vaDefault + '%'); }catch(x){ toast(x.message); }
 };
 
+/* ---------- by day: how many estimates each day, the last 30 days ---------- */
+async function loadDays(){
+  const from = new Date(); from.setHours(0, 0, 0, 0); from.setDate(from.getDate() - 29);
+  const rows = await NJ.selectAll(() => sb.from('estimates').select('id, made_at, final, created_by_name, served_by').gte('made_at', from.toISOString()).order('made_at').order('id'));
+  const key = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const days = new Map();
+  for(let i = 0; i < 30; i++){ const d = new Date(); d.setDate(d.getDate() - i); days.set(key(d), []); }
+  rows.forEach(r => { const k = key(r.made_at); if(days.has(k)) days.get(k).push(r); });
+  const today = key(new Date()), y = new Date(); y.setDate(y.getDate() - 1);
+  const month = key(new Date()).slice(0, 7), inMonth = rows.filter(r => key(r.made_at).startsWith(month));
+  const sumOf = l => l.reduce((a, r) => a + Number(r.final), 0);
+  const tile = (l, label, sub) => '<div><b>' + l.length + '</b><span>' + label + '</span>' + (l.length ? '<em>' + esc(inr(sumOf(l)).replace(/\.\d\d$/, '')) + '</em>' : '') + '</div>';
+  $('dTally').innerHTML = tile(days.get(today), 'Today') + tile(days.get(key(y)), 'Yesterday') + tile(inMonth, 'This month') + tile(rows, 'Last 30 days');
+  const most = Math.max(1, ...[...days.values()].map(l => l.length));
+  // who made them: the staff on the estimate, or else who saved it
+  const whoOf = l => { const m = new Map(); l.forEach(r => (r.served_by ? r.served_by.split(',').map(x => x.trim()) : [r.created_by_name || 'someone']).forEach(n => m.set(n, (m.get(n) || 0) + 1))); return [...m].sort((a, b) => b[1] - a[1]).map(([n, c]) => n + ': ' + c).join(' · '); };
+  $('dList').innerHTML = [...days].map(([k, l]) => {
+    const d = new Date(k + 'T00:00:00');
+    return '<div class="drow' + (l.length ? '' : ' zero') + '"><div class="d">' + (k === today ? 'Today' : k === key(y) ? 'Yesterday' : esc(d.toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'}))) +
+      (k === today || k === key(y) ? '<small>' + esc(d.toLocaleDateString('en-IN', {weekday: 'short', day: 'numeric', month: 'short'})) + '</small>' : '') + '</div>' +
+      '<div><div class="bar" style="width:' + (l.length / most * 100).toFixed(1) + '%' + (l.length ? '' : ';background:var(--line)') + '"></div>' + (l.length ? '<div class="who">' + esc(whoOf(l)) + '</div>' : '') + '</div>' +
+      '<div class="n">' + l.length + '<small>' + (l.length ? esc(inr(sumOf(l)).replace(/\.\d\d$/, '')) : 'none') + '</small></div></div>';
+  }).join('');
+}
+
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.tab === 'new' ? '' : b.dataset.tab; route(); }));
 function route(keep){
-  curTab = location.hash.slice(1) === 'list' ? 'list' : 'new';
+  curTab = ['list', 'days'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'new';
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === curTab));
-  $('tab-new').hidden = curTab !== 'new'; $('tab-list').hidden = curTab !== 'list';
+  ['new', 'list', 'days'].forEach(t => $('tab-' + t).hidden = t !== curTab);
   if(curTab === 'list') loadList().catch(e => toast(e.message));
+  if(curTab === 'days') loadDays().catch(e => toast(e.message));
 }
 window.addEventListener('hashchange', () => route());
 
