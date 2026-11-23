@@ -74,7 +74,6 @@
 .slipwrap{display:flex;justify-content:center}
 .slip{width:72mm;background:#fff;color:#000;font:12px/1.35 "Courier New",Courier,monospace;padding:4mm 3mm;box-shadow:0 2px 14px rgba(0,0,0,.12)}
 .slip .c{text-align:center}
-.slip .shop{font-weight:700;font-size:15px;letter-spacing:.08em}
 .slip .ttl{font-weight:700;margin:2px 0 4px}
 .slip .hr{border-top:1px dashed #000;margin:5px 0}
 .slip table{width:100%;border-collapse:collapse}
@@ -334,7 +333,7 @@ const dmyLong = d => { const x = new Date(d); return String(x.getDate()).padStar
 function slipHtml(e){
   const rs = estRates(e), t = totals(e.items, rs), time = new Date(e.made_at).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'}).replace(/\s/g, '').toUpperCase();
   const tr = (a, b, cls) => '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td>' + a + '</td><td class="r">' + b + '</td></tr>';
-  let h = '<div class="c shop">NATRAJ JEWELS</div><div class="c" style="font-size:10px">24, Eswaran Kovil St, Tiruppur</div><div class="c ttl">SALES ESTIMATE</div>';
+  let h = '<div class="c ttl">SALES ESTIMATE</div>';
   h += '<table><tr><td>Date : ' + esc(dmyLong(e.made_at)) + '</td><td class="r">Est.No : ' + e.est_no + '</td></tr></table>' +
     '<table><tr><td style="width:13ch">Gold Rate</td><td>: ' + (rs.gold_22k != null ? f2(rs.gold_22k) : '-') + '</td></tr>' +
     (e.items.some(i => i.metal === '18k') && rs.gold_18k != null ? '<tr><td>18K Rate</td><td>: ' + f2(rs.gold_18k) + '</td></tr>' : '') +
