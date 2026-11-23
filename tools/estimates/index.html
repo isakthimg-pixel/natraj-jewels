@@ -57,6 +57,8 @@
 .btn-wa{background:#0E7A6C;border-color:#0E7A6C;color:#FFFFFF}
 .btn-wa:hover{background:#0B6358;border-color:#0B6358}
 .saved{font-size:.88rem;color:var(--p);font-weight:600}
+.prnline{margin:-2px 0 2px;font-size:.8rem;color:var(--muted);text-align:center}
+.prnline button{font-size:.8rem}
 
 /* list */
 .search{flex:1 1 240px;max-width:420px;height:42px}
@@ -141,6 +143,7 @@
         <p class="saved" id="eSaved" hidden></p>
         <div class="actions">
           <button class="btn btn-maroon" type="button" id="ePrint">Save and print</button>
+          <p class="prnline" id="prnLine"></p>
           <button class="btn btn-wa" type="button" id="eWa">Send on WhatsApp</button>
           <button class="btn" type="button" id="ePreview">See the slip</button>
           <button class="btn" type="button" id="eNew">Start a new estimate</button>
@@ -359,10 +362,111 @@ function waText(e){
     lines.join('\n') + '\n\nAmount ' + inr(t.total) + '\nGST 3% ' + inr(r2(t.sgst + t.cgst)) + '\n*Final amount ' + inr(t.final) + '*\n\nValid for one hour only. The final price is as per the rate on the day of purchase.';
 }
 function showSlip(e){ $('slip').innerHTML = slipHtml(e); }
+/* ---------- printing: the wired printer (the print window) or a Bluetooth receipt printer ----------
+   Each phone or computer remembers its printer and paper width. A Bluetooth printer gets the estimate as plain receipt
+   text with ESC/POS commands, sent straight from the page (Chrome on Android and computers), or through the RawBT app. */
+const store = {get: k => { try{ return localStorage.getItem(k); }catch(x){ return null; } }, set: (k, v) => { try{ localStorage.setItem(k, v); }catch(x){} }};
+let prn = {how: store.get('nj-est-printer') || '', paper: store.get('nj-est-paper') || '80'};
+const PRN_NAMES = {system: 'Wired or computer printer', bt: 'Bluetooth printer', rawbt: 'Bluetooth through the RawBT app'};
+const canBt = !!(navigator.bluetooth && navigator.bluetooth.requestDevice);
+function paintPrn(){
+  $('prnLine').innerHTML = prn.how ? 'Printer: ' + esc(PRN_NAMES[prn.how]) + (prn.how === 'system' ? '' : ', ' + prn.paper + ' mm') + (bt.dev && bt.dev.gatt.connected ? ' (' + esc(bt.dev.name || 'connected') + ')' : '') + ' · <button type="button" class="linkish" id="prnChange">Change</button>'
+    : 'Printer: not chosen yet on this device · <button type="button" class="linkish" id="prnChange">Choose</button>';
+}
+async function choosePrinter(){
+  const v = await dialog({title: 'Which printer?', ok: 'Save',
+    msg: 'This phone or computer remembers it. The wired printer (or any printer set up on this computer) prints through the print window. A Bluetooth receipt printer is sent the estimate directly' + (canBt ? '.' : ': this browser cannot do that, so use Chrome, or the RawBT app on Android.'),
+    fields: [
+      {id: 'how', label: 'Printer', type: 'select', value: prn.how || 'system', options: [['system', PRN_NAMES.system], ['bt', PRN_NAMES.bt + (canBt ? '' : ' (needs Chrome)')], ['rawbt', PRN_NAMES.rawbt]]},
+      {id: 'paper', label: 'Bluetooth paper width', type: 'select', value: prn.paper, options: [['80', '80 mm (3 inch)'], ['58', '58 mm (2 inch)']]}
+    ]});
+  if(!v) return false;
+  prn = {how: v.how, paper: v.paper}; store.set('nj-est-printer', v.how); store.set('nj-est-paper', v.paper);
+  if(v.how !== 'bt' && bt.dev){ try{ bt.dev.gatt.disconnect(); }catch(x){} bt = {}; }
+  paintPrn(); return true;
+}
+document.addEventListener('click', e => { if(e.target.closest('#prnChange')) choosePrinter(); });
+
+// the estimate as receipt text: 48 characters a line on 80 mm paper, 32 on 58 mm
+function slipText(e, W){
+  const rs = estRates(e), t = totals(e.items, rs), out = [];
+  const ascii = x => String(x).normalize('NFKD').replace(/[^\x20-\x7E]/g, '');
+  const L = (a, b) => { a = ascii(a); b = ascii(b == null ? '' : b); const gap = W - a.length - b.length; return gap >= 1 ? a + ' '.repeat(gap) + b : [a, ' '.repeat(Math.max(0, W - b.length)) + b].join('\n'); };
+  const C = x => { x = ascii(x); return ' '.repeat(Math.max(0, Math.floor((W - x.length) / 2))) + x; };
+  const wrap = x => { x = ascii(x); const r = []; while(x.length > W){ let k = x.lastIndexOf(' ', W); if(k < W / 2) k = W; r.push(x.slice(0, k)); x = x.slice(k).trim(); } r.push(x); return r.join('\n'); };
+  const hr = '-'.repeat(W);
+  out.push({b: 1, t: C('SALES ESTIMATE')});
+  out.push({t: L('Date : ' + dmyLong(e.made_at), 'Est.No : ' + e.est_no)});
+  out.push({t: 'Gold Rate   : ' + (rs.gold_22k != null ? f2(rs.gold_22k) : '-')});
+  if(e.items.some(i => i.metal === '18k') && rs.gold_18k != null) out.push({t: '18K Rate    : ' + f2(rs.gold_18k)});
+  out.push({t: 'Silver Rate : ' + (rs.silver != null ? f2(rs.silver) : '-')});
+  out.push({t: hr}, {t: 'Product Name / TagNo'}, {t: L('   Grs.Wt     V.A', 'Amount')}, {t: hr});
+  e.items.forEach((it, k) => {
+    const c = t.cs[k];
+    out.push({t: wrap((it.name || metalLabel(it.metal)).toUpperCase() + (it.tag ? ' - [' + it.tag + ']' : '') + ' (Pcs- ' + it.pcs + ')' + (it.metal !== '22k' ? ' ' + metalLabel(it.metal) : ''))});
+    out.push({t: L(W < 40 ? f3(c.gross) + ' (' + f2(c.va) + '%) ' + f2(c.vaAmt) : '  ' + f3(c.gross) + '  (' + f2(c.va) + '%) ' + f2(c.vaAmt), f2(c.amount))});
+    if(c.less) out.push({t: '  Less wt ' + f3(c.less) + '  Net ' + f3(c.net)});
+    if(c.extra) out.push({t: L('  Stone/Other', f2(c.extra))});
+  });
+  if(e.served_by) out.push({t: wrap('Staff : ' + e.served_by)});
+  out.push({t: hr}, {t: L('Grs.wt ' + f3(t.gross), 'Amount ' + f2(t.total))}, {t: L('Net.wt ' + f3(t.net), (W < 40 ? 'Total ' : 'Total Amount ') + f2(t.total))});
+  out.push({t: L('SGST Amt (1.5%)', f2(t.sgst))}, {t: L('CGST Amt (1.5%)', f2(t.cgst))}, {t: L('', '-'.repeat(12))}, {t: L('', f2(t.final))});
+  out.push({t: hr}, {b: 1, t: L('FINAL AMOUNT', f2(t.final))}, {t: hr});
+  out.push({t: 'Time ' + new Date(e.made_at).toLocaleTimeString('en-IN', {hour: 'numeric', minute: '2-digit'}).replace(/\s/g, '').toUpperCase()});
+  out.push({b: 1, t: C('*** VALID FOR ONE HOUR ONLY ***')}, {t: ''}, {t: W >= 40 ? '[ ] Old Customer      [ ] New Customer' : '[ ] Old Customer\n[ ] New Customer'});
+  out.push({t: C('[ Branch : TIRUPPUR ]')}, {t: wrap(W >= 38 ? C('Export Quality 91.6 HallMark Jewellery') : 'Export Quality 91.6 HallMark Jewellery')});
+  return out;
+}
+// ESC/POS: start, bold on and off, feed and cut
+function escpos(lines){
+  const bytes = [0x1B, 0x40, 0x1B, 0x74, 0x00];
+  const put = s => { for(const ch of s) bytes.push(ch.charCodeAt(0) & 0x7F); };
+  lines.forEach(l => { if(l.b) bytes.push(0x1B, 0x45, 1); l.t.split('\n').forEach(x => { put(x); bytes.push(0x0A); }); if(l.b) bytes.push(0x1B, 0x45, 0); });
+  bytes.push(0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x42, 0x00);
+  return new Uint8Array(bytes);
+}
+// Bluetooth (Web Bluetooth): the usual receipt-printer services; the first characteristic that can be written to
+const BT_SERVICES = ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+  '0000ff00-0000-1000-8000-00805f9b34fb', '0000ffe0-0000-1000-8000-00805f9b34fb', '0000fee7-0000-1000-8000-00805f9b34fb', '0000af30-0000-1000-8000-00805f9b34fb', '0000ae30-0000-1000-8000-00805f9b34fb'];
+let bt = {};
+async function btConnect(){
+  if(bt.ch && bt.dev && bt.dev.gatt.connected) return;
+  if(!bt.dev) bt.dev = await navigator.bluetooth.requestDevice({acceptAllDevices: true, optionalServices: BT_SERVICES});
+  bt.dev.addEventListener('gattserverdisconnected', () => { bt.ch = null; paintPrn(); }, {once: true});
+  const server = await bt.dev.gatt.connect();
+  for(const svc of await server.getPrimaryServices()){
+    for(const ch of await svc.getCharacteristics()){
+      if(ch.properties.writeWithoutResponse || ch.properties.write){ bt.ch = ch; paintPrn(); return; }
+    }
+  }
+  throw new Error('This Bluetooth device does not take printing. Choose the receipt printer.');
+}
+async function btSend(data){
+  for(let i = 0; i < data.length; i += 180){
+    const part = data.slice(i, i + 180);
+    if(bt.ch.properties.writeWithoutResponse) await bt.ch.writeValueWithoutResponse(part); else await bt.ch.writeValue(part);
+    await new Promise(r => setTimeout(r, 25));   // small printers need a moment between parts
+  }
+}
+const b64 = u8 => { let s = ''; u8.forEach(x => { s += String.fromCharCode(x); }); return btoa(s); };
+
 $('ePrint').onclick = async () => {
+  if(!prn.how && !(await choosePrinter())) return;
   const b = $('ePrint'); b.setAttribute('aria-busy', 'true');
-  try{ const e = await save(); showSlip(e); setTimeout(() => { window.print(); }, 60); toast('Estimate ' + e.est_no + ' saved'); }
-  catch(x){ if(!$('eErr').textContent) toast(x.message); }
+  try{
+    if(prn.how === 'bt'){
+      if(!canBt) throw new Error('This browser cannot reach a Bluetooth printer. Open this page in Chrome, or choose the RawBT app under Printer.');
+      await btConnect();     // in the same tap: picking the printer needs it
+    }
+    const e = await save();
+    toast('Estimate ' + e.est_no + ' saved');
+    if(prn.how === 'bt'){ await btSend(escpos(slipText(e, prn.paper === '58' ? 32 : 48))); toast('Sent to ' + (bt.dev.name || 'the printer')); }
+    else if(prn.how === 'rawbt') location.href = 'rawbt:base64,' + b64(escpos(slipText(e, prn.paper === '58' ? 32 : 48)));
+    else { showSlip(e); setTimeout(() => { window.print(); }, 60); }
+  }catch(x){
+    if(x && x.name === 'NotFoundError') toast('No printer chosen.');
+    else if(!$('eErr').textContent) toast(x.message || 'Could not print.');
+  }
   b.removeAttribute('aria-busy');
 };
 $('ePreview').onclick = async () => {
@@ -434,6 +538,7 @@ NJ.start({onReady: async me => {
   const ok = !!me && NJ.canUse('estimates');
   document.body.classList.toggle('no-access', !!me && !ok);
   if(!ok) return;
+  paintPrn();
   try{ await loadRate(); await loadStaff(); newEstimate(); route(); }catch(e){ toast(e.message); }
 }});
 })();
