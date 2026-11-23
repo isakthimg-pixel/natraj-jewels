@@ -86,17 +86,17 @@
 
 /* the printed slip: the counter's 80 mm receipt printer */
 .slipwrap{display:flex;justify-content:center}
-.slip{width:72mm;background:#fff;color:#000;font:12px/1.35 "Courier New",Courier,monospace;padding:4mm 3mm;box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.slip{width:72mm;background:#fff;color:#000;font:700 13px/1.45 Arial,"Helvetica Neue",Helvetica,"Liberation Sans",sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:4mm 3mm;box-shadow:0 2px 14px rgba(0,0,0,.12)}
 .slip .c{text-align:center}
-.slip .ttl{font-weight:700;margin:2px 0 4px}
-.slip .hr{border-top:1px dashed #000;margin:5px 0}
+.slip .ttl{font-weight:900;font-size:16px;margin:2px 0 4px;letter-spacing:.04em}
+.slip .hr{border-top:2px dashed #000;margin:6px 0}
 .slip table{width:100%;border-collapse:collapse}
 .slip td{padding:0;vertical-align:top;white-space:nowrap}
 .slip td.r{text-align:right}
 .slip .it{margin:5px 0}
 .slip .it .nm{white-space:normal;word-break:break-word}
-.slip .final td{font-weight:700;font-size:13px}
-.slip .box{display:inline-block;width:10px;height:10px;border:1px solid #000;vertical-align:-1px;margin-right:4px}
+.slip .final td{font-weight:900;font-size:17px}
+.slip .box{display:inline-block;width:11px;height:11px;border:2px solid #000;vertical-align:-1px;margin-right:4px}
 #slipHost{display:none}
 @media print{
   @page{size:80mm auto;margin:2mm}
@@ -372,7 +372,7 @@ function slipHtml(e){
   if(e.served_by) h += '<div style="margin-top:6px">Staff : ' + esc(e.served_by) + '</div>';
   h += '<div class="hr"></div><table><tr><td>Grs.wt ' + f3(t.gross) + '</td><td class="r">Amount ' + f2(t.total) + '</td></tr>' +
     '<tr><td>Net.wt ' + f3(t.net) + '</td><td class="r">Total Amount ' + f2(t.total) + '</td></tr></table>';
-  h += '<table style="margin-top:4px">' + tr('SGST Amt (1.5%)', f2(t.sgst)) + tr('CGST Amt (1.5%)', f2(t.cgst)) + '<tr><td></td><td class="r" style="border-top:1px dashed #000">' + f2(t.final) + '</td></tr></table>';
+  h += '<table style="margin-top:4px">' + tr('SGST Amt (1.5%)', f2(t.sgst)) + tr('CGST Amt (1.5%)', f2(t.cgst)) + '<tr><td></td><td class="r" style="border-top:2px dashed #000">' + f2(t.final) + '</td></tr></table>';
   h += '<div class="hr"></div><table>' + tr('FINAL AMOUNT', f2(t.final), 'final') + '</table><div class="hr"></div>';
   h += '<div style="margin-top:8px">Time ' + esc(time) + '</div><div class="c" style="margin:4px 0;font-weight:700">*** VALID FOR ONE HOUR ONLY ***</div>';
   h += '<div style="margin-top:8px"><span class="box"></span>Old Customer &nbsp; <span class="box"></span>New Customer</div>';
@@ -443,9 +443,9 @@ function slipText(e, W){
 }
 // ESC/POS: start, bold on and off, feed and cut
 function escpos(lines){
-  const bytes = [0x1B, 0x40, 0x1B, 0x74, 0x00];
+  const bytes = [0x1B, 0x40, 0x1B, 0x74, 0x00, 0x1B, 0x45, 1, 0x1B, 0x47, 1];   // start, then bold and double-strike for every line
   const put = s => { for(const ch of s) bytes.push(ch.charCodeAt(0) & 0x7F); };
-  lines.forEach(l => { if(l.b) bytes.push(0x1B, 0x45, 1); l.t.split('\n').forEach(x => { put(x); bytes.push(0x0A); }); if(l.b) bytes.push(0x1B, 0x45, 0); });
+  lines.forEach(l => { if(l.b) bytes.push(0x1D, 0x21, 0x01); l.t.split('\n').forEach(x => { put(x); bytes.push(0x0A); }); if(l.b) bytes.push(0x1D, 0x21, 0x00); });   // the marked lines twice as tall
   bytes.push(0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x42, 0x00);
   return new Uint8Array(bytes);
 }
